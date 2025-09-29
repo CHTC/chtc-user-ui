@@ -7,10 +7,11 @@
     "build": "next build",
     "postbuild": "next-image-export-optimizer && next-sitemap",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "analyze": "ANALYZE=true next build"
   },
   "dependencies": {
-    "@chtc/web-components": "^0.0.0-51",
+    "@chtc/web-components": "^1.0.10",
     "@emotion/cache": "^11.14.0",
     "@emotion/react": "^11.14.0",
     "@emotion/styled": "^11.14.1",
@@ -19,6 +20,7 @@
     "@mui/icons-material": "^7.3.1",
     "@mui/material": "^7.3.1",
     "@mui/material-nextjs": "^7.3.0",
+    "@next/bundle-analyzer": "^15.5.3",
     "@next/mdx": "^15.5.0",
     "@socialgouv/matomo-next": "^1.9.2",
     "@stefanprobst/rehype-extract-toc": "^3.0.0",
