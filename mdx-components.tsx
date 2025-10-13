@@ -10,13 +10,13 @@ const components: MDXComponents = {
     return <Typography component={'h1'} variant="h4" gutterBottom{...props}>{children}</Typography>;
   },
 	h2: ({ children, ...props }) => {
-    return <Typography component={'h2'} variant="h5" gutterBottom {...props}>{children}</Typography>;
+    return <Typography component={'h2'} variant="h5" gutterBottom sx={{mt: 3}} {...props}>{children}</Typography>;
   },
 	h3: ({ children, ...props }) => {
-    return <Typography component={'h3'} variant="h6" gutterBottom {...props}>{children}</Typography>;
+    return <Typography component={'h3'} variant="h6" gutterBottom  sx={{mt: 2}} {...props}>{children}</Typography>;
   },
 	h4: ({ children, ...props }) => {
-    return <Typography component={'h4'} variant="h6" fontWeight={400} borderBottom={"black solid 1px"} gutterBottom{...props}>{children}</Typography>;
+    return <Typography component={'h4'} variant="h6" fontWeight={400} borderBottom={"black solid 1px"} gutterBottom {...props}>{children}</Typography>;
   },
 	h5: ({ children, ...props }) => {
     return <Typography component={'h5'} variant="h6" fontWeight={300} gutterBottom {...props}>{children}</Typography>;
