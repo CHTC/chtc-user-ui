@@ -38,10 +38,13 @@ const DesktopHeader = ({pages} : {pages: NavigationItem[]}) => (
 			</Grid>
 			<Grid size={{md: "auto", lg: 4}}>
 				<Box display={"flex"} justifyContent={'right'} alignItems={'center'} gap={2}>
-					<LabeledIconButton label={"Community"} href={DISCOURSE_URL} sx={{color: "primary.contrastText"}}>
-						<Forum />
-					</LabeledIconButton>
-					<LaunchButton>Launch</LaunchButton>
+					<Button
+                        variant={'outlined'}
+                        // @ts-expect-error Colors must be broken because this works just fine and is more extensible than hardcoding a color
+                        color={"primary.contrastText"}
+                    >
+                        Logout
+                    </Button>
 				</Box>
 			</Grid>
 		</Grid>

@@ -1,5 +1,4 @@
-import BadgetHubIconWEBP from "@/public/logos/badgerhub_icon.webp";
-import BadgerHubIconPNG from "@/public/logos/badgerhub_icon.png";
+import CHTCSVG from "@/public/logos/CHTC_Logo_Full_Color.svg";
 import React, {CSSProperties} from "react";
 
 const Icon = ({size = "50px"}: {size?: CSSProperties['width']}) => {
@@ -10,18 +9,10 @@ const Icon = ({size = "50px"}: {size?: CSSProperties['width']}) => {
 	}
 
 	return (
-		<picture>
-			<source
-					srcSet={BadgetHubIconWEBP.src}
-					type="image/webp"
-					style={style}
-			/>
-			<img
-					src={BadgerHubIconPNG.src}
-					alt="Badger Hub Icon"
-					style={style}
-			/>
-		</picture>
+		<img
+            src={CHTCSVG.src}
+            style={style}
+        />
 	)
 }
 

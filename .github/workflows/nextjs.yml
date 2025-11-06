@@ -38,8 +38,6 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-      - name: Update Submodules
-        run: git submodule update --init --recursive --remote
       - name: Install pnpm
         uses: pnpm/action-setup@v4
         with:
@@ -64,12 +62,12 @@ jobs:
   # Deployment job
   deploy:
     if: github.event_name != 'pull_request' && github.ref =='refs/heads/main'
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
     needs: build
     steps:
-      - name: Hit Web Hook
-        run: |
-          curl -X 'POST' \
-            'https://badgercompute.chtc.chtc.io/api/api/hooks/release-download-toggle' \
-            -H 'accept: application/json' \
-            -d ''
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

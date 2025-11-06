@@ -4,7 +4,7 @@ import {Box} from "@mui/material";
 import { ThemeProvider } from "@mui/material/styles";
 import { AppRouterCacheProvider } from '@mui/material-nextjs/v15-appRouter';
 import {Red_Hat_Display, Red_Hat_Text} from "next/font/google";
-import { PlayArrow, Description, AssignmentTurnedIn } from '@mui/icons-material';
+import {PlayArrow, Description, AssignmentTurnedIn, People, Folder, Group, School} from '@mui/icons-material';
 
 import Banner from "@chtc/web-components/UW/Banner"
 import Footer from "@chtc/web-components/UW/Footer"
@@ -31,15 +31,11 @@ export const metadata: Metadata = {
 };
 
 const pages = [
-	{ label: 'Get Started', path: '/get-started', icon: <PlayArrow /> },
-	{ label: 'Policies', path: '/policies', icon: <AssignmentTurnedIn /> },
-	{
-		label: 'Documentation',
-		path: '/docs',
-		icon: <Description />,
-		children: navigation
-	}
-]
+    { label: "Users", path: "/users", icon: <People /> },
+    { label: "Projects", path: "/projects", icon: <Folder /> },
+    { label: "Groups", path: "/groups", icon: <Group /> },
+    { label: "PIs", path: "/pis", icon: <School /> },
+];
 
 export default function RootLayout({
   children,

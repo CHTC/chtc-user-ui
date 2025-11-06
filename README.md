@@ -1,9 +1,6 @@
-# BadgerCompute
-
-View what version is deployed here: https://badgercompute.wisc.edu/.ArtifactServer/metadata.json
+# CHTC User UI
 
 # Development
-
 
 ## Docker
 
@@ -22,12 +19,3 @@ docker compose up
 Run `pnpm run dev`.
 
 This will be the fastest if you aren't on linux.
-
-## Documentation 
-
-Navigation for the docs can be found in `/app/docs/navigation.ts`.
-
-The docs are found in `/docs/`, with their images found in `/public/docs/`.
-
-Refer to the admin docs for a [guide on writing documentation](https://badgercompute.wisc.edu/docs/admin-docs/) in this repository. If you need a custom component reach out 
-to the web staff. 
