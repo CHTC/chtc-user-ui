@@ -1,5 +1,5 @@
-export {default} from './Header';
+export { default } from "./Header";
 
 export interface HeaderProps {
-	pages: {label: string; path: string;}[];
+  pages: { label: string; path: string }[];
 }
