@@ -13,7 +13,7 @@ interface GenericListComponentProps {
   defaultSortColumn?: string;
 }
 
-function GenericListComponent({
+function GenericTableView({
   headers,
   data,
   timeColumn,
@@ -102,10 +102,23 @@ function GenericListComponent({
               backgroundColor: "rgba(0, 0, 0, 0.05)",
             },
           }}
+          bodyCellSx={{
+            border: {
+              "&:first-child": {
+                borderLeft: "1px solid rgba(0, 0, 0, 0.10)",
+              },
+              "&:last-child": {
+                borderRight: "1px solid rgba(0, 0, 0, 0.10)",
+              },
+              "&:not(:last-child)": {
+                borderRight: "1px solid rgba(0, 0, 0, 0.10)",
+              },
+            },
+          }}
         />
       )}
     </>
   );
 }
 
-export default GenericListComponent;
+export default GenericTableView;

@@ -1,30 +1,23 @@
 "use client";
 
-import GenericListComponent from "../../components/GenericListComponent";
+import GenericTableView from "../../components/GenericTableView";
 
 const headers = ["Group Name", "Point of Contact", "GID", "Has Group Directory?"];
 
 const data: (string | number)[][] = [
-  ["Computational Biology Lab", "Dr. Jennifer Martinez", 10001, "Yes"],
-  ["High Energy Physics", "Prof. David Thompson", 10002, "Yes"],
-  ["Data Science Team", "Dr. Amanda White", 10003, "No"],
-  ["Chemistry Research Group", "Prof. Christopher Lee", 10004, "Yes"],
-  ["Economics Analytics", "Dr. Patricia Garcia", 10005, "Yes"],
-  ["Engineering Simulation", "Prof. Brian Moore", 10006, "No"],
-  ["Social Sciences Computing", "Dr. Nancy Taylor", 10007, "Yes"],
-  ["Medical Imaging Research", "Prof. Kevin Brown", 10008, "Yes"],
+  ["gpu_gitter", "ckoch5", 10001, "Yes"],
+  ["keles_group", "lmichael", 10002, "Yes"],
+  ["bact_ane", "lmichael", 10003, "No"],
+  ["hotels", "lmichael", 10004, "Yes"],
+  ["concepts", "ckoch5", 10005, "Yes"],
+  ["plant_lankau", "lmichael", 10006, "No"],
 ];
 
 function Page() {
   return (
     <div style={{ width: "100%", padding: "20px" }}>
       <h1>Groups</h1>
-      <GenericListComponent
-        headers={headers}
-        data={data}
-        searchLabel="Search Groups"
-        defaultSortColumn="Group Name"
-      />
+      <GenericTableView headers={headers} data={data} searchLabel="Search Groups" defaultSortColumn="Group Name" />
     </div>
   );
 }
