@@ -9,10 +9,10 @@ import { Red_Hat_Display, Red_Hat_Text } from "next/font/google";
 import Banner from "@chtc/web-components/UW/Banner";
 import Footer from "@chtc/web-components/UW/Footer";
 
-import Header from "@/components/Header";
-import LogoBar from "@/components/LogoBar";
-import { theme } from "./theme";
+import Header from "@/src/components/Header";
+import LogoBar from "@/src/components/LogoBar";
 import "./globals.css";
+import { theme } from "./theme";
 
 const rhd = Red_Hat_Display({
   subsets: ["latin"],

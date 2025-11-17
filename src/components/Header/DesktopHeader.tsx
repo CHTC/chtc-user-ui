@@ -7,8 +7,8 @@ import Link from "@mui/material/Link";
 import Button from "@mui/material/Button";
 import React from "react";
 
-import Title from "@/components/Header/Title";
-import { NavigationItem } from "@/components/DocumentationSidebar";
+import Title from "@/src/components/Header/Title";
+import { NavigationItem } from "@/src/components/DocumentationSidebar";
 
 const DesktopHeader = ({ pages }: { pages: NavigationItem[] }) => (
   <Toolbar disableGutters>

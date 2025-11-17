@@ -4,4 +4,4 @@ services:
     ports:
       - "4000:4000"
     volumes:
-      - ./dev/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./scripts/dev/nginx.conf:/etc/nginx/nginx.conf:ro
