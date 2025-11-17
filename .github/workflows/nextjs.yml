@@ -51,7 +51,7 @@ jobs:
         run: pnpm install
       - name: Build with Next.js
         run: |
-          pnpm run build
+          NEXT_PUBLIC_BASE_PATH="/chtc-user-ui" pnpm run build
           find ./out | sed -e "s/[^-][^\/]*\//  |/g" -e "s/|\([^ ]\)/|-\1/"
           printenv
       - name: Upload artifact
