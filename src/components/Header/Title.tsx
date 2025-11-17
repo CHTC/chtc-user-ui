@@ -2,9 +2,17 @@ import Link from "@mui/material/Link";
 import Icon from "@/src/components/Header/Icon";
 import Typography from "@mui/material/Typography";
 import React from "react";
+import LinkBehaviour from "../LinkBehaviour";
 
 const Title = () => (
-  <Link href={"/"} display={"flex"} flexDirection={"row"} alignItems={"center"} gap={{ lg: 3, xs: 1 }} component={"a"}>
+  <Link
+    href={"/"}
+    component={LinkBehaviour}
+    display={"flex"}
+    flexDirection={"row"}
+    alignItems={"center"}
+    gap={{ lg: 3, xs: 1 }}
+  >
     <Icon />
     <Typography variant="h4" sx={{ color: "primary.contrastText" }}>
       CHTC User App
