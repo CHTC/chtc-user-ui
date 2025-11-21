@@ -1,6 +1,6 @@
 "use client";
 
-import GenericTableView from "../../components/GenericTableView";
+import GenericTableView from "@/src/components/GenericTableView";
 
 const headers = ["Name", "Staff", "Status", "Project URL", "Last Contact"];
 
@@ -10,8 +10,8 @@ function Page() {
       <h1>Projects</h1>
       <GenericTableView
         headers={headers}
-        query={async (client) => {
-          const projects = await client.getProjects({ page: 0, page_size: 100 });
+        query={async (client, opts, searchQuery) => {
+          const projects = await client.getProjects({ ...opts, query: { name: `like.%${searchQuery}%` } });
           console.log("raw projects: ", projects);
           return projects.map((project) => [
             project.name!,

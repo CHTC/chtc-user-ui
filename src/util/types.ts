@@ -165,8 +165,13 @@ export interface CurrentUser {
   is_admin: boolean;
 }
 
-export interface ApiParams {
+export interface PaginationParams {
   page?: number;
   page_size?: number;
   query?: Record<string, string>;
+}
+
+export interface PaginatedResponse<T> {
+  data: T;
+  totalCount: number;
 }

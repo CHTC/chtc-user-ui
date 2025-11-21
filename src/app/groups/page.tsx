@@ -1,6 +1,6 @@
 "use client";
 
-import GenericTableView from "../../components/GenericTableView";
+import GenericTableView from "@/src/components/GenericTableView";
 
 const headers = ["Group Name", "Point of Contact", "GID", "Has Group Directory?"];
 
@@ -10,10 +10,9 @@ function Page() {
       <h1>Groups</h1>
       <GenericTableView
         headers={headers}
-        query={async (client, searchQuery) => {
+        query={async (client, opts, searchQuery) => {
           const groups = await client.getGroups({
-            page: 0,
-            page_size: 100,
+            ...opts,
             query: { group_name: `like.%${searchQuery}%` },
           });
           console.log("Raw groups as returned by the client:", groups);

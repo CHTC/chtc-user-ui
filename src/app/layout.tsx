@@ -1,16 +1,12 @@
 import type { Metadata } from "next";
 
+import Header from "@/src/components/Header";
+import Banner from "@chtc/web-components/UW/Banner";
 import { Folder, Group, People, School } from "@mui/icons-material";
 import { Box } from "@mui/material";
 import { AppRouterCacheProvider } from "@mui/material-nextjs/v15-appRouter";
 import { ThemeProvider } from "@mui/material/styles";
 import { Red_Hat_Display, Red_Hat_Text } from "next/font/google";
-
-import Banner from "@chtc/web-components/UW/Banner";
-import Footer from "@chtc/web-components/UW/Footer";
-
-import Header from "@/src/components/Header";
-import LogoBar from "@/src/components/LogoBar";
 import { AuthProvider } from "../components/AuthProvider";
 import "./globals.css";
 import { theme } from "./theme";
@@ -30,7 +26,7 @@ const rht = Red_Hat_Text({
 
 export const metadata: Metadata = {
   title: "CHTC User App",
-  description: "TODO",
+  // description: "", // TODO
 };
 
 const pages = [
@@ -54,8 +50,6 @@ export default function RootLayout({
               <Banner />
               <Header pages={pages} />
               {children}
-              <Footer accessibilityEmail={"badger.compute@wisc.edu"} />
-              <LogoBar />
             </AuthProvider>
           </ThemeProvider>
         </AppRouterCacheProvider>

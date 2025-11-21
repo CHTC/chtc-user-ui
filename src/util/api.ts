@@ -13,7 +13,8 @@ import type {
   PiProjectView,
   UserProjectCreate,
   CurrentUser,
-  ApiParams,
+  PaginationParams,
+  PaginatedResponse,
 } from "./types";
 
 /** Client for interacting with the authenticated API. */
@@ -90,7 +91,7 @@ class AuthenticatedClient {
   // #region Users
 
   /** Get all users, with pagination. */
-  async getUsers(params?: ApiParams): Promise<User[]> {
+  async getUsers(params?: PaginationParams): Promise<PaginatedResponse<User[]>> {
     const queryParams = new URLSearchParams();
     if (params?.page !== undefined) queryParams.set("page", params.page.toString());
     if (params?.page_size !== undefined) queryParams.set("page_size", params.page_size.toString());
@@ -104,7 +105,9 @@ class AuthenticatedClient {
       throw new Error(`Failed to get users: ${response.statusText}`);
     }
 
-    return response.json();
+    const totalCount = parseInt(response.headers.get("X-Total-Count") || "0", 10);
+    const data = await response.json();
+    return { data, totalCount };
   }
 
   /** Get a single user by ID. */
@@ -143,7 +146,7 @@ class AuthenticatedClient {
   }
 
   /** Get projects for a user. */
-  async getUserProjects(userId: number, params?: ApiParams): Promise<JoinedProjectView[]> {
+  async getUserProjects(userId: number, params?: PaginationParams): Promise<JoinedProjectView[]> {
     const queryParams = new URLSearchParams();
     if (params?.page !== undefined) queryParams.set("page", params.page.toString());
     if (params?.page_size !== undefined) queryParams.set("page_size", params.page_size.toString());
@@ -162,7 +165,7 @@ class AuthenticatedClient {
   // #region Groups
 
   /** Get all groups, with pagination. */
-  async getGroups(params?: ApiParams): Promise<Group[]> {
+  async getGroups(params?: PaginationParams): Promise<PaginatedResponse<Group[]>> {
     const queryParams = new URLSearchParams();
     if (params?.page !== undefined) queryParams.set("page", params.page.toString());
     if (params?.page_size !== undefined) queryParams.set("page_size", params.page_size.toString());
@@ -176,7 +179,9 @@ class AuthenticatedClient {
       throw new Error(`Failed to get groups: ${response.statusText}`);
     }
 
-    return response.json();
+    const totalCount = parseInt(response.headers.get("X-Total-Count") || "0", 10);
+    const data = await response.json();
+    return { data, totalCount };
   }
 
   /** Get a single group by ID. */
@@ -230,7 +235,7 @@ class AuthenticatedClient {
   }
 
   /** Get users in a group. */
-  async getGroupUsers(groupId: number, params?: ApiParams): Promise<User[]> {
+  async getGroupUsers(groupId: number, params?: PaginationParams): Promise<User[]> {
     const queryParams = new URLSearchParams();
     if (params?.page !== undefined) queryParams.set("page", params.page.toString());
     if (params?.page_size !== undefined) queryParams.set("page_size", params.page_size.toString());
@@ -273,7 +278,7 @@ class AuthenticatedClient {
   // #region Projects
 
   /** Get all projects, with pagination. */
-  async getProjects(params?: ApiParams): Promise<Project[]> {
+  async getProjects(params?: PaginationParams): Promise<PaginatedResponse<Project[]>> {
     const queryParams = new URLSearchParams();
     if (params?.page !== undefined) queryParams.set("page", params.page.toString());
     if (params?.page_size !== undefined) queryParams.set("page_size", params.page_size.toString());
@@ -287,7 +292,9 @@ class AuthenticatedClient {
       throw new Error(`Failed to get projects: ${response.statusText}`);
     }
 
-    return response.json();
+    const totalCount = parseInt(response.headers.get("X-Total-Count") || "0", 10);
+    const data = await response.json();
+    return { data, totalCount };
   }
 
   /** Get a single project by ID. */
@@ -341,7 +348,7 @@ class AuthenticatedClient {
   }
 
   /** Get users in a project. */
-  async getProjectUsers(projectId: number, params?: ApiParams): Promise<JoinedProjectView[]> {
+  async getProjectUsers(projectId: number, params?: PaginationParams): Promise<JoinedProjectView[]> {
     const queryParams = new URLSearchParams();
     if (params?.page !== undefined) queryParams.set("page", params.page.toString());
     if (params?.page_size !== undefined) queryParams.set("page_size", params.page_size.toString());
@@ -380,7 +387,7 @@ class AuthenticatedClient {
   }
 
   /** Get notes for a project. */
-  async getProjectNotes(projectId: number, params?: ApiParams): Promise<Note[]> {
+  async getProjectNotes(projectId: number, params?: PaginationParams): Promise<Note[]> {
     const queryParams = new URLSearchParams();
     if (params?.page !== undefined) queryParams.set("page", params.page.toString());
     if (params?.page_size !== undefined) queryParams.set("page_size", params.page_size.toString());
@@ -423,7 +430,7 @@ class AuthenticatedClient {
   // #region PI Projects
 
   /** Get PI projects view. */
-  async getPiProjects(params?: ApiParams): Promise<PiProjectView[]> {
+  async getPiProjects(params?: PaginationParams): Promise<PiProjectView[]> {
     const queryParams = new URLSearchParams();
     if (params?.page !== undefined) queryParams.set("page", params.page.toString());
     if (params?.page_size !== undefined) queryParams.set("page_size", params.page_size.toString());
