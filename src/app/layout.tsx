@@ -11,6 +11,7 @@ import Footer from "@chtc/web-components/UW/Footer";
 
 import Header from "@/src/components/Header";
 import LogoBar from "@/src/components/LogoBar";
+import { AuthProvider } from "../components/AuthProvider";
 import "./globals.css";
 import { theme } from "./theme";
 
@@ -49,11 +50,13 @@ export default function RootLayout({
       <Box component={"body"} sx={{ margin: 0, padding: 0 }}>
         <AppRouterCacheProvider>
           <ThemeProvider theme={theme}>
-            <Banner />
-            <Header pages={pages} />
-            {children}
-            <Footer accessibilityEmail={"badger.compute@wisc.edu"} />
-            <LogoBar />
+            <AuthProvider>
+              <Banner />
+              <Header pages={pages} />
+              {children}
+              <Footer accessibilityEmail={"badger.compute@wisc.edu"} />
+              <LogoBar />
+            </AuthProvider>
           </ThemeProvider>
         </AppRouterCacheProvider>
       </Box>

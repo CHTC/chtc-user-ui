@@ -1,12 +1,9 @@
-import GenericTableView from "../../components/GenericTableView";
+"use client";
+
+import GenericTableView from "@/src/components/GenericTableView";
+import { formatPhoneNumber } from "@/src/util/format";
 
 const headers = ["Username", "Name", "Email", "Phone", "NetID", "Last Modified"];
-
-const data: (string | number)[][] = [
-  ["jdoe", "John Doe", "jdoe@wisc.edu", "(608) 555-0101", "jdoe21", "2025-11-12T17:10:56.380Z"],
-  ["asmith", "Alice Smith", "asmith@wisc.edu", "(608) 555-0102", "asmith", "2025-11-13T17:10:56.380Z"],
-  ["bjohnson", "Bob Johnson", "bjohnson@wisc.edu", "(608) 555-0103", "bjognson", "2025-11-17T17:10:56.380Z"],
-];
 
 function Page() {
   return (
@@ -14,10 +11,26 @@ function Page() {
       <h1>Users</h1>
       <GenericTableView
         headers={headers}
-        data={data}
+        query={async (client, searchQuery) => {
+          const users = await client.getUsers({
+            page: 0,
+            page_size: 100,
+            query: { username: `like.%${searchQuery}%` },
+          });
+          console.log("Raw users as returned by the client:", users);
+
+          // real data won't have this amount of nulls, but the mock data does (sigh)
+          return users.map((user) => [
+            user.username ?? "",
+            user.name ?? "",
+            user.email1 ?? "",
+            formatPhoneNumber(user.phone1 ?? ""),
+            user.netid ?? "",
+            user.date ?? "",
+          ]);
+        }}
+        queryLabel="Search by Username"
         timeColumn="Last Modified"
-        searchLabel="Search"
-        defaultSortColumn="Username"
       />
     </div>
   );

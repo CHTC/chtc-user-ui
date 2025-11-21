@@ -3,36 +3,53 @@
 import { useState } from "react";
 import { Table } from "@chtc/web-components";
 import { TextField, Button, Box, Link } from "@mui/material";
+import { useAuth } from "./AuthProvider";
+import AuthenticatedClient from "../util/api";
 
 interface GenericListComponentProps {
   headers: string[];
-  data: (string | number)[][];
+  query: (client: AuthenticatedClient, searchQuery: string) => Promise<(string | number)[][]>;
+  queryLabel: string;
+
   timeColumn?: string;
   linkColumn?: string;
-  searchLabel?: string;
-  defaultSortColumn?: string;
 }
 
-function GenericTableView({
-  headers,
-  data,
-  timeColumn,
-  linkColumn,
-  searchLabel = "Search",
-  defaultSortColumn,
-}: GenericListComponentProps) {
+function CellRenderer(cell: string | number, columnHeader: string, column: number, row: number) {
+  const timeColumns = new Set(["Last Contact", "Last Modified"]);
+  const linkColumn = "Project URL";
+  const emailColumn = "Email";
+
+  if (timeColumns.has(columnHeader)) {
+    const date = new Date(cell);
+    return <span>{date.toUTCString()}</span>;
+  } else if (columnHeader === emailColumn) {
+    return <Link href={`mailto:${cell.toString()}`}>{cell}</Link>;
+  } else if (columnHeader === linkColumn) {
+    return (
+      <Link href={cell.toString()} target="_blank" rel="noopener noreferrer">
+        {cell}
+      </Link>
+    );
+  }
+  return <span>{cell}</span>;
+}
+
+function GenericTableView({ headers, query, queryLabel }: GenericListComponentProps) {
   const [searchQuery, setSearchQuery] = useState("");
-  const [filteredData, setFilteredData] = useState(data);
+  const [data, setData] = useState<(string | number)[][]>([]);
+
+  const client = useAuth();
 
   const handleSearch = () => {
-    if (searchQuery.trim() === "") {
-      setFilteredData(data);
-    } else {
-      const filtered = data.filter((row) =>
-        row.some((cell) => cell?.toString().toLowerCase().includes(searchQuery.toLowerCase()))
-      );
-      setFilteredData(filtered);
-    }
+    query(client, searchQuery)
+      .then((results) => {
+        console.log("Table data:", results);
+        setData(results);
+      })
+      .catch((error) => {
+        console.error("Error fetching data:", error);
+      });
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
@@ -41,26 +58,11 @@ function GenericTableView({
     }
   };
 
-  const cellRenderer = (cell: string | number, columnHeader: string, column: number, row: number) => {
-    if (timeColumn && columnHeader === timeColumn && cell) {
-      const date = new Date(cell);
-      return <span>{date.toUTCString()}</span>;
-    }
-    if (linkColumn && columnHeader === linkColumn && cell) {
-      return (
-        <Link href={cell.toString()} target="_blank" rel="noopener noreferrer">
-          {cell}
-        </Link>
-      );
-    }
-    return <span>{cell}</span>;
-  };
-
   return (
     <>
       <Box sx={{ display: "flex", gap: 2, mb: 3, alignItems: "center" }}>
         <TextField
-          label={searchLabel}
+          label={queryLabel}
           variant="outlined"
           size="small"
           value={searchQuery}
@@ -75,24 +77,22 @@ function GenericTableView({
           <Button
             variant="outlined"
             onClick={() => {
+              // TODO: better logic here
               setSearchQuery("");
-              setFilteredData(data);
+              setData([]);
             }}
           >
             Clear
           </Button>
         )}
       </Box>
-      {filteredData.length === 0 ? (
+      {data.length === 0 ? (
         <p>No results found.</p>
       ) : (
         <Table
           headers={headers}
-          data={filteredData}
-          sortable={true}
-          defaultSortDirection="asc"
-          defaultSortColumn={defaultSortColumn}
-          cellRenderer={cellRenderer}
+          data={data}
+          cellRenderer={CellRenderer}
           headCellSx={{
             backgroundColor: "rgba(0, 0, 0, 0.1)",
             padding: "8px 16px",
