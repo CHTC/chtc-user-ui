@@ -11,15 +11,18 @@ function Page() {
       <GenericTableView
         headers={headers}
         query={async (client, opts, searchQuery) => {
-          const projects = await client.getProjects({ ...opts, query: { name: `like.%${searchQuery}%` } });
-          console.log("raw projects: ", projects);
-          return projects.map((project) => [
+          const result = await client.getProjects({ ...opts, query: { name: `like.%${searchQuery}%` } });
+          console.log("raw projects: ", result);
+
+          const data = result.data.map((project) => [
             project.name!,
             project.staff1 ?? "",
             project.status ?? "",
             project.url ?? "",
             project.last_contact ?? "",
           ]);
+
+          return { data, totalCount: result.totalCount };
         }}
         queryLabel="Search by Project Name"
         timeColumn="Last Contact"

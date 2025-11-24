@@ -11,18 +11,20 @@ function Page() {
       <GenericTableView
         headers={headers}
         query={async (client, opts, searchQuery) => {
-          const groups = await client.getGroups({
+          const result = await client.getGroups({
             ...opts,
             query: { group_name: `like.%${searchQuery}%` },
           });
-          console.log("Raw groups as returned by the client:", groups);
+          console.log("Raw groups as returned by the client:", result);
 
-          return groups.map((group) => [
+          const data = result.data.map((group) => [
             group.name,
             group.point_of_contact ?? "",
             group.unix_gid ?? "",
             group.has_groupdir ? "Yes" : "No",
           ]);
+
+          return { data, totalCount: result.totalCount };
         }}
         queryLabel="Search by Group"
       />
