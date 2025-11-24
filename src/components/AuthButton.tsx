@@ -12,10 +12,11 @@ import { useAuthClient } from "./AuthProvider";
 import { useState } from "react";
 
 export function AuthButton() {
-  const { client, isAuthenticated } = useAuthClient();
+  const client = useAuthClient();
 
   const [loginModalShown, setLoginModalShown] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState(client.isAuthenticated());
 
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
@@ -34,6 +35,8 @@ export function AuthButton() {
       if (result.success) {
         // login successful
         setLoginModalShown(false);
+        // update auth state because client state has changed
+        setIsAuthenticated(client.isAuthenticated());
       } else {
         // login failed
         setError(result.error);

@@ -61,6 +61,7 @@ class AuthenticatedClient {
     }
 
     const data = await response.json();
+    console.log("data", data);
     this.extractCsrfToken();
     return {
       success: true,

@@ -18,5 +18,5 @@ export function useAuthClient() {
   if (!client) {
     throw new Error("useAuthClient must be used within an AuthClientProvider");
   }
-  return { client, isAuthenticated: client.isAuthenticated() };
+  return client;
 }

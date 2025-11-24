@@ -52,7 +52,7 @@ function GenericTableView({ headers, query, queryLabel }: GenericListComponentPr
   const [totalCount, setTotalCount] = useState(0);
   const [page, setPage] = useState(0);
 
-  const { client } = useAuthClient();
+  const client = useAuthClient();
   const rowsPerPage = 50;
 
   const handleSearch = (resetPage: boolean = false) => {
