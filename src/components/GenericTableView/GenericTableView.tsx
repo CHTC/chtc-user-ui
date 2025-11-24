@@ -1,13 +1,13 @@
 "use client";
 
+import { formatPhoneNumber } from "@/src/util/format";
 import { Table } from "@chtc/web-components";
 import { Box, Button, Link, TextField } from "@mui/material";
 import { useState } from "react";
 import AuthenticatedClient from "../../util/api";
 import { PaginationParams } from "../../util/types";
-import { useAuth } from "../AuthProvider";
+import { useAuthClient } from "../AuthProvider";
 import { PageSelector } from "./PageSelector";
-import { formatPhoneNumber } from "@/src/util/format";
 
 export interface GenericListComponentProps {
   headers: string[];
@@ -52,7 +52,7 @@ function GenericTableView({ headers, query, queryLabel }: GenericListComponentPr
   const [totalCount, setTotalCount] = useState(0);
   const [page, setPage] = useState(0);
 
-  const client = useAuth();
+  const { client } = useAuthClient();
   const rowsPerPage = 50;
 
   const handleSearch = (resetPage: boolean = false) => {
@@ -99,6 +99,8 @@ function GenericTableView({ headers, query, queryLabel }: GenericListComponentPr
               // TODO: better logic here
               setSearchQuery("");
               setData([]);
+              setTotalCount(0);
+              setPage(0);
             }}
           >
             Clear

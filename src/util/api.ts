@@ -17,6 +17,16 @@ import type {
   PaginatedResponse,
 } from "./types";
 
+export type LoginResult =
+  | {
+      success: true;
+      message: string;
+    }
+  | {
+      success: false;
+      error: string;
+    };
+
 /** Client for interacting with the authenticated API. */
 class AuthenticatedClient {
   private baseUrl: string;
@@ -31,8 +41,10 @@ class AuthenticatedClient {
   /**
    * Login with username and password.
    * Sets httpOnly cookies (login_token and csrf_token) on successful login.
+   *
+   * Returns { message: string } on success, { error: string } on failure.
    */
-  async login(username: string, password: string): Promise<{ message: string }> {
+  async login(username: string, password: string): Promise<LoginResult> {
     const response = await fetch(`${this.baseUrl}/login`, {
       method: "POST",
       headers: {
@@ -42,14 +54,18 @@ class AuthenticatedClient {
       credentials: "include",
     });
 
-    if (!response.ok) {
-      const error = await response.json().catch(() => ({}));
-      throw new Error(error.detail || error.message || `Login failed: ${response.statusText}`);
+    if (response.status === 401 || response.status === 403) {
+      return { success: false, error: "Invalid username or password" };
+    } else if (!response.ok) {
+      return { success: false, error: `Login failed: ${response.statusText}` };
     }
 
     const data = await response.json();
     this.extractCsrfToken();
-    return data;
+    return {
+      success: true,
+      message: data.message,
+    };
   }
 
   /** Logout and clear tokens. */

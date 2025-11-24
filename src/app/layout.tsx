@@ -7,7 +7,7 @@ import { Box } from "@mui/material";
 import { AppRouterCacheProvider } from "@mui/material-nextjs/v15-appRouter";
 import { ThemeProvider } from "@mui/material/styles";
 import { Red_Hat_Display, Red_Hat_Text } from "next/font/google";
-import { AuthProvider } from "../components/AuthProvider";
+import { AuthClientProvider } from "../components/AuthProvider";
 import "./globals.css";
 import { theme } from "./theme";
 
@@ -46,11 +46,11 @@ export default function RootLayout({
       <Box component={"body"} sx={{ margin: 0, padding: 0 }}>
         <AppRouterCacheProvider>
           <ThemeProvider theme={theme}>
-            <AuthProvider>
+            <AuthClientProvider>
               <Banner />
               <Header pages={pages} />
               {children}
-            </AuthProvider>
+            </AuthClientProvider>
           </ThemeProvider>
         </AppRouterCacheProvider>
       </Box>

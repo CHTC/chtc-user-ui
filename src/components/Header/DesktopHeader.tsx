@@ -9,6 +9,7 @@ import React from "react";
 
 import Title from "@/src/components/Header/Title";
 import { NavigationItem } from "@/src/components/DocumentationSidebar";
+import AuthButton from "../AuthButton";
 
 const DesktopHeader = ({ pages }: { pages: NavigationItem[] }) => (
   <Toolbar disableGutters>
@@ -27,13 +28,7 @@ const DesktopHeader = ({ pages }: { pages: NavigationItem[] }) => (
       </Grid>
       <Grid size={{ md: "auto", lg: 4 }}>
         <Box display={"flex"} justifyContent={"right"} alignItems={"center"} gap={2}>
-          <Button
-            variant={"outlined"}
-            // @ts-expect-error Colors must be broken because this works just fine and is more extensible than hardcoding a color
-            color={"primary.contrastText"}
-          >
-            Logout
-          </Button>
+          <AuthButton />
         </Box>
       </Grid>
     </Grid>

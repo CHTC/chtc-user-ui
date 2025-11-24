@@ -3,30 +3,20 @@
 import { createContext, useContext } from "react";
 import AuthenticatedClient from "../util/api";
 
-const AuthContext = createContext<AuthenticatedClient | null>(null);
+const AuthClientContext = createContext<AuthenticatedClient | null>(null);
 
 /** Provides authentication context to its children components. */
-export function AuthProvider({ children }: { children: React.ReactNode }) {
+export function AuthClientProvider({ children }: { children: React.ReactNode }) {
   const authClient = new AuthenticatedClient("/api");
 
-  // temporarily hardcode login for testing purposes
-  authClient
-    .login("admin", "password")
-    .then((result) => {
-      console.log(`Authentication result: ${result.message}`);
-    })
-    .catch((error) => {
-      console.error("Authentication failed:", error);
-    });
-
-  return <AuthContext.Provider value={authClient}>{children}</AuthContext.Provider>;
+  return <AuthClientContext.Provider value={authClient}>{children}</AuthClientContext.Provider>;
 }
 
 /** Custom hook to access the authentication context. */
-export function useAuth() {
-  const context = useContext(AuthContext);
-  if (!context) {
-    throw new Error("useAuth must be used within an AuthProvider");
+export function useAuthClient() {
+  const client = useContext(AuthClientContext);
+  if (!client) {
+    throw new Error("useAuthClient must be used within an AuthClientProvider");
   }
-  return context;
+  return { client, isAuthenticated: client.isAuthenticated() };
 }
