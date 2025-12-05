@@ -4,15 +4,14 @@ import { formatPhoneNumber } from "@/src/util/format";
 import { Table } from "@chtc/web-components";
 import { Box, Button, Link, TextField } from "@mui/material";
 import { useState } from "react";
-import AuthenticatedClient from "../../util/api";
 import { PaginationParams } from "../../util/types";
-import { useAuthClient } from "../AuthProvider";
+import { ApiClient, useAuthClient } from "../AuthProvider";
 import { PageSelector } from "./PageSelector";
 
 export interface GenericListComponentProps {
   headers: string[];
   query: (
-    client: AuthenticatedClient,
+    client: ApiClient,
     opts: PaginationParams,
     searchQuery: string
   ) => Promise<{ data: (string | number)[][]; totalCount: number }>;
@@ -30,7 +29,8 @@ function CellRenderer(cell: string | number, columnHeader: string, _column: numb
 
   if (timeColumns.has(columnHeader)) {
     const date = new Date(cell);
-    return <span>{date.toUTCString()}</span>;
+    const contents = isNaN(date.getTime()) ? "" : date.toUTCString();
+    return <span>{contents}</span>;
   } else if (columnHeader === emailColumn) {
     return <Link href={`mailto:${cell.toString()}`}>{cell}</Link>;
   } else if (columnHeader === linkColumn) {
@@ -52,8 +52,12 @@ function GenericTableView({ headers, query, queryLabel }: GenericListComponentPr
   const [totalCount, setTotalCount] = useState(0);
   const [page, setPage] = useState(0);
 
-  const client = useAuthClient();
+  const { client, isAuthenticated } = useAuthClient();
   const rowsPerPage = 50;
+
+  if (!isAuthenticated) {
+    return <p>Please log in to view this data.</p>;
+  }
 
   const handleSearch = (resetPage: boolean = false) => {
     query(client, { page, page_size: rowsPerPage }, searchQuery)
@@ -125,6 +129,7 @@ function GenericTableView({ headers, query, queryLabel }: GenericListComponentPr
           headers={headers}
           data={data}
           cellRenderer={CellRenderer}
+          sortable={true}
           headCellSx={{
             backgroundColor: "rgba(0, 0, 0, 0.1)",
             padding: "8px 16px",

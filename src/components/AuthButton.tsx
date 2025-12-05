@@ -12,11 +12,10 @@ import { useAuthClient } from "./AuthProvider";
 import { useState } from "react";
 
 export function AuthButton() {
-  const client = useAuthClient();
+  const { client, isAuthenticated } = useAuthClient();
 
   const [loginModalShown, setLoginModalShown] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [isAuthenticated, setIsAuthenticated] = useState(client.isAuthenticated());
 
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
@@ -35,14 +34,13 @@ export function AuthButton() {
       if (result.success) {
         // login successful
         setLoginModalShown(false);
-        // update auth state because client state has changed
-        setIsAuthenticated(client.isAuthenticated());
+        setUsername("");
+        setPassword("");
       } else {
         // login failed
         setError(result.error);
+        setPassword("");
       }
-      setUsername("");
-      setPassword("");
     } finally {
       setIsLoading(false);
     }
@@ -60,6 +58,9 @@ export function AuthButton() {
       {isAuthenticated ? (
         <Button
           variant={"outlined"}
+          onClick={async () => {
+            await client.logout();
+          }}
           // @ts-expect-error Colors must be broken because this works just fine and is more extensible than hardcoding a color
           color={"primary.contrastText"}
         >

@@ -4,14 +4,10 @@ import Grid from "@mui/material/Grid";
 export default async function Home() {
   return (
     <Box sx={{ minHeight: "100vh", bgcolor: "background.default" }}>
-      <Container maxWidth="lg" sx={{ mb: 10 }}>
-        <Grid container spacing={4} alignItems="center">
-          <Grid size={{ xs: 12, md: 5 }}>
-            <Typography variant="h4" component="h2" gutterBottom>
-              Welcomeeeeeeeeeee
-            </Typography>
-          </Grid>
-        </Grid>
+      <Container maxWidth="lg" sx={{ my: 2 }}>
+        <Typography variant="h4" component="h2" gutterBottom>
+          CHTC User App Beta
+        </Typography>
       </Container>
     </Box>
   );
