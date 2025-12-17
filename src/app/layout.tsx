@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 import Header from "@/src/components/Header";
 import Banner from "@chtc/web-components/UW/Banner";
 import { Folder, Group, People, School } from "@mui/icons-material";
-import { Box } from "@mui/material";
+import { Box, Container } from "@mui/material";
 import { AppRouterCacheProvider } from "@mui/material-nextjs/v15-appRouter";
 import { ThemeProvider } from "@mui/material/styles";
 import { Red_Hat_Display, Red_Hat_Text } from "next/font/google";
@@ -49,7 +49,11 @@ export default function RootLayout({
             <AuthClientProvider>
               <Banner />
               <Header pages={pages} />
-              {children}
+              <Container maxWidth="lg">
+                <Box my={2}>
+                  {children}
+                </Box>
+              </Container>
             </AuthClientProvider>
           </ThemeProvider>
         </AppRouterCacheProvider>

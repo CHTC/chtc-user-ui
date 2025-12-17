@@ -87,7 +87,7 @@ function getCsrfToken(): string | null {
 }
 
 // Simple fetch wrapper with credentials and CSRF token
-async function apiFetch(endpoint: string, options: RequestInit = {}): Promise<Response> {
+export async function apiFetch(endpoint: string, options: RequestInit = {}): Promise<Response> {
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
   };

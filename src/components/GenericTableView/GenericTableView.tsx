@@ -1,14 +1,14 @@
 "use client";
 
-import { formatPhoneNumber } from "@/src/util/format";
 import { Table } from "@chtc/web-components";
-import { Box, Button, Link, TextField } from "@mui/material";
-import { useState } from "react";
+import { Box, Button, TextField } from "@mui/material";
+import {JSXElementConstructor, ReactElement, useEffect, useState} from "react";
 import { PaginationParams } from "../../util/types";
 import { ApiClient, useAuthClient } from "../AuthProvider";
 import { PageSelector } from "./PageSelector";
 
 export interface GenericListComponentProps {
+  cellRenderer: (cell: string | number, columnHeader: string, column: number, row: number) => ReactElement<unknown, string | JSXElementConstructor<any>>
   headers: string[];
   query: (
     client: ApiClient,
@@ -21,32 +21,7 @@ export interface GenericListComponentProps {
   linkColumn?: string;
 }
 
-function CellRenderer(cell: string | number, columnHeader: string, _column: number, _row: number) {
-  const timeColumns = new Set(["Last Contact", "Last Modified"]);
-  const linkColumn = "Project URL";
-  const emailColumn = "Email";
-  const phoneColumn = "Phone";
-
-  if (timeColumns.has(columnHeader)) {
-    const date = new Date(cell);
-    const contents = isNaN(date.getTime()) ? "" : date.toUTCString();
-    return <span>{contents}</span>;
-  } else if (columnHeader === emailColumn) {
-    return <Link href={`mailto:${cell.toString()}`}>{cell}</Link>;
-  } else if (columnHeader === linkColumn) {
-    return (
-      <Link href={cell.toString()} target="_blank" rel="noopener noreferrer">
-        {cell}
-      </Link>
-    );
-  } else if (columnHeader === phoneColumn) {
-    const formattedPhone = formatPhoneNumber(cell.toString());
-    return <span>{formattedPhone}</span>;
-  }
-  return <span>{cell}</span>;
-}
-
-function GenericTableView({ headers, query, queryLabel }: GenericListComponentProps) {
+function GenericTableView({ cellRenderer, headers, query, queryLabel }: GenericListComponentProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [data, setData] = useState<(string | number)[][]>([]);
   const [totalCount, setTotalCount] = useState(0);
@@ -54,10 +29,6 @@ function GenericTableView({ headers, query, queryLabel }: GenericListComponentPr
 
   const { client, isAuthenticated } = useAuthClient();
   const rowsPerPage = 50;
-
-  if (!isAuthenticated) {
-    return <p>Please log in to view this data.</p>;
-  }
 
   const handleSearch = (resetPage: boolean = false) => {
     query(client, { page, page_size: rowsPerPage }, searchQuery)
@@ -80,6 +51,14 @@ function GenericTableView({ headers, query, queryLabel }: GenericListComponentPr
       handleSearch();
     }
   };
+
+  useEffect(() => {
+    handleSearch()
+  }, [])
+
+  if (!isAuthenticated) {
+    return <p>Please log in to view this data.</p>;
+  }
 
   return (
     <>
@@ -128,7 +107,7 @@ function GenericTableView({ headers, query, queryLabel }: GenericListComponentPr
         <Table
           headers={headers}
           data={data}
-          cellRenderer={CellRenderer}
+          cellRenderer={cellRenderer}
           sortable={true}
           headCellSx={{
             backgroundColor: "rgba(0, 0, 0, 0.1)",
