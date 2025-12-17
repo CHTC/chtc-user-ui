@@ -44,6 +44,7 @@ const UserProjectTable = ({userId}: UserProjectTableProps) => {
         <TableRow>
           <TableCell>Name</TableCell>
           <TableCell>Role</TableCell>
+          <TableCell>Is Primary</TableCell>
           <TableCell>Staff</TableCell>
           <TableCell>Status</TableCell>
           <TableCell>Last Contact</TableCell>
@@ -56,6 +57,7 @@ const UserProjectTable = ({userId}: UserProjectTableProps) => {
           <TableRow key={project.project_id}>
             <TableCell>{project.project_name}</TableCell>
             <TableCell>{project.role}</TableCell>
+            <TableCell>{project.is_primary ? "Yes" : "No"}</TableCell>
             <TableCell>{project.project_staff1} {project.project_staff2}</TableCell>
             <TableCell>{project.project_status}</TableCell>
             <TableCell>{project.project_last_contact ? (new Date(project.project_last_contact)).toLocaleString() : ""}</TableCell>

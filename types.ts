@@ -51,6 +51,17 @@ export interface Project {
   last_contact: string | null;
 }
 
+export interface PiProjectView {
+  user_id: number;
+  username: string | null;
+  name: string | null;
+  project_id: number;
+  project_name: string;
+  email1: string | null;
+  phone1: string | null;
+  netid: string | null;
+}
+
 export interface ProjectCreateUpdate {
   name: string;
   pi?: number | null;
@@ -147,6 +158,7 @@ export interface JoinedProjectView {
   project_status: string | null;
   project_accounting_group: string;
   project_last_contact: string | null;
+  is_primary: boolean;
   username: string | null;
   name: string | null;
   email1: string;
@@ -163,14 +175,6 @@ export interface JoinedProjectView {
   position: string;
   role: RoleEnum;
   last_note_ticket: string | null;
-}
-
-export interface PiProjectView {
-  user_id: number;
-  username: string;
-  name: string;
-  project_id: number;
-  project_name: string;
 }
 
 export interface UserProjectCreate {
