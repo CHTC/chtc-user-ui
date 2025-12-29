@@ -1,6 +1,6 @@
 "use client";
 
-import React, {useState} from "react";
+import React, { useState } from "react";
 import {
   Box,
   Button,
@@ -14,10 +14,10 @@ import {
   Select,
   MenuItem,
 } from "@mui/material";
-import type {PositionEnum, RoleEnum, UserCreate, UserUpdate} from "@/types";
+import type { PositionEnum, RoleEnum, UserCreate, UserUpdate } from "@/types";
 import ProjectAutocomplete from "@/src/components/ProjectAutocomplete/ProjectAutocomplete";
-import {Project, SubmitNode, UserSubmitNodeCreate} from "@/types";
-import {apiFetch} from "@/src/components/AuthProvider";
+import { Project, SubmitNode, UserSubmitNodeCreate } from "@/types";
+import { apiFetch } from "@/src/components/AuthProvider";
 import useSWR from "swr";
 
 export type UserFormMode = "create" | "edit";
@@ -67,10 +67,7 @@ function normalizeInitialValues(initial?: Partial<UserCreate & UserUpdate>): Use
     is_admin: initial?.is_admin ?? false,
     auth_netid: initial?.auth_netid ?? false,
     auth_username: initial?.auth_username ?? false,
-    unix_uid:
-      initial?.unix_uid !== undefined && initial?.unix_uid !== null
-        ? String(initial.unix_uid)
-        : "",
+    unix_uid: initial?.unix_uid !== undefined && initial?.unix_uid !== null ? String(initial.unix_uid) : "",
     position: initial?.position ?? "",
     password: initial?.password ?? "",
     primary_project_id:
@@ -78,8 +75,7 @@ function normalizeInitialValues(initial?: Partial<UserCreate & UserUpdate>): Use
         ? String(initial.primary_project_id)
         : "",
     primary_project_role: initial?.primary_project_role ?? "",
-    submit_nodes:
-      (initial?.submit_nodes as UserSubmitNodeCreate[] | undefined)?.map((x) => x.submit_node_id) ?? [],
+    submit_nodes: (initial?.submit_nodes as UserSubmitNodeCreate[] | undefined)?.map((x) => x.submit_node_id) ?? [],
   };
 }
 
@@ -98,19 +94,10 @@ const arraysEqual = (a: number[] | undefined, b: number[] | undefined) => {
   return sortedA.every((val, idx) => val === sortedB[idx]);
 };
 
-export const UserForm: React.FC<UserFormProps> = ({
-  mode,
-  initialValues,
-  onSubmit,
-  isSubmitting = false,
-  error,
-}) => {
+export const UserForm: React.FC<UserFormProps> = ({ mode, initialValues, onSubmit, isSubmitting = false, error }) => {
   const [values, setValues] = useState<UserFormValues>(() => normalizeInitialValues(initialValues));
 
-  const handleChange = (
-    field: keyof UserFormValues,
-    value: string | boolean | number[]
-  ) => {
+  const handleChange = (field: keyof UserFormValues, value: string | boolean | number[]) => {
     setValues((prev) => ({ ...prev, [field]: value }));
   };
 
@@ -148,11 +135,7 @@ export const UserForm: React.FC<UserFormProps> = ({
 
     const initial = initialValues ?? {};
 
-    const maybeSet = <K extends keyof UserUpdate>(
-      key: K,
-      newVal: UserUpdate[K],
-      initialRaw: unknown
-    ) => {
+    const maybeSet = <K extends keyof UserUpdate>(key: K, newVal: UserUpdate[K], initialRaw: unknown) => {
       const normalizedNew = normalizeComparable(newVal);
       const normalizedOld = normalizeComparable(initialRaw as unknown as UserUpdate[K]);
       if (normalizedNew !== normalizedOld) {
@@ -173,13 +156,9 @@ export const UserForm: React.FC<UserFormProps> = ({
     maybeSet(
       "unix_uid",
       (values.unix_uid ? Number(values.unix_uid) : null) as UserUpdate["unix_uid"],
-      initial.unix_uid
+      initial.unix_uid,
     );
-    maybeSet(
-      "position",
-      (values.position || null) as UserUpdate["position"],
-      initial.position
-    );
+    maybeSet("position", (values.position || null) as UserUpdate["position"], initial.position);
 
     // Handle submit_nodes diff for edit: compare ID arrays, and only set if changed
     const initialSubmitNodeIds =
@@ -320,7 +299,7 @@ export const UserForm: React.FC<UserFormProps> = ({
             onSelect={(project: Project | null) => {
               handleChange("primary_project_id", String(project?.id ?? ""));
             }}
-            value={values.primary_project_id ? {id: parseInt(values.primary_project_id, 10)} : undefined}
+            value={values.primary_project_id ? { id: parseInt(values.primary_project_id, 10) } : undefined}
           />
         )}
 
@@ -385,7 +364,7 @@ export const UserForm: React.FC<UserFormProps> = ({
           />
         )}
 
-        <Box sx={{display: "flex", gap: 2, mt: 2}}>
+        <Box sx={{ display: "flex", gap: 2, mt: 2 }}>
           <Button type="submit" variant="contained" color="primary" disabled={isSubmitting}>
             {mode === "create" ? "Create" : "Save"}
           </Button>

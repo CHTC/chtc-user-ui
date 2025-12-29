@@ -324,7 +324,7 @@ export function AuthClientProvider({ children }: { children: React.ReactNode }) 
         if (!response.ok) throw new Error(`Failed to add user to project: ${response.statusText}`);
         return response.json();
       },
-      []
+      [],
     ),
 
     removeUserFromProject: useCallback(async (projectId: number, userId: number): Promise<void> => {

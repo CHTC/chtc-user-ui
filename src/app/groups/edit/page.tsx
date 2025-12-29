@@ -1,13 +1,13 @@
 "use client";
 
-import React, {Suspense} from "react";
-import {useSearchParams} from "next/navigation";
-import {Box, Breadcrumbs, Skeleton, Typography} from "@mui/material";
+import React, { Suspense } from "react";
+import { useSearchParams } from "next/navigation";
+import { Box, Breadcrumbs, Skeleton, Typography } from "@mui/material";
 import { useAuthClient } from "@/src/components/AuthProvider";
 import { GroupForm } from "@/src/components/Forms/GroupForm/GroupForm";
-import { apiFetch} from "@/src/components/AuthProvider";
+import { apiFetch } from "@/src/components/AuthProvider";
 import type { GroupCreate } from "@/src/util/types";
-import {GroupCreateUpdate} from "@/types";
+import { GroupCreateUpdate } from "@/types";
 import useSWR from "swr";
 import GroupUserTable from "@/src/components/GroupUserTable/GroupUserTable";
 
@@ -39,7 +39,7 @@ function Page() {
       <Breadcrumbs>
         <Typography color="text.primary">Update Group</Typography>
       </Breadcrumbs>
-      <Suspense fallback={<Skeleton variant={"rectangular"} height={"100"}/>}>
+      <Suspense fallback={<Skeleton variant={"rectangular"} height={"100"} />}>
         <GroupPage handleSubmit={handleSubmit} />
       </Suspense>
     </Box>
@@ -56,34 +56,46 @@ const groupFetcher = async (id: number | null) => {
   return response.json();
 };
 
-const GroupFormSuspense = ({id, handleSubmit}: {id: number | null, handleSubmit: (id: number, payload: GroupCreate, update: () => void) => Promise<void>}) => {
-  const {data: group, mutate} = useSWR(id ? [`/groups/${id}`] : null, () => groupFetcher(id), {suspense: true});
+const GroupFormSuspense = ({
+  id,
+  handleSubmit,
+}: {
+  id: number | null;
+  handleSubmit: (id: number, payload: GroupCreate, update: () => void) => Promise<void>;
+}) => {
+  const { data: group, mutate } = useSWR(id ? [`/groups/${id}`] : null, () => groupFetcher(id), { suspense: true });
 
-  if(!id) {
-    return <p>No group ID provided.</p>
+  if (!id) {
+    return <p>No group ID provided.</p>;
   }
 
-  return <GroupForm
-    mode="edit"
-    initialValues={group}
-    onSubmit={(payload: GroupCreate) => handleSubmit(id, payload, mutate)}
-  />
-}
+  return (
+    <GroupForm
+      mode="edit"
+      initialValues={group}
+      onSubmit={(payload: GroupCreate) => handleSubmit(id, payload, mutate)}
+    />
+  );
+};
 
-const GroupPage = ({handleSubmit}: {handleSubmit: (id: number, payload: GroupCreate, update: () => void) => Promise<void>}) => {
+const GroupPage = ({
+  handleSubmit,
+}: {
+  handleSubmit: (id: number, payload: GroupCreate, update: () => void) => Promise<void>;
+}) => {
+  const searchParams = useSearchParams();
+  const id = Number.parseInt(searchParams.get("id") || "") || null;
 
-  const searchParams = useSearchParams()
-  const id = Number.parseInt(searchParams.get('id') || "") || null;
-
-  return <>
-
-    <Suspense fallback={<Skeleton variant={"rectangular"} height={"100"}/>}>
-      <GroupFormSuspense id={id} handleSubmit={handleSubmit} />
-    </Suspense>
-    <Suspense fallback={<Skeleton variant={"rectangular"} height={"100"}/>}>
-      <GroupUserTable groupId={id!} />
-    </Suspense>
-  </>
-}
+  return (
+    <>
+      <Suspense fallback={<Skeleton variant={"rectangular"} height={"100"} />}>
+        <GroupFormSuspense id={id} handleSubmit={handleSubmit} />
+      </Suspense>
+      <Suspense fallback={<Skeleton variant={"rectangular"} height={"100"} />}>
+        <GroupUserTable groupId={id!} />
+      </Suspense>
+    </>
+  );
+};
 
 export default Page;

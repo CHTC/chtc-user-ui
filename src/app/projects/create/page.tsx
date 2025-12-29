@@ -1,9 +1,9 @@
 "use client";
 
-import React, {Suspense, useState} from "react";
+import React, { Suspense, useState } from "react";
 import { useRouter } from "next/navigation";
-import {Box, Breadcrumbs, Typography} from "@mui/material";
-import {apiFetch, useAuthClient} from "@/src/components/AuthProvider";
+import { Box, Breadcrumbs, Typography } from "@mui/material";
+import { apiFetch, useAuthClient } from "@/src/components/AuthProvider";
 import { ProjectForm } from "@/src/components/Forms/ProjectForm/ProjectForm";
 import type { ProjectCreate } from "@/src/util/types";
 
@@ -20,7 +20,7 @@ function Page() {
       const groupResponse = await apiFetch("/projects", {
         method: "POST",
         body: JSON.stringify(payload),
-      })
+      });
       const group = await groupResponse.json();
       router.push(`/projects/edit?id=${group.id}`);
     } catch (e: unknown) {
@@ -44,15 +44,9 @@ function Page() {
       <Breadcrumbs>
         <Typography color="text.primary">Create Group</Typography>
       </Breadcrumbs>
-      <ProjectForm
-        mode="create"
-        onSubmit={handleSubmit}
-        isSubmitting={isSubmitting}
-        error={error}
-      />
+      <ProjectForm mode="create" onSubmit={handleSubmit} isSubmitting={isSubmitting} error={error} />
     </Box>
   );
 }
 
 export default Page;
-

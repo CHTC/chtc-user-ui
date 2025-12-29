@@ -1,9 +1,9 @@
-import {Suspense, useEffect, useState} from "react";
+import { Suspense, useEffect, useState } from "react";
 import useSWR from "swr";
 import useDebounce from "@/src/hooks/useDebounce/useDebounce";
-import {Autocomplete, Skeleton, TextField} from "@mui/material"
-import {apiFetch} from "@/src/components/AuthProvider";
-import {User} from "@/types"
+import { Autocomplete, Skeleton, TextField } from "@mui/material";
+import { apiFetch } from "@/src/components/AuthProvider";
+import { User } from "@/types";
 
 interface UserAutoCompleteProps {
   value: User[];
@@ -12,14 +12,11 @@ interface UserAutoCompleteProps {
   defaultFilter?: Record<string, string>;
 }
 
-
 const UserAutocompleteMultiple = ({ value, dataUrl, onSelect, defaultFilter }: UserAutoCompleteProps) => {
-
   const [inputValue, setInputValue] = useState("");
-  const debouncedInputValue = useDebounce(inputValue, 300)
+  const debouncedInputValue = useDebounce(inputValue, 300);
 
-  const {data: users} = useSWR([`${dataUrl}?page_size=100`, debouncedInputValue], async (): Promise<User[]> => {
-
+  const { data: users } = useSWR([`${dataUrl}?page_size=100`, debouncedInputValue], async (): Promise<User[]> => {
     const urlParams = new URLSearchParams();
     urlParams.append("page_size", "100");
 
@@ -27,7 +24,7 @@ const UserAutocompleteMultiple = ({ value, dataUrl, onSelect, defaultFilter }: U
       urlParams.append("name", `like.${debouncedInputValue}`);
     }
 
-    if(defaultFilter) {
+    if (defaultFilter) {
       for (const [key, value] of Object.entries(defaultFilter)) {
         urlParams.append(key, value);
       }
@@ -55,9 +52,7 @@ const UserAutocompleteMultiple = ({ value, dataUrl, onSelect, defaultFilter }: U
       }}
       renderInput={(params) => <TextField {...params} label="Select User" variant="outlined" />}
     />
-  )
-}
-
-
+  );
+};
 
 export default UserAutocompleteMultiple;

@@ -11,7 +11,7 @@ export function PageSelector({ totalRows, rowsPerPage, currentPage, onPageChange
   const totalPages = Math.ceil(totalRows / rowsPerPage);
 
   return (
-    <Box sx={{ display: "flex", justifyContent: "center", alignItems: "center", marginTop: 2, gap: 2 }}>
+    <Box sx={{ display: "flex", justifyContent: "center", alignItems: "center", gap: 2 }}>
       <Button variant="contained" disabled={currentPage === 0} onClick={() => onPageChange(currentPage - 1)}>
         Previous
       </Button>

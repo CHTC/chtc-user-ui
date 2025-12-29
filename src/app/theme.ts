@@ -44,7 +44,7 @@ const theme = responsiveFontSizes(
         fontWeight: 700,
       },
       fontFamily: [rht.style.fontFamily, "Helvetica Neue", "Helvetica", "Arial", "Lucida Grande", "sans-serif"].join(
-        ","
+        ",",
       ),
     },
     components: {
@@ -55,7 +55,7 @@ const theme = responsiveFontSizes(
       },
     },
   }),
-  { factor: 2 }
+  { factor: 2 },
 );
 
 export { theme, rht, rhd };

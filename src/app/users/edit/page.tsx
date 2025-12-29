@@ -1,18 +1,17 @@
 "use client";
 
-import React, {Suspense} from "react";
-import {useSearchParams} from "next/navigation";
-import {Box, Breadcrumbs, Button, Link, Skeleton, Typography} from "@mui/material";
+import React, { Suspense } from "react";
+import { useSearchParams } from "next/navigation";
+import { Box, Breadcrumbs, Button, Link, Skeleton, Typography } from "@mui/material";
 import { useAuthClient } from "@/src/components/AuthProvider";
 import { UserForm } from "@/src/components/Forms/UserForm/UserForm";
-import { apiFetch} from "@/src/components/AuthProvider";
+import { apiFetch } from "@/src/components/AuthProvider";
 
 import useSWR from "swr";
 
 import UserProjectTable from "@/src/components/UserProjectTable/UserProjectTable";
 import UserGroupTable from "@/src/components/UserGroupTable/UserGroupTable";
-import {UserCreate, UserUpdate} from "@/types";
-
+import { UserCreate, UserUpdate } from "@/types";
 
 function Page() {
   const { isAuthenticated } = useAuthClient();
@@ -42,7 +41,7 @@ function Page() {
       <Breadcrumbs>
         <Typography color="text.primary">Update User</Typography>
       </Breadcrumbs>
-      <Suspense fallback={<Skeleton variant={"rectangular"} height={"100"}/>}>
+      <Suspense fallback={<Skeleton variant={"rectangular"} height={"100"} />}>
         <UserPage handleSubmit={handleSubmit} />
       </Suspense>
     </Box>
@@ -59,52 +58,63 @@ const userFetcher = async (id: number | null) => {
   return response.json();
 };
 
-const UserFormSuspense = ({id, handleSubmit}: {id: number | null, handleSubmit: (id: number, payload: UserCreate | Partial<UserUpdate>, update: () => void) => Promise<void>}) => {
-  const {data: user, mutate} = useSWR(id ? [`/users/${id}`] : null, () => userFetcher(id), {suspense: true});
+const UserFormSuspense = ({
+  id,
+  handleSubmit,
+}: {
+  id: number | null;
+  handleSubmit: (id: number, payload: UserCreate | Partial<UserUpdate>, update: () => void) => Promise<void>;
+}) => {
+  const { data: user, mutate } = useSWR(id ? [`/users/${id}`] : null, () => userFetcher(id), { suspense: true });
 
-  if(!id) {
-    return <p>No user ID provided.</p>
+  if (!id) {
+    return <p>No user ID provided.</p>;
   }
 
-  return <UserForm
-    mode="edit"
-    initialValues={user}
-    onSubmit={(payload: UserCreate | Partial<UserUpdate>) => handleSubmit(id, payload, mutate)}
-  />
-}
+  return (
+    <UserForm
+      mode="edit"
+      initialValues={user}
+      onSubmit={(payload: UserCreate | Partial<UserUpdate>) => handleSubmit(id, payload, mutate)}
+    />
+  );
+};
 
-const UserPage = ({handleSubmit}: {handleSubmit: (id: number, payload: UserCreate | Partial<UserUpdate>, update: () => void) => Promise<void>}) => {
+const UserPage = ({
+  handleSubmit,
+}: {
+  handleSubmit: (id: number, payload: UserCreate | Partial<UserUpdate>, update: () => void) => Promise<void>;
+}) => {
+  const searchParams = useSearchParams();
+  const id = Number.parseInt(searchParams.get("id") || "") || null;
 
-  const searchParams = useSearchParams()
-  const id = Number.parseInt(searchParams.get('id') || "") || null;
-
-  return <>
-
-    <Suspense fallback={<Skeleton variant={"rectangular"} height={"400px"}/>}>
-      <UserFormSuspense id={id} handleSubmit={handleSubmit} />
-    </Suspense>
-    <Box my={4}>
-      <Suspense fallback={<Skeleton variant={"rectangular"} height={"400px"}/>}>
-        <Typography variant={"h4"} component="h3" sx={{ mb: 2, display: "flex", justifyContent: "space-between" }}>
-          <Link href="/groups" style={{ textDecoration: 'none', color: 'inherit' }}>
-            Projects
-          </Link>
-        </Typography>
-        <UserProjectTable userId={id!} />
+  return (
+    <>
+      <Suspense fallback={<Skeleton variant={"rectangular"} height={"400px"} />}>
+        <UserFormSuspense id={id} handleSubmit={handleSubmit} />
       </Suspense>
-    </Box>
-    <Box my={4}>
-      <Suspense fallback={<Skeleton variant={"rectangular"} height={"400px"}/>}>
-        <Typography variant={"h4"} component="h3" sx={{ mb: 2, display: "flex", justifyContent: "space-between" }}>
-          <Link href="/groups" style={{ textDecoration: 'none', color: 'inherit' }}>
-            Groups
-          </Link>
-        </Typography>
-        <UserGroupTable userId={id!} />
-      </Suspense>
-    </Box>
-
-  </>
-}
+      <Box my={4}>
+        <Suspense fallback={<Skeleton variant={"rectangular"} height={"400px"} />}>
+          <Typography variant={"h4"} component="h3" sx={{ mb: 2, display: "flex", justifyContent: "space-between" }}>
+            <Link href="/groups" style={{ textDecoration: "none", color: "inherit" }}>
+              Projects
+            </Link>
+          </Typography>
+          <UserProjectTable userId={id!} />
+        </Suspense>
+      </Box>
+      <Box my={4}>
+        <Suspense fallback={<Skeleton variant={"rectangular"} height={"400px"} />}>
+          <Typography variant={"h4"} component="h3" sx={{ mb: 2, display: "flex", justifyContent: "space-between" }}>
+            <Link href="/groups" style={{ textDecoration: "none", color: "inherit" }}>
+              Groups
+            </Link>
+          </Typography>
+          <UserGroupTable userId={id!} />
+        </Suspense>
+      </Box>
+    </>
+  );
+};
 
 export default Page;

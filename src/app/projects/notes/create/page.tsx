@@ -1,15 +1,14 @@
 "use client";
 
-import React, {Suspense, useState} from "react";
-import {useRouter, useSearchParams} from "next/navigation";
-import {Box, Breadcrumbs, Skeleton, Typography} from "@mui/material";
-import {apiFetch, useAuthClient} from "@/src/components/AuthProvider";
+import React, { Suspense, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { Box, Breadcrumbs, Skeleton, Typography } from "@mui/material";
+import { apiFetch, useAuthClient } from "@/src/components/AuthProvider";
 import { NoteForm } from "@/src/components/Forms/NoteForm/NoteForm";
 import type { NoteCreate } from "@/src/util/types";
 
 function Page() {
-
-  const params = useSearchParams()
+  const params = useSearchParams();
   const projectId = params.get("project_id");
 
   const { isAuthenticated } = useAuthClient();
@@ -24,7 +23,7 @@ function Page() {
       const noteResponse = await apiFetch(`/projects/${projectId}/notes`, {
         method: "POST",
         body: JSON.stringify(payload),
-      })
+      });
       const note = await noteResponse.json();
       router.push(`/projects/notes/edit?noteId=${note.id}&projectId=${projectId}`);
     } catch (e: unknown) {
@@ -43,12 +42,12 @@ function Page() {
     );
   }
 
-  if (projectId == null){
+  if (projectId == null) {
     return (
       <Box sx={{ width: "100%", padding: 2 }}>
         <Typography variant="h6">Page is missing project ID, this is a UI bug.</Typography>
       </Box>
-    )
+    );
   }
 
   return (
@@ -68,10 +67,11 @@ function Page() {
 }
 
 const PageSuspended = () => {
-  return <Suspense fallback={<Skeleton height={"400px"} />}>
-    <Page />
-  </Suspense>
-}
+  return (
+    <Suspense fallback={<Skeleton height={"400px"} />}>
+      <Page />
+    </Suspense>
+  );
+};
 
 export default PageSuspended;
-

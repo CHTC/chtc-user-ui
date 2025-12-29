@@ -1,8 +1,8 @@
 "use client";
 
-import React, {useState} from "react";
-import {Box, Button, Stack, TextField, Alert} from "@mui/material";
-import {FormMode, ProjectCreateUpdate} from "@/types";
+import React, { useState } from "react";
+import { Box, Button, Stack, TextField, Alert } from "@mui/material";
+import { FormMode, ProjectCreateUpdate } from "@/types";
 import UserAutocomplete from "@/src/components/UserAutocomplete/UserAutocomplete";
 
 export interface ProjectFormValues {
@@ -39,20 +39,14 @@ function normalizeInitialValues(initial?: Partial<ProjectCreateUpdate>): Project
   return {
     name: initial?.name ?? "",
     accounting_group: initial?.accounting_group ?? "",
-    pi:
-      initial?.pi !== undefined && initial?.pi !== null
-        ? String(initial.pi)
-        : "",
+    pi: initial?.pi !== undefined && initial?.pi !== null ? String(initial.pi) : "",
     staff1: initial?.staff1 ?? "",
     staff2: initial?.staff2 ?? "",
     status: initial?.status ?? "",
     access: initial?.access ?? "",
     url: initial?.url ?? "",
     date: initial?.date ?? "",
-    ticket:
-      initial?.ticket !== undefined && initial?.ticket !== null
-        ? String(initial.ticket)
-        : "",
+    ticket: initial?.ticket !== undefined && initial?.ticket !== null ? String(initial.ticket) : "",
     last_contact: initial?.last_contact ?? "",
   };
 }
@@ -67,7 +61,7 @@ export const ProjectForm: React.FC<ProjectFormProps> = ({
   const [values, setValues] = useState<ProjectFormValues>(() => normalizeInitialValues(initialValues));
 
   const handleChange = (field: keyof ProjectFormValues, value: string) => {
-    setValues((prev) => ({...prev, [field]: value}));
+    setValues((prev) => ({ ...prev, [field]: value }));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -91,7 +85,7 @@ export const ProjectForm: React.FC<ProjectFormProps> = ({
   };
 
   return (
-    <Box component="form" onSubmit={handleSubmit} sx={{mt: 2, maxWidth: 600}}>
+    <Box component="form" onSubmit={handleSubmit} sx={{ mt: 2, maxWidth: 600 }}>
       <Stack spacing={2}>
         {error && <Alert severity="error">{error}</Alert>}
 
@@ -114,22 +108,18 @@ export const ProjectForm: React.FC<ProjectFormProps> = ({
         />
 
         <UserAutocomplete
-          value={{username: values.staff1}}
-          onSelect={
-            (user) => handleChange("staff1", user?.username || "")
-          }
+          value={{ username: values.staff1 }}
+          onSelect={(user) => handleChange("staff1", user?.username || "")}
           defaultFilter={{
-            is_admin: "is.true"
+            is_admin: "is.true",
           }}
         />
 
         <UserAutocomplete
-          value={{username: values.staff2}}
-          onSelect={
-            (user) => handleChange("staff2", user?.username || "")
-          }
+          value={{ username: values.staff2 }}
+          onSelect={(user) => handleChange("staff2", user?.username || "")}
           defaultFilter={{
-            is_admin: "is.true"
+            is_admin: "is.true",
           }}
         />
 
@@ -184,7 +174,7 @@ export const ProjectForm: React.FC<ProjectFormProps> = ({
           type={"datetime-local"}
         />
 
-        <Box sx={{display: "flex", gap: 2, mt: 2}}>
+        <Box sx={{ display: "flex", gap: 2, mt: 2 }}>
           <Button type="submit" variant="contained" color="primary" disabled={isSubmitting}>
             {mode === "create" ? "Create" : "Save"}
           </Button>

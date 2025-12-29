@@ -23,13 +23,13 @@ function Page() {
 
         // Map PiProjectView into row arrays matching headers
         const data = result.map((pi: PiProjectView) => [
-          pi.user_id ?? "",      // id
-          pi.username ?? "",     // Username
-          pi.name ?? "",         // Name
+          pi.user_id ?? "", // id
+          pi.username ?? "", // Username
+          pi.name ?? "", // Name
           pi.project_name ?? "", // Project Name
           pi.email1 ?? "",
           pi.phone1 ?? "",
-          pi.netid ?? ""
+          pi.netid ?? "",
         ]);
 
         return { data, totalCount: result.length };

@@ -34,22 +34,12 @@ function normalizeInitialValues(initial?: Partial<GroupCreate & GroupUpdate>): G
   return {
     name: initial?.name ?? "",
     point_of_contact: initial?.point_of_contact ?? "",
-    unix_gid:
-      initial?.unix_gid !== undefined && initial?.unix_gid !== null
-        ? String(initial.unix_gid)
-        : "",
+    unix_gid: initial?.unix_gid !== undefined && initial?.unix_gid !== null ? String(initial.unix_gid) : "",
     has_groupdir: initial?.has_groupdir ?? true,
   };
 }
 
-export const GroupForm: React.FC<GroupFormProps> = ({
-  mode,
-  initialValues,
-  onSubmit,
-  isSubmitting = false,
-  error,
-}) => {
-
+export const GroupForm: React.FC<GroupFormProps> = ({ mode, initialValues, onSubmit, isSubmitting = false, error }) => {
   const [values, setValues] = useState<GroupFormValues>(() => normalizeInitialValues(initialValues));
 
   const handleChange = (field: keyof GroupFormValues, value: string | boolean) => {
@@ -72,7 +62,6 @@ export const GroupForm: React.FC<GroupFormProps> = ({
   return (
     <Box component="form" onSubmit={handleSubmit} sx={{ mt: 2, maxWidth: 600 }}>
       <Stack spacing={2}>
-
         {error && <Alert severity="error">{error}</Alert>}
 
         <TextField
@@ -85,12 +74,10 @@ export const GroupForm: React.FC<GroupFormProps> = ({
         />
 
         <UserAutocomplete
-          value={{username: values.point_of_contact}}
-          onSelect={
-            (user) => handleChange("point_of_contact", user?.username || "")
-          }
+          value={{ username: values.point_of_contact }}
+          onSelect={(user) => handleChange("point_of_contact", user?.username || "")}
           defaultFilter={{
-            is_admin: "is.true"
+            is_admin: "is.true",
           }}
         />
 
@@ -125,4 +112,3 @@ export const GroupForm: React.FC<GroupFormProps> = ({
 };
 
 export default GroupForm;
-

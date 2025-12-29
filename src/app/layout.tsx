@@ -50,9 +50,7 @@ export default function RootLayout({
               <Banner />
               <Header pages={pages} />
               <Container maxWidth="lg">
-                <Box my={2}>
-                  {children}
-                </Box>
+                <Box my={2}>{children}</Box>
               </Container>
             </AuthClientProvider>
           </ThemeProvider>

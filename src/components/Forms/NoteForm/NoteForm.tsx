@@ -1,9 +1,9 @@
 "use client";
 
-import React, {useState} from "react";
-import {Box, Button, Stack, TextField, Alert} from "@mui/material";
-import type {NoteCreate} from "@/types";
-import type {User} from "@/types";
+import React, { useState } from "react";
+import { Box, Button, Stack, TextField, Alert } from "@mui/material";
+import type { NoteCreate } from "@/types";
+import type { User } from "@/types";
 import UserAutocompleteMultiple from "@/src/components/UserAutocompleteMultiple/UserAutocompleteMultiple";
 
 export type NoteFormMode = "create" | "edit";
@@ -52,8 +52,8 @@ export const NoteForm: React.FC<NoteFormProps> = ({
 }) => {
   const [values, setValues] = useState<NoteFormValues>(() => normalizeInitialValues(initialValues));
 
-  const handleChange = (field: keyof NoteFormValues, value: string | User[] ) => {
-    setValues((prev) => ({...prev, [field]: value}));
+  const handleChange = (field: keyof NoteFormValues, value: string | User[]) => {
+    setValues((prev) => ({ ...prev, [field]: value }));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -72,12 +72,12 @@ export const NoteForm: React.FC<NoteFormProps> = ({
     ticket: values.ticket || null,
     note: values.note || null,
     users: values.users.map((u) => u.id),
-  })
+  });
 
-  console.log(values)
+  console.log(values);
 
   return (
-    <Box component="form" onSubmit={handleSubmit} sx={{mt: 2, maxWidth: 600}}>
+    <Box component="form" onSubmit={handleSubmit} sx={{ mt: 2, maxWidth: 600 }}>
       <Stack spacing={2}>
         {error && <Alert severity="error">{error}</Alert>}
 
@@ -125,7 +125,7 @@ export const NoteForm: React.FC<NoteFormProps> = ({
           helperText={"Automatically set to current date on creation"}
         />
 
-        <Box sx={{display: "flex", gap: 2, mt: 2}}>
+        <Box sx={{ display: "flex", gap: 2, mt: 2 }}>
           <Button type="submit" variant="contained" color="primary" disabled={isSubmitting}>
             {mode === "create" ? "Create" : "Save"}
           </Button>
@@ -136,4 +136,3 @@ export const NoteForm: React.FC<NoteFormProps> = ({
 };
 
 export default NoteForm;
-

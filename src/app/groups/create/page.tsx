@@ -1,9 +1,9 @@
 "use client";
 
-import React, {Suspense, useState} from "react";
+import React, { Suspense, useState } from "react";
 import { useRouter } from "next/navigation";
-import {Box, Breadcrumbs, Typography} from "@mui/material";
-import {apiFetch, useAuthClient} from "@/src/components/AuthProvider";
+import { Box, Breadcrumbs, Typography } from "@mui/material";
+import { apiFetch, useAuthClient } from "@/src/components/AuthProvider";
 import { GroupForm } from "@/src/components/Forms/GroupForm/GroupForm";
 import type { GroupCreate } from "@/src/util/types";
 
@@ -20,7 +20,7 @@ function Page() {
       const groupResponse = await apiFetch("/groups", {
         method: "POST",
         body: JSON.stringify(payload),
-      })
+      });
       const group = await groupResponse.json();
       router.push(`/groups/edit?id=${group.id}`);
     } catch (e: unknown) {
@@ -44,15 +44,9 @@ function Page() {
       <Breadcrumbs>
         <Typography color="text.primary">Create Group</Typography>
       </Breadcrumbs>
-      <GroupForm
-        mode="create"
-        onSubmit={handleSubmit}
-        isSubmitting={isSubmitting}
-        error={error}
-      />
+      <GroupForm mode="create" onSubmit={handleSubmit} isSubmitting={isSubmitting} error={error} />
     </Box>
   );
 }
 
 export default Page;
-

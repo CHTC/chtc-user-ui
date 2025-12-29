@@ -1,13 +1,13 @@
 "use client";
 
-import React, {Suspense} from "react";
-import {useSearchParams} from "next/navigation";
-import {Box, Breadcrumbs, Button, Link, Skeleton, Typography} from "@mui/material";
+import React, { Suspense } from "react";
+import { useSearchParams } from "next/navigation";
+import { Box, Breadcrumbs, Button, Link, Skeleton, Typography } from "@mui/material";
 import { useAuthClient } from "@/src/components/AuthProvider";
 import { ProjectForm } from "@/src/components/Forms/ProjectForm/ProjectForm";
-import { apiFetch} from "@/src/components/AuthProvider";
+import { apiFetch } from "@/src/components/AuthProvider";
 import type { ProjectCreate } from "@/src/util/types";
-import {ProjectCreateUpdate} from "@/types";
+import { ProjectCreateUpdate } from "@/types";
 import useSWR from "swr";
 import ProjectUserTable from "@/src/components/ProjectUserTable/ProjectUserTable";
 import ProjectNoteTable from "@/src/components/ProjectNoteTable/ProjectNoteTable";
@@ -41,7 +41,7 @@ function Page() {
       <Breadcrumbs>
         <Typography color="text.primary">Update Project</Typography>
       </Breadcrumbs>
-      <Suspense fallback={<Skeleton variant={"rectangular"} height={"100"}/>}>
+      <Suspense fallback={<Skeleton variant={"rectangular"} height={"100"} />}>
         <ProjectPage handleSubmit={handleSubmit} />
       </Suspense>
     </Box>
@@ -58,53 +58,70 @@ const projectFetcher = async (id: number | null) => {
   return response.json();
 };
 
-const ProjectFormSuspense = ({id, handleSubmit}: {id: number | null, handleSubmit: (id: number, payload: ProjectCreate, update: () => void) => Promise<void>}) => {
-  const {data: project, mutate} = useSWR(id ? [`/projects/${id}`] : null, () => projectFetcher(id), {suspense: true});
+const ProjectFormSuspense = ({
+  id,
+  handleSubmit,
+}: {
+  id: number | null;
+  handleSubmit: (id: number, payload: ProjectCreate, update: () => void) => Promise<void>;
+}) => {
+  const { data: project, mutate } = useSWR(id ? [`/projects/${id}`] : null, () => projectFetcher(id), {
+    suspense: true,
+  });
 
-  if(!id) {
-    return <p>No project ID provided.</p>
+  if (!id) {
+    return <p>No project ID provided.</p>;
   }
 
-  return <ProjectForm
-    mode="edit"
-    initialValues={project}
-    onSubmit={(payload: ProjectCreate) => handleSubmit(id, payload, mutate)}
-  />
-}
+  return (
+    <ProjectForm
+      mode="edit"
+      initialValues={project}
+      onSubmit={(payload: ProjectCreate) => handleSubmit(id, payload, mutate)}
+    />
+  );
+};
 
-const ProjectPage = ({handleSubmit}: {handleSubmit: (id: number, payload: ProjectCreate, update: () => void) => Promise<void>}) => {
+const ProjectPage = ({
+  handleSubmit,
+}: {
+  handleSubmit: (id: number, payload: ProjectCreate, update: () => void) => Promise<void>;
+}) => {
+  const searchParams = useSearchParams();
+  const id = Number.parseInt(searchParams.get("id") || "") || null;
 
-  const searchParams = useSearchParams()
-  const id = Number.parseInt(searchParams.get('id') || "") || null;
-
-  return <>
-    <Box my={3}>
-      <Suspense fallback={<Skeleton variant={"rectangular"} height={"400px"}/>}>
-        <ProjectFormSuspense id={id} handleSubmit={handleSubmit} />
-      </Suspense>
-    </Box>
-    <Box my={4}>
-      <Typography variant={"h4"} component="h3">Users</Typography>
-      <Suspense fallback={<Skeleton variant={"rectangular"} height={"400px"}/>}>
-        <ProjectUserTable projectId={id!} />
-      </Suspense>
-    </Box>
-    <Box my={4}>
-      <Typography variant={"h4"} component="h3" sx={{ mb: 2, display: "flex", justifyContent: "space-between" }}>
-        <Link href="/groups" style={{ textDecoration: 'none', color: 'inherit' }}>
-          Notes
-        </Link>
-        <Button startIcon={<Add/>}>
-          <Link href={`/projects/notes/create?project_id=${id}`} style={{ textDecoration: 'none', color: 'inherit' }}>
-            Add Note
+  return (
+    <>
+      <Box my={3}>
+        <Suspense fallback={<Skeleton variant={"rectangular"} height={"400px"} />}>
+          <ProjectFormSuspense id={id} handleSubmit={handleSubmit} />
+        </Suspense>
+      </Box>
+      <Box my={4}>
+        <Typography variant={"h4"} component="h3">
+          Users
+        </Typography>
+        <Suspense fallback={<Skeleton variant={"rectangular"} height={"400px"} />}>
+          <ProjectUserTable projectId={id!} />
+        </Suspense>
+      </Box>
+      <Box my={4}>
+        <Typography variant={"h4"} component="h3" sx={{ mb: 2, display: "flex", justifyContent: "space-between" }}>
+          <Link href="/groups" style={{ textDecoration: "none", color: "inherit" }}>
+            Notes
           </Link>
-        </Button>
-      </Typography>
-      <Suspense fallback={<Skeleton variant={"rectangular"} height={"400px"}/>}>
-        <ProjectNoteTable projectId={id!} />
-      </Suspense>
-    </Box>
-  </>
-}
+          <Button startIcon={<Add />}>
+            <Link href={`/projects/notes/create?project_id=${id}`} style={{ textDecoration: "none", color: "inherit" }}>
+              Add Note
+            </Link>
+          </Button>
+        </Typography>
+        <Suspense fallback={<Skeleton variant={"rectangular"} height={"400px"} />}>
+          <ProjectNoteTable projectId={id!} />
+        </Suspense>
+      </Box>
+    </>
+  );
+};
 
 export default Page;

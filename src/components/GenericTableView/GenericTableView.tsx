@@ -2,18 +2,23 @@
 
 import { Table } from "@chtc/web-components";
 import { Box, Button, TextField } from "@mui/material";
-import {JSXElementConstructor, ReactElement, useEffect, useState} from "react";
+import { JSXElementConstructor, ReactElement, useEffect, useState } from "react";
 import { PaginationParams } from "../../util/types";
 import { ApiClient, useAuthClient } from "../AuthProvider";
 import { PageSelector } from "./PageSelector";
 
 export interface GenericListComponentProps {
-  cellRenderer: (cell: string | number, columnHeader: string, column: number, row: number) => ReactElement<unknown, string | JSXElementConstructor<any>>
+  cellRenderer: (
+    cell: string | number,
+    columnHeader: string,
+    column: number,
+    row: number,
+  ) => ReactElement<unknown, string | JSXElementConstructor<any>>;
   headers: string[];
   query: (
     client: ApiClient,
     opts: PaginationParams,
-    searchQuery: string
+    searchQuery: string,
   ) => Promise<{ data: (string | number)[][]; totalCount: number }>;
   queryLabel: string;
 
@@ -53,8 +58,8 @@ function GenericTableView({ cellRenderer, headers, query, queryLabel }: GenericL
   };
 
   useEffect(() => {
-    handleSearch()
-  }, [])
+    handleSearch();
+  }, []);
 
   if (!isAuthenticated) {
     return <p>Please log in to view this data.</p>;
@@ -108,7 +113,6 @@ function GenericTableView({ cellRenderer, headers, query, queryLabel }: GenericL
           headers={headers}
           data={data}
           cellRenderer={cellRenderer}
-          sortable={true}
           headCellSx={{
             backgroundColor: "rgba(0, 0, 0, 0.1)",
             padding: "8px 16px",

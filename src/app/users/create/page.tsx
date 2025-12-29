@@ -1,9 +1,9 @@
 "use client";
 
-import React, {Suspense, useState} from "react";
+import React, { Suspense, useState } from "react";
 import { useRouter } from "next/navigation";
-import {Box, Breadcrumbs, Typography} from "@mui/material";
-import {apiFetch, useAuthClient} from "@/src/components/AuthProvider";
+import { Box, Breadcrumbs, Typography } from "@mui/material";
+import { apiFetch, useAuthClient } from "@/src/components/AuthProvider";
 import { UserForm } from "@/src/components/Forms/UserForm/UserForm";
 import type { UserCreate } from "@/src/util/types";
 
@@ -20,7 +20,7 @@ function Page() {
       const userResponse = await apiFetch("/users", {
         method: "POST",
         body: JSON.stringify(payload),
-      })
+      });
 
       if (!userResponse.ok) {
         throw new Error(`Failed to create user: ${userResponse.statusText}`);
@@ -49,15 +49,9 @@ function Page() {
       <Breadcrumbs>
         <Typography color="text.primary">Create User</Typography>
       </Breadcrumbs>
-      <UserForm
-        mode="create"
-        onSubmit={handleSubmit}
-        isSubmitting={isSubmitting}
-        error={error}
-      />
+      <UserForm mode="create" onSubmit={handleSubmit} isSubmitting={isSubmitting} error={error} />
     </Box>
   );
 }
 
 export default Page;
-

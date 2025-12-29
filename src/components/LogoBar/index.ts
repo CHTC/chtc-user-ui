@@ -1,1 +1,1 @@
-export {default} from './LogoBar'
+export { default } from "./LogoBar";

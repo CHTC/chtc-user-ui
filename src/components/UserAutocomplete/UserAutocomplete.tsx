@@ -1,9 +1,9 @@
-import {Suspense, useEffect, useState} from "react";
+import { Suspense, useEffect, useState } from "react";
 import useSWR from "swr";
 import useDebounce from "@/src/hooks/useDebounce/useDebounce";
-import {Autocomplete, Skeleton, TextField} from "@mui/material"
-import {apiFetch} from "@/src/components/AuthProvider";
-import {User} from "@/types"
+import { Autocomplete, Skeleton, TextField } from "@mui/material";
+import { apiFetch } from "@/src/components/AuthProvider";
+import { User } from "@/types";
 
 interface UserAutoCompleteProps {
   value?: Partial<User>;
@@ -11,17 +11,14 @@ interface UserAutoCompleteProps {
   defaultFilter?: Record<string, string>;
 }
 
-
 const UserAutocomplete = ({ value, onSelect, defaultFilter }: UserAutoCompleteProps) => {
-
-  console.log(value)
+  console.log(value);
 
   const [activeUser, setActiveUser] = useState<User | null>(null);
   const [inputValue, setInputValue] = useState("");
-  const debouncedInputValue = useDebounce(inputValue, 300)
+  const debouncedInputValue = useDebounce(inputValue, 300);
 
-  const {data: users} = useSWR([`/users?page_size=100`, debouncedInputValue], async (): Promise<User[]> => {
-
+  const { data: users } = useSWR([`/users?page_size=100`, debouncedInputValue], async (): Promise<User[]> => {
     const urlParams = new URLSearchParams();
     urlParams.append("page_size", "100");
 
@@ -29,7 +26,7 @@ const UserAutocomplete = ({ value, onSelect, defaultFilter }: UserAutoCompletePr
       urlParams.append("name", `like.${debouncedInputValue}`);
     }
 
-    if(defaultFilter) {
+    if (defaultFilter) {
       for (const [key, value] of Object.entries(defaultFilter)) {
         urlParams.append(key, value);
       }
@@ -42,10 +39,8 @@ const UserAutocomplete = ({ value, onSelect, defaultFilter }: UserAutoCompletePr
   useEffect(() => {
     // Sort through all the users and find the one that matches the value prop by id, username, or email1
     if (users && value) {
-      const matchedUser = users.find((user) =>
-        user.id === value.id ||
-        user.username === value.username ||
-        user.email1 === value.email1
+      const matchedUser = users.find(
+        (user) => user.id === value.id || user.username === value.username || user.email1 === value.email1,
       );
       if (matchedUser) {
         setActiveUser(matchedUser);
@@ -55,7 +50,7 @@ const UserAutocomplete = ({ value, onSelect, defaultFilter }: UserAutoCompletePr
       setActiveUser(null);
       setInputValue("");
     }
-  }, [users, value])
+  }, [users, value]);
 
   return (
     <Autocomplete
@@ -72,9 +67,7 @@ const UserAutocomplete = ({ value, onSelect, defaultFilter }: UserAutoCompletePr
       }}
       renderInput={(params) => <TextField {...params} label="Select User" variant="outlined" />}
     />
-  )
-}
-
-
+  );
+};
 
 export default UserAutocomplete;

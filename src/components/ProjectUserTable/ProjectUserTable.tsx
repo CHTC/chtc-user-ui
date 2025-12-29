@@ -1,7 +1,7 @@
 import useSWR from "swr";
-import React, {useState} from "react";
-import {JoinedProjectView, RoleEnum, User} from "@/types";
-import {apiFetch} from "@/src/components/AuthProvider";
+import React, { useState } from "react";
+import { JoinedProjectView, RoleEnum, User } from "@/types";
+import { apiFetch } from "@/src/components/AuthProvider";
 import {
   Table,
   TableBody,
@@ -17,24 +17,23 @@ import {
   FormControlLabel,
   Button,
 } from "@mui/material";
-import {Delete} from "@mui/icons-material";
+import { Delete } from "@mui/icons-material";
 import UserAutocomplete from "@/src/components/UserAutocomplete/UserAutocomplete";
 
-import {ConfirmButton} from "@chtc/web-components";
-
+import { ConfirmButton } from "@chtc/web-components";
 
 interface ProjectUserTableProps {
   projectId: number;
 }
 
-const ProjectUserTable = ({projectId}: ProjectUserTableProps) => {
-  const {data: users, mutate} = useSWR(
+const ProjectUserTable = ({ projectId }: ProjectUserTableProps) => {
+  const { data: users, mutate } = useSWR(
     `/projects/${projectId}/users`,
     async (): Promise<JoinedProjectView[]> => {
       const projectUserResponse = await apiFetch(`/projects/${projectId}/users`);
       return projectUserResponse.json();
     },
-    {suspense: true}
+    { suspense: true },
   );
 
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
@@ -78,34 +77,35 @@ const ProjectUserTable = ({projectId}: ProjectUserTableProps) => {
         </TableRow>
       </TableHead>
       <TableBody>
-        {users && (users || []).map((user) => (
-          <TableRow key={user.id}>
-            <TableCell>{user.username}</TableCell>
-            <TableCell>{user.name}</TableCell>
-            <TableCell>{user.role}</TableCell>
-            <TableCell>{user.last_note_ticket}</TableCell>
-            <TableCell>{user.email1}</TableCell>
-            <TableCell>{user.phone1}</TableCell>
-            <TableCell>{user.netid}</TableCell>
-            <TableCell>
-              <Box sx={{ display: 'flex', gap: 1 }}>
-                <ConfirmButton
-                  aria-label={"Delete Note"}
-                  color={"error"}
-                  onConfirm={async () => {
-                    await apiFetch(`/projects/${projectId}/users/${user.id}`, {
-                      method: 'DELETE',
-                    });
-                    mutate();
-                    // Optionally, you can add a way to refresh the data here
-                  }}
-                >
-                  <Delete />
-                </ConfirmButton>
-              </Box>
-            </TableCell>
-          </TableRow>
-        ))}
+        {users &&
+          (users || []).map((user) => (
+            <TableRow key={user.id}>
+              <TableCell>{user.username}</TableCell>
+              <TableCell>{user.name}</TableCell>
+              <TableCell>{user.role}</TableCell>
+              <TableCell>{user.last_note_ticket}</TableCell>
+              <TableCell>{user.email1}</TableCell>
+              <TableCell>{user.phone1}</TableCell>
+              <TableCell>{user.netid}</TableCell>
+              <TableCell>
+                <Box sx={{ display: "flex", gap: 1 }}>
+                  <ConfirmButton
+                    aria-label={"Delete Note"}
+                    color={"error"}
+                    onConfirm={async () => {
+                      await apiFetch(`/projects/${projectId}/users/${user.id}`, {
+                        method: "DELETE",
+                      });
+                      mutate();
+                      // Optionally, you can add a way to refresh the data here
+                    }}
+                  >
+                    <Delete />
+                  </ConfirmButton>
+                </Box>
+              </TableCell>
+            </TableRow>
+          ))}
         <TableRow>
           <TableCell colSpan={8} align="center">
             <Box
@@ -149,12 +149,7 @@ const ProjectUserTable = ({projectId}: ProjectUserTableProps) => {
                 }}
               >
                 <FormControlLabel
-                  control={
-                    <Switch
-                      checked={isPrimary}
-                      onChange={(e) => setIsPrimary(e.target.checked)}
-                    />
-                  }
+                  control={<Switch checked={isPrimary} onChange={(e) => setIsPrimary(e.target.checked)} />}
                   label="Primary"
                 />
               </Box>
