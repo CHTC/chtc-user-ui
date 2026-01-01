@@ -13,7 +13,7 @@ export interface GenericListComponentProps {
     columnHeader: string,
     column: number,
     row: number,
-  ) => ReactElement<unknown, string | JSXElementConstructor<any>>;
+  ) => ReactElement<unknown, string>;
   headers: string[];
   query: (
     client: ApiClient,
@@ -59,7 +59,7 @@ function GenericTableView({ cellRenderer, headers, query, queryLabel }: GenericL
 
   useEffect(() => {
     handleSearch();
-  }, []);
+  }, [handleSearch]);
 
   if (!isAuthenticated) {
     return <p>Please log in to view this data.</p>;

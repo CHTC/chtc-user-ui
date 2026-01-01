@@ -1,9 +1,8 @@
-import useSWR from "swr";
-import React, { useState } from "react";
-import { Group, JoinedProjectView, RoleEnum, User } from "@/types";
 import { apiFetch } from "@/src/components/AuthProvider";
-import { Table, TableBody, TableCell, TableHead, TableRow, Box } from "@mui/material";
+import { Group } from "@/types";
 import { Delete } from "@mui/icons-material";
+import { Box, Table, TableBody, TableCell, TableHead, TableRow } from "@mui/material";
+import useSWR from "swr";
 
 import { ConfirmButton } from "@chtc/web-components";
 

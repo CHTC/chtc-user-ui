@@ -1,4 +1,5 @@
 import CHTCSVG from "@/public/logos/CHTC_Logo_Full_Color.svg";
+import Image from "next/image";
 import React, { CSSProperties } from "react";
 
 const Icon = ({ size = "50px" }: { size?: CSSProperties["width"] }) => {
@@ -7,7 +8,7 @@ const Icon = ({ size = "50px" }: { size?: CSSProperties["width"] }) => {
     width: size,
   };
 
-  return <img src={CHTCSVG.src} style={style} />;
+  return <Image src={CHTCSVG.src} style={style} alt="CHTC Logo" />;
 };
 
 export default Icon;

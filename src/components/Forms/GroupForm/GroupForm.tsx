@@ -1,9 +1,9 @@
 "use client";
 
-import React, { useState } from "react";
-import { Box, Button, Checkbox, FormControlLabel, Stack, TextField, Typography, Alert } from "@mui/material";
-import type { GroupCreate, GroupUpdate } from "@/src/util/types";
 import UserAutocomplete from "@/src/components/UserAutocomplete/UserAutocomplete";
+import type { GroupCreate, GroupUpdate } from "@/src/util/types";
+import { Alert, Box, Button, Checkbox, FormControlLabel, Stack, TextField } from "@mui/material";
+import React, { useState } from "react";
 
 export type GroupFormMode = "create" | "edit";
 

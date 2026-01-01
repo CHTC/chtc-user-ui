@@ -1,9 +1,9 @@
-import { Suspense, useEffect, useState } from "react";
-import useSWR from "swr";
-import useDebounce from "@/src/hooks/useDebounce/useDebounce";
-import { Autocomplete, Skeleton, TextField } from "@mui/material";
 import { apiFetch } from "@/src/components/AuthProvider";
+import useDebounce from "@/src/hooks/useDebounce/useDebounce";
 import { User } from "@/types";
+import { Autocomplete, TextField } from "@mui/material";
+import { useState } from "react";
+import useSWR from "swr";
 
 interface UserAutoCompleteProps {
   value: User[];

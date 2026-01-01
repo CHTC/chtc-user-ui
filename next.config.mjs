@@ -25,11 +25,11 @@ const nextConfig = {
   },
   eslint: {
     // Sorry, I will fix this later...
-    ignoreDuringBuilds: true,
+    // ignoreDuringBuilds: true,
   },
   typescript: {
     // Sorry, I will fix this later...
-    ignoreBuildErrors: true,
+    // ignoreBuildErrors: true,
   },
 };
 

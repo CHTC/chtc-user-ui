@@ -30,7 +30,7 @@ const GroupUserTable = ({ groupId }: GroupUserTableProps) => {
       </TableHead>
       <TableBody>
         {users &&
-          (users || []).map((user: any) => (
+          (users || []).map((user) => (
             <TableRow key={user.id}>
               <TableCell>{user.name}</TableCell>
               <TableCell>{user.username}</TableCell>
@@ -55,10 +55,11 @@ const GroupUserTable = ({ groupId }: GroupUserTableProps) => {
         <TableRow>
           <TableCell colSpan={4} align="center">
             <UserAutocomplete
-              onSelect={async (user: User) => {
+              onSelect={async (user: User | null) => {
+                // TODO: user can be null here
                 await apiFetch(`/groups/${groupId}/users`, {
                   method: "POST",
-                  body: JSON.stringify({ id: user.id }),
+                  body: JSON.stringify({ id: user?.id }),
                 });
                 mutate();
               }}

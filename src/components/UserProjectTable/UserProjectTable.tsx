@@ -1,24 +1,8 @@
-import useSWR from "swr";
-import React, { useState } from "react";
-import { JoinedProjectView, RoleEnum, User } from "@/types";
 import { apiFetch } from "@/src/components/AuthProvider";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableRow,
-  Box,
-  Select,
-  MenuItem,
-  FormControl,
-  InputLabel,
-  Switch,
-  FormControlLabel,
-  Button,
-} from "@mui/material";
+import { JoinedProjectView } from "@/types";
 import { Delete } from "@mui/icons-material";
-import UserAutocomplete from "@/src/components/UserAutocomplete/UserAutocomplete";
+import { Box, Table, TableBody, TableCell, TableHead, TableRow } from "@mui/material";
+import useSWR from "swr";
 
 import { ConfirmButton } from "@chtc/web-components";
 

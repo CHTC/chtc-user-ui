@@ -1,10 +1,10 @@
-import useSWR from "swr";
-import { JoinedProjectView, Note, User } from "@/types";
 import { apiFetch } from "@/src/components/AuthProvider";
-import { Table, TableBody, TableCell, TableHead, TableRow, Button, IconButton, Box } from "@mui/material";
+import { Note } from "@/types";
 import { ConfirmButton } from "@chtc/web-components";
-import { Add, Delete, Edit } from "@mui/icons-material";
+import { Delete, Edit } from "@mui/icons-material";
+import { Box, IconButton, Table, TableBody, TableCell, TableHead, TableRow } from "@mui/material";
 import Link from "next/link";
+import useSWR from "swr";
 
 interface ProjectNoteTableProps {
   projectId: number;
