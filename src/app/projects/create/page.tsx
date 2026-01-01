@@ -2,7 +2,7 @@
 
 import { apiFetch, useAuthClient } from "@/src/components/AuthProvider";
 import { ProjectForm } from "@/src/components/Forms/ProjectForm/ProjectForm";
-import type { ProjectCreate } from "@/src/util/types";
+import type { ProjectCreate } from "@/types";
 import { Box, Breadcrumbs, Typography } from "@mui/material";
 import { useRouter } from "next/navigation";
 import { useState } from "react";

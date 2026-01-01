@@ -1,7 +1,7 @@
 "use client";
 
 import UserAutocomplete from "@/src/components/UserAutocomplete/UserAutocomplete";
-import type { GroupCreate, GroupUpdate } from "@/src/util/types";
+import type { GroupCreate, GroupUpdate } from "@/types";
 import { Alert, Box, Button, Checkbox, FormControlLabel, Stack, TextField } from "@mui/material";
 import React, { useState } from "react";
 

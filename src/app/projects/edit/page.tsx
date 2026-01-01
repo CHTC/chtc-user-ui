@@ -6,8 +6,7 @@ import { Box, Breadcrumbs, Button, Link, Skeleton, Typography } from "@mui/mater
 import { useAuthClient } from "@/src/components/AuthProvider";
 import { ProjectForm } from "@/src/components/Forms/ProjectForm/ProjectForm";
 import { apiFetch } from "@/src/components/AuthProvider";
-import type { ProjectCreate } from "@/src/util/types";
-import { ProjectCreateUpdate } from "@/types";
+import type { ProjectCreate, ProjectCreateUpdate } from "@/types";
 import useSWR from "swr";
 import ProjectUserTable from "@/src/components/ProjectUserTable/ProjectUserTable";
 import ProjectNoteTable from "@/src/components/ProjectNoteTable/ProjectNoteTable";

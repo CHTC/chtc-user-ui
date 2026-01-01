@@ -2,7 +2,7 @@
 
 import { apiFetch, useAuthClient } from "@/src/components/AuthProvider";
 import { UserForm } from "@/src/components/Forms/UserForm/UserForm";
-import type { UserCreate } from "@/src/util/types";
+import type { UserCreate, UserUpdate } from "@/types";
 import { Box, Breadcrumbs, Typography } from "@mui/material";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
@@ -13,7 +13,7 @@ function Page() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const handleSubmit = async (payload: UserCreate) => {
+  const handleSubmit = async (payload: UserCreate | Partial<UserUpdate>) => {
     setError(null);
     setIsSubmitting(true);
     try {

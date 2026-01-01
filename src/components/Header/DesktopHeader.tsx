@@ -8,7 +8,7 @@ import Button from "@mui/material/Button";
 import React from "react";
 
 import Title from "@/src/components/Header/Title";
-import { NavigationItem } from "@/src/components/DocumentationSidebar";
+import { NavigationItem } from "@/types";
 import AuthButton from "../AuthButton";
 
 const DesktopHeader = ({ pages }: { pages: NavigationItem[] }) => (

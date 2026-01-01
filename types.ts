@@ -1,14 +1,7 @@
 // Types generated from OpenAPI spec in openapi (1).json
 // This file provides a consolidated set of interfaces/enums matching the backend API.
 
-export type PositionEnum =
-  | "SELECT"
-  | "FACULTY"
-  | "STAFF"
-  | "POSTDOC"
-  | "GRAD_STUDENT"
-  | "UNDERGRADUATE"
-  | "OTHER";
+export type PositionEnum = "SELECT" | "FACULTY" | "STAFF" | "POSTDOC" | "GRAD_STUDENT" | "UNDERGRADUATE" | "OTHER";
 
 export type RoleEnum = "MEMBER" | "PI";
 
@@ -35,6 +28,10 @@ export interface GroupCreateUpdate {
   unix_gid?: number | null;
   has_groupdir?: boolean | null;
 }
+
+// Aliases for backwards compatibility
+export type GroupCreate = GroupCreateUpdate;
+export type GroupUpdate = GroupCreateUpdate;
 
 export interface Project {
   id: number;
@@ -75,6 +72,10 @@ export interface ProjectCreateUpdate {
   ticket?: number | null;
   last_contact?: string | null;
 }
+
+// Aliases for backwards compatibility
+export type ProjectCreate = ProjectCreateUpdate;
+export type ProjectUpdate = ProjectCreateUpdate;
 
 export interface User {
   id: number;
@@ -219,7 +220,16 @@ export interface HTTPValidationError {
   detail?: ValidationError[];
 }
 
-
 // Other
 
 export type FormMode = "create" | "edit";
+
+// UI Types
+import { ReactNode } from "react";
+
+export interface NavigationItem {
+  label: string;
+  path?: string;
+  icon?: ReactNode;
+  children?: NavigationItem[];
+}

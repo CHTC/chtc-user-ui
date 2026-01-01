@@ -1,5 +1,4 @@
 import { Box, Container, Typography } from "@mui/material";
-import Grid from "@mui/material/Grid";
 
 export default async function Home() {
   return (
@@ -11,12 +10,12 @@ export default async function Home() {
 
         <Typography variant="body1" gutterBottom>
           Test credentials (with mock data):
-          <Box component="div">
-            Username: <strong>admin</strong>
-          </Box>
-          <Box component="div">
-            Password: <strong>password</strong>
-          </Box>
+        </Typography>
+        <Typography variant="body1" component="div">
+          Username: <strong>admin</strong>
+        </Typography>
+        <Typography variant="body1" component="div">
+          Password: <strong>password</strong>
         </Typography>
       </Container>
     </Box>

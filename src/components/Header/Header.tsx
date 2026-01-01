@@ -5,7 +5,7 @@ import React from "react";
 
 import DesktopHeader from "./DesktopHeader";
 import MobileHeader from "./MobileHeader";
-import { NavigationItem } from "@/src/components/DocumentationSidebar";
+import { NavigationItem } from "@/types";
 
 const Header = ({ pages }: { pages: NavigationItem[] }) => {
   return (

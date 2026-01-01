@@ -1,9 +1,9 @@
 "use client";
 
+import { PaginationParams } from "@/types";
 import { Table } from "@chtc/web-components";
-import { Box, Button, TextField } from "@mui/material";
-import { JSXElementConstructor, ReactElement, useEffect, useState } from "react";
-import { PaginationParams } from "../../util/types";
+import { Box, Button, TextField, Typography } from "@mui/material";
+import { ReactElement, useEffect, useState } from "react";
 import { ApiClient, useAuthClient } from "../AuthProvider";
 import { PageSelector } from "./PageSelector";
 
@@ -15,6 +15,7 @@ export interface GenericListComponentProps {
     row: number,
   ) => ReactElement<unknown, string>;
   headers: string[];
+
   query: (
     client: ApiClient,
     opts: PaginationParams,
@@ -24,9 +25,17 @@ export interface GenericListComponentProps {
 
   timeColumn?: string;
   linkColumn?: string;
+
+  unauthenticatedMessage: string;
 }
 
-function GenericTableView({ cellRenderer, headers, query, queryLabel }: GenericListComponentProps) {
+function GenericTableView({
+  cellRenderer,
+  headers,
+  query,
+  queryLabel,
+  unauthenticatedMessage,
+}: GenericListComponentProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [data, setData] = useState<(string | number)[][]>([]);
   const [totalCount, setTotalCount] = useState(0);
@@ -62,7 +71,11 @@ function GenericTableView({ cellRenderer, headers, query, queryLabel }: GenericL
   }, [handleSearch]);
 
   if (!isAuthenticated) {
-    return <p>Please log in to view this data.</p>;
+    return (
+      <Box sx={{ width: "100%", padding: 2 }}>
+        <Typography variant="h6">{unauthenticatedMessage}</Typography>
+      </Box>
+    );
   }
 
   return (

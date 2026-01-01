@@ -36,6 +36,7 @@ function Page() {
       }}
       queryLabel="Search by Username"
       timeColumn="Last Modified"
+      unauthenticatedMessage="You must be logged in to view PI projects."
     />
   );
 }

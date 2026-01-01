@@ -6,8 +6,7 @@ import { Box, Breadcrumbs, Skeleton, Typography } from "@mui/material";
 import { useAuthClient } from "@/src/components/AuthProvider";
 import { GroupForm } from "@/src/components/Forms/GroupForm/GroupForm";
 import { apiFetch } from "@/src/components/AuthProvider";
-import type { GroupCreate } from "@/src/util/types";
-import { GroupCreateUpdate } from "@/types";
+import type { GroupCreate, GroupCreateUpdate } from "@/types";
 import useSWR from "swr";
 import GroupUserTable from "@/src/components/GroupUserTable/GroupUserTable";
 

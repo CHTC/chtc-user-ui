@@ -6,7 +6,7 @@ import { Box, Breadcrumbs, Skeleton, Typography } from "@mui/material";
 import { useAuthClient } from "@/src/components/AuthProvider";
 import { NoteForm } from "@/src/components/Forms/NoteForm/NoteForm";
 import { apiFetch } from "@/src/components/AuthProvider";
-import type { NoteCreate } from "@/src/util/types";
+import type { NoteCreate } from "@/types";
 import useSWR from "swr";
 
 function Page() {

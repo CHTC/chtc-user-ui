@@ -34,6 +34,7 @@ function Page() {
       queryLabel="Search by Project Name"
       timeColumn="Last Contact"
       linkColumn="Project URL"
+      unauthenticatedMessage="You must be logged in to view projects."
     />
   );
 }

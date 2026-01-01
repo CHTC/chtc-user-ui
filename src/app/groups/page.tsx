@@ -33,6 +33,7 @@ function Page() {
           return { data, totalCount: result.totalCount };
         }}
         queryLabel="Search by Group"
+        unauthenticatedMessage="You must be logged in to view groups."
       />
     </div>
   );

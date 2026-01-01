@@ -2,7 +2,7 @@
 
 import { apiFetch, useAuthClient } from "@/src/components/AuthProvider";
 import { GroupForm } from "@/src/components/Forms/GroupForm/GroupForm";
-import type { GroupCreate } from "@/src/util/types";
+import type { GroupCreate } from "@/types";
 import { Box, Breadcrumbs, Typography } from "@mui/material";
 import { useRouter } from "next/navigation";
 import { useState } from "react";

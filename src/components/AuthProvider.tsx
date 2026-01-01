@@ -18,7 +18,7 @@ import type {
   CurrentUser,
   PaginationParams,
   PaginatedResponse,
-} from "@/src/util/types";
+} from "@/types";
 
 export type LoginResult =
   | {
