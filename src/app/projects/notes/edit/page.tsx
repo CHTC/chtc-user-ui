@@ -24,8 +24,8 @@ function Page() {
         body: JSON.stringify(payload),
       });
       update();
-    } catch (e: unknown) {
-      // Optionally handle error here if you want to display it
+    } catch {
+      // TODO: error handling here
     }
   };
 

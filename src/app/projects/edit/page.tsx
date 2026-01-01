@@ -22,8 +22,8 @@ function Page() {
         body: JSON.stringify(payload),
       });
       update();
-    } catch (e: unknown) {
-      // Optionally handle error here if you want to display it
+    } catch {
+      // TODO: error handling here
     }
   };
 
@@ -89,6 +89,10 @@ const ProjectPage = ({
   const searchParams = useSearchParams();
   const id = Number.parseInt(searchParams.get("id") || "") || null;
 
+  if (!id) {
+    return <Typography color="error">No project ID provided.</Typography>;
+  }
+
   return (
     <>
       <Box my={3}>
@@ -101,7 +105,7 @@ const ProjectPage = ({
           Users
         </Typography>
         <Suspense fallback={<Skeleton variant={"rectangular"} height={"400px"} />}>
-          <ProjectUserTable projectId={id!} />
+          <ProjectUserTable projectId={id} />
         </Suspense>
       </Box>
       <Box my={4}>
@@ -116,7 +120,7 @@ const ProjectPage = ({
           </Button>
         </Typography>
         <Suspense fallback={<Skeleton variant={"rectangular"} height={"400px"} />}>
-          <ProjectNoteTable projectId={id!} />
+          <ProjectNoteTable projectId={id} />
         </Suspense>
       </Box>
     </>

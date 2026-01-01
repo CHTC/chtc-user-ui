@@ -2,7 +2,7 @@
 
 import React, { Suspense } from "react";
 import { useSearchParams } from "next/navigation";
-import { Box, Breadcrumbs, Button, Link, Skeleton, Typography } from "@mui/material";
+import { Box, Breadcrumbs, Link, Skeleton, Typography } from "@mui/material";
 import { useAuthClient } from "@/src/components/AuthProvider";
 import { UserForm } from "@/src/components/Forms/UserForm/UserForm";
 import { apiFetch } from "@/src/components/AuthProvider";
@@ -23,8 +23,8 @@ function Page() {
         body: JSON.stringify(payload),
       });
       update();
-    } catch (e: unknown) {
-      // Optionally handle error here if you want to display it
+    } catch {
+      // TODO: error handling here
     }
   };
 
@@ -88,6 +88,10 @@ const UserPage = ({
   const searchParams = useSearchParams();
   const id = Number.parseInt(searchParams.get("id") || "") || null;
 
+  if (!id) {
+    return <Typography color="error">No user ID provided.</Typography>;
+  }
+
   return (
     <>
       <Suspense fallback={<Skeleton variant={"rectangular"} height={"400px"} />}>
@@ -100,7 +104,7 @@ const UserPage = ({
               Projects
             </Link>
           </Typography>
-          <UserProjectTable userId={id!} />
+          <UserProjectTable userId={id} />
         </Suspense>
       </Box>
       <Box my={4}>
@@ -110,7 +114,7 @@ const UserPage = ({
               Groups
             </Link>
           </Typography>
-          <UserGroupTable userId={id!} />
+          <UserGroupTable userId={id} />
         </Suspense>
       </Box>
     </>

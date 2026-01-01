@@ -3,7 +3,7 @@
 import { PaginationParams } from "@/types";
 import { Table } from "@chtc/web-components";
 import { Box, Button, TextField, Typography } from "@mui/material";
-import { ReactElement, useEffect, useState } from "react";
+import { ReactElement, useCallback, useEffect, useState } from "react";
 import { ApiClient, useAuthClient } from "../AuthProvider";
 import { PageSelector } from "./PageSelector";
 
@@ -44,21 +44,23 @@ function GenericTableView({
   const { client, isAuthenticated } = useAuthClient();
   const rowsPerPage = 50;
 
-  const handleSearch = (resetPage: boolean = false) => {
-    query(client, { page, page_size: rowsPerPage }, searchQuery)
-      .then((results) => {
-        console.log("Table data:", results);
-        setTotalCount(results.totalCount);
-        setData(results.data);
+  const handleSearch = useCallback(
+    (resetPage: boolean = false) => {
+      query(client, { page, page_size: rowsPerPage }, searchQuery)
+        .then((results) => {
+          setTotalCount(results.totalCount);
+          setData(results.data);
 
-        if (resetPage) {
-          setPage(0);
-        }
-      })
-      .catch((error) => {
-        console.error("Error fetching data:", error);
-      });
-  };
+          if (resetPage) {
+            setPage(0);
+          }
+        })
+        .catch((error) => {
+          console.error("Error fetching data:", error);
+        });
+    },
+    [client, page, query, searchQuery],
+  );
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === "Enter") {
@@ -67,8 +69,10 @@ function GenericTableView({
   };
 
   useEffect(() => {
-    handleSearch();
-  }, [handleSearch]);
+    if (isAuthenticated) {
+      handleSearch();
+    }
+  }, [handleSearch, isAuthenticated]);
 
   if (!isAuthenticated) {
     return (

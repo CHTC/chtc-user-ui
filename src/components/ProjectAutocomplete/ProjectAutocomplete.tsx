@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import useSWR from "swr";
-import useDebounce from "@/src/hooks/useDebounce/useDebounce";
+import useDebounce from "@/src/util/useDebounce";
 import { Autocomplete, TextField } from "@mui/material";
 import { apiFetch } from "@/src/components/AuthProvider";
 import type { Project } from "@/types";

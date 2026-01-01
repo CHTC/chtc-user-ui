@@ -20,8 +20,8 @@ function Page() {
         body: JSON.stringify(payload),
       });
       update();
-    } catch (e: unknown) {
-      // Optionally handle error here if you want to display it
+    } catch {
+      // TODO: handle error here
     }
   };
 
@@ -85,13 +85,17 @@ const GroupPage = ({
   const searchParams = useSearchParams();
   const id = Number.parseInt(searchParams.get("id") || "") || null;
 
+  if (!id) {
+    return <Typography color="error">No group ID provided.</Typography>;
+  }
+
   return (
     <>
       <Suspense fallback={<Skeleton variant={"rectangular"} height={"100"} />}>
         <GroupFormSuspense id={id} handleSubmit={handleSubmit} />
       </Suspense>
       <Suspense fallback={<Skeleton variant={"rectangular"} height={"100"} />}>
-        <GroupUserTable groupId={id!} />
+        <GroupUserTable groupId={id} />
       </Suspense>
     </>
   );
