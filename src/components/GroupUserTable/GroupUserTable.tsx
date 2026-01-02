@@ -1,8 +1,8 @@
-import useSWR from "swr";
 import { apiFetch } from "@/src/components/AuthProvider";
-import { Table, TableBody, TableCell, TableHead, TableRow, Button } from "@mui/material";
 import UserAutocomplete from "@/src/components/UserAutocomplete/UserAutocomplete";
 import { User } from "@/types";
+import { Button, Table, TableBody, TableCell, TableHead, TableRow } from "@mui/material";
+import useSWR from "swr";
 
 interface GroupUserTableProps {
   groupId: number;

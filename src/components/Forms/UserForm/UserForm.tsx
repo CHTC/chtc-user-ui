@@ -1,23 +1,23 @@
 "use client";
 
-import React, { useState } from "react";
+import { apiFetch } from "@/src/components/AuthProvider";
+import ProjectAutocomplete from "@/src/components/ProjectAutocomplete/ProjectAutocomplete";
+import type { PositionEnum, RoleEnum, UserCreate, UserUpdate } from "@/types";
+import { Project, SubmitNode, UserSubmitNodeCreate } from "@/types";
 import {
+  Alert,
   Box,
   Button,
-  Stack,
-  TextField,
-  Alert,
-  FormControlLabel,
   Checkbox,
   FormControl,
+  FormControlLabel,
   InputLabel,
-  Select,
   MenuItem,
+  Select,
+  Stack,
+  TextField,
 } from "@mui/material";
-import type { PositionEnum, RoleEnum, UserCreate, UserUpdate } from "@/types";
-import ProjectAutocomplete from "@/src/components/ProjectAutocomplete/ProjectAutocomplete";
-import { Project, SubmitNode, UserSubmitNodeCreate } from "@/types";
-import { apiFetch } from "@/src/components/AuthProvider";
+import React, { useState } from "react";
 import useSWR from "swr";
 
 export type UserFormMode = "create" | "edit";

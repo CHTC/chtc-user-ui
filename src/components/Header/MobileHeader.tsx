@@ -17,8 +17,8 @@ import ListItemText from "@mui/material/ListItemText";
 import Toolbar from "@mui/material/Toolbar";
 import React, { useState } from "react";
 
-import { NavigationItem } from "@/types";
 import Title from "@/src/components/Header/Title";
+import { NavigationItem } from "@/types";
 
 const MobileHeader = ({ pages }: { pages: NavigationItem[] }) => {
   const [navOpen, setNavOpen] = useState(false);

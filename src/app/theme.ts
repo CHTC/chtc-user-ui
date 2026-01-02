@@ -58,4 +58,4 @@ const theme = responsiveFontSizes(
   { factor: 2 },
 );
 
-export { theme, rht, rhd };
+export { rhd, rht, theme };

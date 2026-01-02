@@ -174,7 +174,6 @@ function GenericTableView({
             currentPage={page}
             onPageChange={(newPage) => {
               setPage(newPage);
-              handleSearch();
             }}
           />
         </Box>

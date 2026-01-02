@@ -1,11 +1,10 @@
 import AppBar from "@mui/material/AppBar";
-import Container from "@mui/material/Container";
 import Box from "@mui/material/Box";
-import React from "react";
+import Container from "@mui/material/Container";
 
+import { NavigationItem } from "@/types";
 import DesktopHeader from "./DesktopHeader";
 import MobileHeader from "./MobileHeader";
-import { NavigationItem } from "@/types";
 
 const Header = ({ pages }: { pages: NavigationItem[] }) => {
   return (

@@ -1,4 +1,4 @@
-import React, { CSSProperties } from "react";
+import { CSSProperties } from "react";
 
 const Icon = ({ size = "50px" }: { size?: CSSProperties["width"] }) => {
   const basePath = process.env.NEXT_PUBLIC_BASE_PATH || "";

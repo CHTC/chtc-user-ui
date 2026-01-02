@@ -1,16 +1,15 @@
 "use client";
 
-import React, { Suspense } from "react";
-import { useSearchParams } from "next/navigation";
-import { Box, Breadcrumbs, Link, Skeleton, Typography } from "@mui/material";
-import { useAuthClient } from "@/src/components/AuthProvider";
+import { apiFetch, useAuthClient } from "@/src/components/AuthProvider";
 import { UserForm } from "@/src/components/Forms/UserForm/UserForm";
-import { apiFetch } from "@/src/components/AuthProvider";
+import { Box, Breadcrumbs, Link, Skeleton, Typography } from "@mui/material";
+import { useSearchParams } from "next/navigation";
+import { Suspense } from "react";
 
 import useSWR from "swr";
 
-import UserProjectTable from "@/src/components/UserProjectTable/UserProjectTable";
 import UserGroupTable from "@/src/components/UserGroupTable/UserGroupTable";
+import UserProjectTable from "@/src/components/UserProjectTable/UserProjectTable";
 import { UserCreate, UserUpdate } from "@/types";
 
 function Page() {

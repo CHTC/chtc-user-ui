@@ -1,15 +1,15 @@
 import {
-  Button,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  TextField,
   Box,
+  Button,
   CircularProgress,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
+  TextField,
 } from "@mui/material";
-import { useAuthClient } from "./AuthProvider";
 import { useState } from "react";
+import { useAuthClient } from "./AuthProvider";
 
 export function AuthButton() {
   const { client, isAuthenticated } = useAuthClient();

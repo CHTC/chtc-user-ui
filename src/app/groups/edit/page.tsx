@@ -1,14 +1,13 @@
 "use client";
 
-import React, { Suspense } from "react";
-import { useSearchParams } from "next/navigation";
-import { Box, Breadcrumbs, Skeleton, Typography } from "@mui/material";
-import { useAuthClient } from "@/src/components/AuthProvider";
+import { apiFetch, useAuthClient } from "@/src/components/AuthProvider";
 import { GroupForm } from "@/src/components/Forms/GroupForm/GroupForm";
-import { apiFetch } from "@/src/components/AuthProvider";
-import type { GroupCreate, GroupCreateUpdate } from "@/types";
-import useSWR from "swr";
 import GroupUserTable from "@/src/components/GroupUserTable/GroupUserTable";
+import type { GroupCreate, GroupCreateUpdate } from "@/types";
+import { Box, Breadcrumbs, Skeleton, Typography } from "@mui/material";
+import { useSearchParams } from "next/navigation";
+import { Suspense } from "react";
+import useSWR from "swr";
 
 function Page() {
   const { isAuthenticated } = useAuthClient();

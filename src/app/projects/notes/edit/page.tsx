@@ -1,12 +1,11 @@
 "use client";
 
-import React, { Suspense } from "react";
-import { useSearchParams } from "next/navigation";
-import { Box, Breadcrumbs, Skeleton, Typography } from "@mui/material";
-import { useAuthClient } from "@/src/components/AuthProvider";
+import { apiFetch, useAuthClient } from "@/src/components/AuthProvider";
 import { NoteForm } from "@/src/components/Forms/NoteForm/NoteForm";
-import { apiFetch } from "@/src/components/AuthProvider";
 import type { NoteCreate } from "@/types";
+import { Box, Breadcrumbs, Skeleton, Typography } from "@mui/material";
+import { useSearchParams } from "next/navigation";
+import { Suspense } from "react";
 import useSWR from "swr";
 
 function Page() {

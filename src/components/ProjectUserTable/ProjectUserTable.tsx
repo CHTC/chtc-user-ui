@@ -1,24 +1,24 @@
-import useSWR from "swr";
-import React, { useState } from "react";
-import { JoinedProjectView, RoleEnum, User } from "@/types";
 import { apiFetch } from "@/src/components/AuthProvider";
+import UserAutocomplete from "@/src/components/UserAutocomplete/UserAutocomplete";
+import { JoinedProjectView, RoleEnum, User } from "@/types";
+import { Delete } from "@mui/icons-material";
 import {
+  Box,
+  Button,
+  FormControl,
+  FormControlLabel,
+  InputLabel,
+  MenuItem,
+  Select,
+  Switch,
   Table,
   TableBody,
   TableCell,
   TableHead,
   TableRow,
-  Box,
-  Select,
-  MenuItem,
-  FormControl,
-  InputLabel,
-  Switch,
-  FormControlLabel,
-  Button,
 } from "@mui/material";
-import { Delete } from "@mui/icons-material";
-import UserAutocomplete from "@/src/components/UserAutocomplete/UserAutocomplete";
+import { useState } from "react";
+import useSWR from "swr";
 
 import { ConfirmButton } from "@chtc/web-components";
 

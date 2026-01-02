@@ -1,10 +1,9 @@
 "use client";
 
-import React, { useState } from "react";
-import { Box, Button, Stack, TextField, Alert } from "@mui/material";
-import type { NoteCreate } from "@/types";
-import type { User } from "@/types";
 import UserAutocompleteMultiple from "@/src/components/UserAutocompleteMultiple/UserAutocompleteMultiple";
+import type { NoteCreate, User } from "@/types";
+import { Alert, Box, Button, Stack, TextField } from "@mui/material";
+import React, { useState } from "react";
 
 export type NoteFormMode = "create" | "edit";
 

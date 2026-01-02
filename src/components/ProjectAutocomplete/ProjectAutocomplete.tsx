@@ -1,9 +1,9 @@
+import { apiFetch } from "@/src/components/AuthProvider";
+import useDebounce from "@/src/util/useDebounce";
+import type { Project } from "@/types";
+import { Autocomplete, TextField } from "@mui/material";
 import { useEffect, useState } from "react";
 import useSWR from "swr";
-import useDebounce from "@/src/util/useDebounce";
-import { Autocomplete, TextField } from "@mui/material";
-import { apiFetch } from "@/src/components/AuthProvider";
-import type { Project } from "@/types";
 
 interface ProjectAutocompleteProps {
   value?: Partial<Project>;

@@ -1,24 +1,24 @@
 "use client";
 
-import React, { createContext, useContext, useState, useCallback, useEffect } from "react";
 import type {
-  User,
-  UserCreate,
+  CurrentUser,
   Group,
   GroupCreate,
   GroupUpdate,
+  JoinedProjectView,
+  Note,
+  NoteCreate,
+  PaginatedResponse,
+  PaginationParams,
+  PiProjectView,
   Project,
   ProjectCreate,
   ProjectUpdate,
-  Note,
-  NoteCreate,
-  JoinedProjectView,
-  PiProjectView,
+  User,
+  UserCreate,
   UserProjectCreate,
-  CurrentUser,
-  PaginationParams,
-  PaginatedResponse,
 } from "@/types";
+import React, { createContext, useCallback, useContext, useEffect, useState } from "react";
 
 export type LoginResult =
   | {

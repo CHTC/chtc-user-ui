@@ -1,11 +1,11 @@
 "use client";
 
-import React, { Suspense, useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
-import { Box, Breadcrumbs, Skeleton, Typography } from "@mui/material";
 import { apiFetch, useAuthClient } from "@/src/components/AuthProvider";
 import { NoteForm } from "@/src/components/Forms/NoteForm/NoteForm";
 import type { NoteCreate } from "@/types";
+import { Box, Breadcrumbs, Skeleton, Typography } from "@mui/material";
+import { useRouter, useSearchParams } from "next/navigation";
+import { Suspense, useState } from "react";
 
 function Page() {
   const params = useSearchParams();
