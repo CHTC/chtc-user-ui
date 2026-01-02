@@ -116,14 +116,24 @@ export async function apiFetch(endpoint: string, options: RequestInit = {}): Pro
   });
 }
 
-// Helper to build query strings
 function buildQuery(params?: PaginationParams): string {
   if (!params) return "";
   const query = new URLSearchParams();
-  if (params.page !== undefined) query.set("page", params.page.toString());
-  if (params.page_size !== undefined) query.set("page_size", params.page_size.toString());
+  if (params.page !== undefined) query.append("page", params.page.toString());
+  if (params.page_size !== undefined) query.append("page_size", params.page_size.toString());
   if (params.query) {
-    Object.entries(params.query).forEach(([key, value]) => query.set(key, value));
+    Object.entries(params.query).forEach(([key, value]) => {
+      if (Array.isArray(value)) {
+        // Support duplicate keys by appending each value
+        value.forEach((v) => query.append(key, v));
+      } else {
+        query.append(key, value);
+      }
+    });
+  }
+  // Add sorting: uses format column=order_by.asc or column=order_by.desc
+  if (params.sortColumn && params.sortDirection) {
+    query.append(params.sortColumn, `order_by.${params.sortDirection}`);
   }
   return query.toString() ? `?${query}` : "";
 }

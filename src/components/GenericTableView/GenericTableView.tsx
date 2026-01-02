@@ -1,8 +1,19 @@
 "use client";
 
-import { PaginationParams } from "@/types";
+import { PaginationParams, SortDirection } from "@/types";
 import { Table } from "@chtc/web-components";
-import { Box, Button, TextField, Typography } from "@mui/material";
+import { ArrowDownward, ArrowUpward } from "@mui/icons-material";
+import {
+  Box,
+  Button,
+  FormControl,
+  IconButton,
+  InputLabel,
+  MenuItem,
+  Select,
+  TextField,
+  Typography,
+} from "@mui/material";
 import { ReactElement, useCallback, useEffect, useState } from "react";
 import { ApiClient, useAuthClient } from "../AuthProvider";
 import { PageSelector } from "./PageSelector";
@@ -27,6 +38,9 @@ export interface GenericListComponentProps {
   linkColumn?: string;
 
   unauthenticatedMessage: string;
+
+  /** Map of header label to API column name for sortable columns */
+  sortableColumns?: Record<string, string>;
 }
 
 function GenericTableView({
@@ -35,18 +49,21 @@ function GenericTableView({
   query,
   queryLabel,
   unauthenticatedMessage,
+  sortableColumns,
 }: GenericListComponentProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [data, setData] = useState<(string | number)[][]>([]);
   const [totalCount, setTotalCount] = useState(0);
   const [page, setPage] = useState(0);
+  const [sortColumn, setSortColumn] = useState<string | undefined>();
+  const [sortDirection, setSortDirection] = useState<SortDirection>("asc");
 
   const { client, isAuthenticated } = useAuthClient();
   const rowsPerPage = 50;
 
   const handleSearch = useCallback(
     (resetPage: boolean = false) => {
-      query(client, { page, page_size: rowsPerPage }, searchQuery)
+      query(client, { page, page_size: rowsPerPage, sortColumn, sortDirection }, searchQuery)
         .then((results) => {
           setTotalCount(results.totalCount);
           setData(results.data);
@@ -59,8 +76,11 @@ function GenericTableView({
           console.error("Error fetching data:", error);
         });
     },
-    [client, page, query, searchQuery],
+    [client, page, query, searchQuery, sortColumn, sortDirection],
   );
+
+  // Get sortable column entries for the dropdown
+  const sortableEntries = sortableColumns ? Object.entries(sortableColumns) : [];
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === "Enter") {
@@ -111,6 +131,42 @@ function GenericTableView({
             Clear
           </Button>
         )}
+        {sortableEntries.length > 0 && (
+          <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+            <FormControl size="small" sx={{ minWidth: 120 }}>
+              <InputLabel id="sort-column-label">Sort by</InputLabel>
+              <Select
+                labelId="sort-column-label"
+                label="Sort by"
+                value={sortColumn || ""}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  if (value) {
+                    setSortColumn(value);
+                  } else {
+                    setSortColumn(undefined);
+                  }
+                }}
+              >
+                <MenuItem value="">None</MenuItem>
+                {sortableEntries.map(([label, apiColumn]) => (
+                  <MenuItem key={apiColumn} value={apiColumn}>
+                    {label}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+            {sortColumn && (
+              <IconButton
+                size="small"
+                onClick={() => setSortDirection((prev) => (prev === "asc" ? "desc" : "asc"))}
+                title={sortDirection === "asc" ? "Ascending" : "Descending"}
+              >
+                {sortDirection === "asc" ? <ArrowUpward /> : <ArrowDownward />}
+              </IconButton>
+            )}
+          </Box>
+        )}
         <Box sx={{ marginLeft: "auto" }}>
           <PageSelector
             totalRows={totalCount}
@@ -126,34 +182,47 @@ function GenericTableView({
       {data.length === 0 ? (
         <p>No results found.</p>
       ) : (
-        <Table
-          headers={headers}
-          data={data}
-          cellRenderer={cellRenderer}
-          headCellSx={{
-            backgroundColor: "rgba(0, 0, 0, 0.1)",
-            padding: "8px 16px",
-          }}
-          bodyRowSx={{
-            "&:nth-of-type(even)": {
-              backgroundColor: "rgba(0, 0, 0, 0.05)",
-            },
-          }}
-          bodyCellSx={{
-            border: {
-              "&:first-child": {
-                borderLeft: "1px solid rgba(0, 0, 0, 0.10)",
+        <>
+          <Table
+            headers={headers}
+            data={data}
+            cellRenderer={cellRenderer}
+            headCellSx={{
+              backgroundColor: "rgba(0, 0, 0, 0.1)",
+              padding: "8px 16px",
+            }}
+            bodyRowSx={{
+              "&:nth-of-type(even)": {
+                backgroundColor: "rgba(0, 0, 0, 0.05)",
               },
-              "&:last-child": {
-                borderRight: "1px solid rgba(0, 0, 0, 0.10)",
+            }}
+            bodyCellSx={{
+              border: {
+                "&:first-child": {
+                  borderLeft: "1px solid rgba(0, 0, 0, 0.10)",
+                },
+                "&:last-child": {
+                  borderRight: "1px solid rgba(0, 0, 0, 0.10)",
+                },
+                "&:not(:last-child)": {
+                  borderRight: "1px solid rgba(0, 0, 0, 0.10)",
+                },
               },
-              "&:not(:last-child)": {
-                borderRight: "1px solid rgba(0, 0, 0, 0.10)",
-              },
-            },
+            }}
+          />
+        </>
+      )}
+      <Box sx={{ display: "flex", justifyContent: "flex-end", mt: 3 }}>
+        <PageSelector
+          totalRows={totalCount}
+          rowsPerPage={rowsPerPage}
+          currentPage={page}
+          onPageChange={(newPage) => {
+            setPage(newPage);
+            handleSearch();
           }}
         />
-      )}
+      </Box>
     </>
   );
 }

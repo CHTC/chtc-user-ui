@@ -6,11 +6,21 @@ import { createCellRenderer } from "@/src/util/cellRenderers";
 const headers = ["id", "Username", "Name", "Email", "Phone", "NetID", "Last Modified"];
 const cellRenderer = createCellRenderer({ editPath: "/users/edit" });
 
+// Map header labels to API column names for sorting
+const sortableColumns: Record<string, string> = {
+  Username: "username",
+  Name: "name",
+  Email: "email1",
+  NetID: "netid",
+  "Last Modified": "date",
+};
+
 function Page() {
   return (
     <GenericTableView
       headers={headers}
       cellRenderer={cellRenderer}
+      sortableColumns={sortableColumns}
       query={async (client, opts, searchQuery) => {
         const queryObj = searchQuery ? { username: `like.${searchQuery}` } : undefined;
         const result = await client.getUsers({
