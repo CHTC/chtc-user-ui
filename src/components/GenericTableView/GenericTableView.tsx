@@ -209,19 +209,19 @@ function GenericTableView({
               },
             }}
           />
+          <Box sx={{ display: "flex", justifyContent: "flex-end", mt: 3 }}>
+            <PageSelector
+              totalRows={totalCount}
+              rowsPerPage={rowsPerPage}
+              currentPage={page}
+              onPageChange={(newPage) => {
+                setPage(newPage);
+                handleSearch();
+              }}
+            />
+          </Box>
         </>
       )}
-      <Box sx={{ display: "flex", justifyContent: "flex-end", mt: 3 }}>
-        <PageSelector
-          totalRows={totalCount}
-          rowsPerPage={rowsPerPage}
-          currentPage={page}
-          onPageChange={(newPage) => {
-            setPage(newPage);
-            handleSearch();
-          }}
-        />
-      </Box>
     </>
   );
 }

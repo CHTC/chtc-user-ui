@@ -1,8 +1,10 @@
 "use client";
 
+import FormErrorAlert from "@/src/components/FormErrorAlert/FormErrorAlert";
 import UserAutocomplete from "@/src/components/UserAutocomplete/UserAutocomplete";
-import type { GroupCreate, GroupUpdate } from "@/types";
-import { Alert, Box, Button, Checkbox, FormControlLabel, Stack, TextField } from "@mui/material";
+import { ApiError } from "@/src/utils/formErrors";
+import type { GroupCreateUpdate } from "@/types";
+import { Box, Button, Checkbox, FormControlLabel, Stack, TextField } from "@mui/material";
 import React, { useState } from "react";
 
 export type GroupFormMode = "create" | "edit";
@@ -20,17 +22,17 @@ export interface GroupFormProps {
    * Initial values for the form. Can come from either a GroupCreate payload
    * (e.g. when editing unsaved data) or a GroupUpdate/group API response.
    */
-  initialValues?: Partial<GroupCreate & GroupUpdate>;
+  initialValues?: Partial<GroupCreateUpdate>;
   /**
    * Called with cleaned form values converted to API payload shape.
    * For create, treat it as GroupCreate; for edit, as GroupUpdate.
    */
-  onSubmit: (payload: GroupCreate | GroupUpdate) => Promise<void> | void;
+  onSubmit: (payload: GroupCreateUpdate) => Promise<void> | void;
   isSubmitting?: boolean;
-  error?: string | null;
+  error?: string | ApiError | null;
 }
 
-function normalizeInitialValues(initial?: Partial<GroupCreate & GroupUpdate>): GroupFormValues {
+function normalizeInitialValues(initial?: Partial<GroupCreateUpdate>): GroupFormValues {
   return {
     name: initial?.name ?? "",
     point_of_contact: initial?.point_of_contact ?? "",
@@ -38,6 +40,14 @@ function normalizeInitialValues(initial?: Partial<GroupCreate & GroupUpdate>): G
     has_groupdir: initial?.has_groupdir ?? true,
   };
 }
+
+// Field name mappings for error display
+const FIELD_NAME_MAP: Record<string, string> = {
+  name: "Name",
+  point_of_contact: "Point of Contact",
+  unix_gid: "Unix GID",
+  has_groupdir: "Has Group Directory",
+};
 
 export const GroupForm: React.FC<GroupFormProps> = ({ mode, initialValues, onSubmit, isSubmitting = false, error }) => {
   const [values, setValues] = useState<GroupFormValues>(() => normalizeInitialValues(initialValues));
@@ -49,7 +59,7 @@ export const GroupForm: React.FC<GroupFormProps> = ({ mode, initialValues, onSub
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    const payload: GroupCreate | GroupUpdate = {
+    const payload: GroupCreateUpdate = {
       name: values.name.trim(),
       point_of_contact: values.point_of_contact || null,
       unix_gid: values.unix_gid ? Number(values.unix_gid) : null,
@@ -62,7 +72,7 @@ export const GroupForm: React.FC<GroupFormProps> = ({ mode, initialValues, onSub
   return (
     <Box component="form" onSubmit={handleSubmit} sx={{ mt: 2, maxWidth: 600 }}>
       <Stack spacing={2}>
-        {error && <Alert severity="error">{error}</Alert>}
+        <FormErrorAlert error={error ?? null} fieldNameMap={FIELD_NAME_MAP} />
 
         <TextField
           label="Name"

@@ -2,9 +2,10 @@
 
 import { apiFetch, useAuthClient } from "@/src/components/AuthProvider";
 import { UserForm } from "@/src/components/Forms/UserForm/UserForm";
+import { ApiError } from "@/src/utils/formErrors";
 import { Box, Breadcrumbs, Link, Skeleton, Typography } from "@mui/material";
 import { useSearchParams } from "next/navigation";
-import { Suspense } from "react";
+import { Suspense, useState } from "react";
 
 import useSWR from "swr";
 
@@ -15,15 +16,39 @@ import { UserCreate, UserUpdate } from "@/types";
 function Page() {
   const { isAuthenticated } = useAuthClient();
 
-  const handleSubmit = async (id: number, payload: UserCreate | Partial<UserUpdate>, update: () => void) => {
+  const handleSubmit = async (
+    id: number,
+    payload: UserCreate | Partial<UserUpdate>,
+    update: () => void,
+    setError: (error: string | ApiError | null) => void,
+    setIsSubmitting: (isSubmitting: boolean) => void,
+  ) => {
+    setError(null);
+    setIsSubmitting(true);
     try {
-      await apiFetch(`/users/${id}`, {
+      const response = await apiFetch(`/users/${id}`, {
         method: "PATCH",
         body: JSON.stringify(payload),
       });
+
+      if (!response.ok) {
+        // Try to parse structured error response
+        try {
+          const errorData = await response.json();
+          setError(errorData as ApiError);
+        } catch {
+          // Fallback to status text if JSON parsing fails
+          setError(`Failed to update user: ${response.statusText}`);
+        }
+        return;
+      }
+
       update();
-    } catch {
-      // TODO: error handling here
+    } catch (e: unknown) {
+      const message = e instanceof Error ? e.message : "Failed to update user";
+      setError(message);
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -62,9 +87,17 @@ const UserFormSuspense = ({
   handleSubmit,
 }: {
   id: number | null;
-  handleSubmit: (id: number, payload: UserCreate | Partial<UserUpdate>, update: () => void) => Promise<void>;
+  handleSubmit: (
+    id: number,
+    payload: UserCreate | Partial<UserUpdate>,
+    update: () => void,
+    setError: (error: string | ApiError | null) => void,
+    setIsSubmitting: (isSubmitting: boolean) => void,
+  ) => Promise<void>;
 }) => {
   const { data: user, mutate } = useSWR(id ? [`/users/${id}`] : null, () => userFetcher(id), { suspense: true });
+  const [error, setError] = useState<string | ApiError | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   if (!id) {
     return <p>No user ID provided.</p>;
@@ -74,7 +107,11 @@ const UserFormSuspense = ({
     <UserForm
       mode="edit"
       initialValues={user}
-      onSubmit={(payload: UserCreate | Partial<UserUpdate>) => handleSubmit(id, payload, mutate)}
+      onSubmit={(payload: UserCreate | Partial<UserUpdate>) =>
+        handleSubmit(id, payload, mutate, setError, setIsSubmitting)
+      }
+      error={error}
+      isSubmitting={isSubmitting}
     />
   );
 };
@@ -82,7 +119,13 @@ const UserFormSuspense = ({
 const UserPage = ({
   handleSubmit,
 }: {
-  handleSubmit: (id: number, payload: UserCreate | Partial<UserUpdate>, update: () => void) => Promise<void>;
+  handleSubmit: (
+    id: number,
+    payload: UserCreate | Partial<UserUpdate>,
+    update: () => void,
+    setError: (error: string | ApiError | null) => void,
+    setIsSubmitting: (isSubmitting: boolean) => void,
+  ) => Promise<void>;
 }) => {
   const searchParams = useSearchParams();
   const id = Number.parseInt(searchParams.get("id") || "") || null;

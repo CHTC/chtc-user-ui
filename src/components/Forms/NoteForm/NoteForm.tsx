@@ -1,8 +1,10 @@
 "use client";
 
+import FormErrorAlert from "@/src/components/FormErrorAlert/FormErrorAlert";
 import UserAutocompleteMultiple from "@/src/components/UserAutocompleteMultiple/UserAutocompleteMultiple";
+import { ApiError } from "@/src/utils/formErrors";
 import type { NoteCreate, User } from "@/types";
-import { Alert, Box, Button, Stack, TextField } from "@mui/material";
+import { Box, Button, Stack, TextField } from "@mui/material";
 import React, { useState } from "react";
 
 export type NoteFormMode = "create" | "edit";
@@ -28,7 +30,7 @@ export interface NoteFormProps {
    */
   onSubmit: (payload: NoteCreate) => Promise<void> | void;
   isSubmitting?: boolean;
-  error?: string | null;
+  error?: string | ApiError | null;
 }
 
 function normalizeInitialValues(initial?: Partial<NoteFormValues>): NoteFormValues {
@@ -40,6 +42,15 @@ function normalizeInitialValues(initial?: Partial<NoteFormValues>): NoteFormValu
     users: initial?.users ?? [],
   };
 }
+
+// Field name mappings for error display
+const FIELD_NAME_MAP: Record<string, string> = {
+  ticket: "Ticket",
+  note: "Note",
+  author: "Author",
+  date: "Date",
+  users: "Users",
+};
 
 export const NoteForm: React.FC<NoteFormProps> = ({
   mode,
@@ -67,18 +78,10 @@ export const NoteForm: React.FC<NoteFormProps> = ({
     await onSubmit(payload);
   };
 
-  console.log({
-    ticket: values.ticket || null,
-    note: values.note || null,
-    users: values.users.map((u) => u.id),
-  });
-
-  console.log(values);
-
   return (
     <Box component="form" onSubmit={handleSubmit} sx={{ mt: 2, maxWidth: 600 }}>
       <Stack spacing={2}>
-        {error && <Alert severity="error">{error}</Alert>}
+        <FormErrorAlert error={error ?? null} fieldNameMap={FIELD_NAME_MAP} />
 
         <TextField
           label="Note"

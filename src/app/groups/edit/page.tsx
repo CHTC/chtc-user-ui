@@ -3,24 +3,49 @@
 import { apiFetch, useAuthClient } from "@/src/components/AuthProvider";
 import { GroupForm } from "@/src/components/Forms/GroupForm/GroupForm";
 import GroupUserTable from "@/src/components/GroupUserTable/GroupUserTable";
-import type { GroupCreate, GroupCreateUpdate } from "@/types";
+import { ApiError } from "@/src/utils/formErrors";
+import type { GroupCreateUpdate } from "@/types";
 import { Box, Breadcrumbs, Skeleton, Typography } from "@mui/material";
 import { useSearchParams } from "next/navigation";
-import { Suspense } from "react";
+import { Suspense, useState } from "react";
 import useSWR from "swr";
 
 function Page() {
   const { isAuthenticated } = useAuthClient();
 
-  const handleSubmit = async (id: number, payload: GroupCreateUpdate, update: () => void) => {
+  const handleSubmit = async (
+    id: number,
+    payload: GroupCreateUpdate,
+    update: () => void,
+    setError: (error: string | ApiError | null) => void,
+    setIsSubmitting: (isSubmitting: boolean) => void,
+  ) => {
+    setError(null);
+    setIsSubmitting(true);
     try {
-      await apiFetch(`/groups/${id}`, {
+      const response = await apiFetch(`/groups/${id}`, {
         method: "PUT",
         body: JSON.stringify(payload),
       });
+
+      if (!response.ok) {
+        // Try to parse structured error response
+        try {
+          const errorData = await response.json();
+          setError(errorData as ApiError);
+        } catch {
+          // Fallback to status text if JSON parsing fails
+          setError(`Failed to update group: ${response.statusText}`);
+        }
+        return;
+      }
+
       update();
-    } catch {
-      // TODO: handle error here
+    } catch (e: unknown) {
+      const message = e instanceof Error ? e.message : "Failed to update group";
+      setError(message);
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -59,9 +84,17 @@ const GroupFormSuspense = ({
   handleSubmit,
 }: {
   id: number | null;
-  handleSubmit: (id: number, payload: GroupCreate, update: () => void) => Promise<void>;
+  handleSubmit: (
+    id: number,
+    payload: GroupCreateUpdate,
+    update: () => void,
+    setError: (error: string | ApiError | null) => void,
+    setIsSubmitting: (isSubmitting: boolean) => void,
+  ) => Promise<void>;
 }) => {
   const { data: group, mutate } = useSWR(id ? [`/groups/${id}`] : null, () => groupFetcher(id), { suspense: true });
+  const [error, setError] = useState<string | ApiError | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   if (!id) {
     return <p>No group ID provided.</p>;
@@ -71,7 +104,9 @@ const GroupFormSuspense = ({
     <GroupForm
       mode="edit"
       initialValues={group}
-      onSubmit={(payload: GroupCreate) => handleSubmit(id, payload, mutate)}
+      onSubmit={(payload: GroupCreateUpdate) => handleSubmit(id, payload, mutate, setError, setIsSubmitting)}
+      error={error}
+      isSubmitting={isSubmitting}
     />
   );
 };
@@ -79,7 +114,13 @@ const GroupFormSuspense = ({
 const GroupPage = ({
   handleSubmit,
 }: {
-  handleSubmit: (id: number, payload: GroupCreate, update: () => void) => Promise<void>;
+  handleSubmit: (
+    id: number,
+    payload: GroupCreateUpdate,
+    update: () => void,
+    setError: (error: string | ApiError | null) => void,
+    setIsSubmitting: (isSubmitting: boolean) => void,
+  ) => Promise<void>;
 }) => {
   const searchParams = useSearchParams();
   const id = Number.parseInt(searchParams.get("id") || "") || null;

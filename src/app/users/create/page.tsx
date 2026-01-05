@@ -2,6 +2,7 @@
 
 import { apiFetch, useAuthClient } from "@/src/components/AuthProvider";
 import { UserForm } from "@/src/components/Forms/UserForm/UserForm";
+import { ApiError } from "@/src/utils/formErrors";
 import type { UserCreate, UserUpdate } from "@/types";
 import { Box, Breadcrumbs, Typography } from "@mui/material";
 import { useRouter } from "next/navigation";
@@ -11,7 +12,7 @@ function Page() {
   const { isAuthenticated } = useAuthClient();
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<string | ApiError | null>(null);
 
   const handleSubmit = async (payload: UserCreate | Partial<UserUpdate>) => {
     setError(null);
@@ -23,7 +24,15 @@ function Page() {
       });
 
       if (!userResponse.ok) {
-        throw new Error(`Failed to create user: ${userResponse.statusText}`);
+        // Try to parse structured error response
+        try {
+          const errorData = await userResponse.json();
+          setError(errorData as ApiError);
+        } catch {
+          // Fallback to status text if JSON parsing fails
+          setError(`Failed to create user: ${userResponse.statusText}`);
+        }
+        return;
       }
 
       const user = await userResponse.json();

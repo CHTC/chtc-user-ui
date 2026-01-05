@@ -9,9 +9,10 @@ interface ProjectAutocompleteProps {
   value?: Partial<Project>;
   onSelect: (project: Project | null) => void;
   defaultFilter?: Record<string, string>;
+  required?: boolean;
 }
 
-const ProjectAutocomplete = ({ value, onSelect, defaultFilter }: ProjectAutocompleteProps) => {
+const ProjectAutocomplete = ({ value, onSelect, defaultFilter, required }: ProjectAutocompleteProps) => {
   const [activeProject, setActiveProject] = useState<Project | null>(null);
   const [inputValue, setInputValue] = useState("");
   const debouncedInputValue = useDebounce(inputValue, 300);
@@ -55,13 +56,13 @@ const ProjectAutocomplete = ({ value, onSelect, defaultFilter }: ProjectAutocomp
       getOptionLabel={(option) => option?.name ?? ""}
       isOptionEqualToValue={(option, val) => option.id === val.id}
       inputValue={inputValue}
-      onInputChange={(event, newInputValue) => {
+      onInputChange={(_event, newInputValue) => {
         setInputValue(newInputValue);
       }}
-      onChange={(event, newValue) => {
+      onChange={(_event, newValue) => {
         onSelect(newValue);
       }}
-      renderInput={(params) => <TextField {...params} label="Select Project" variant="outlined" />}
+      renderInput={(params) => <TextField {...params} label="Select Project" variant="outlined" required={required} />}
     />
   );
 };

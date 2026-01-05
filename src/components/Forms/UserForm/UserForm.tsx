@@ -1,11 +1,12 @@
 "use client";
 
 import { apiFetch } from "@/src/components/AuthProvider";
+import FormErrorAlert from "@/src/components/FormErrorAlert/FormErrorAlert";
 import ProjectAutocomplete from "@/src/components/ProjectAutocomplete/ProjectAutocomplete";
+import { ApiError } from "@/src/utils/formErrors";
 import type { PositionEnum, RoleEnum, UserCreate, UserUpdate } from "@/types";
 import { Project, SubmitNode, UserSubmitNodeCreate } from "@/types";
 import {
-  Alert,
   Box,
   Button,
   Checkbox,
@@ -21,6 +22,9 @@ import React, { useState } from "react";
 import useSWR from "swr";
 
 export type UserFormMode = "create" | "edit";
+
+// Re-export for backward compatibility
+export type { ApiError } from "@/src/utils/formErrors";
 
 export interface UserFormValues {
   username: string;
@@ -52,7 +56,7 @@ export interface UserFormProps {
    */
   onSubmit: (payload: UserCreate | Partial<UserUpdate>) => Promise<void> | void;
   isSubmitting?: boolean;
-  error?: string | null;
+  error?: string | ApiError | null;
 }
 
 function normalizeInitialValues(initial?: Partial<UserCreate & UserUpdate>): UserFormValues {
@@ -92,6 +96,23 @@ const arraysEqual = (a: number[] | undefined, b: number[] | undefined) => {
   const sortedA = [...a].sort();
   const sortedB = [...b].sort();
   return sortedA.every((val, idx) => val === sortedB[idx]);
+};
+
+// Field name mappings for error display
+const FIELD_NAME_MAP: Record<string, string> = {
+  username: "Username",
+  name: "Name",
+  email1: "Email (primary)",
+  email2: "Email (secondary)",
+  netid: "NetID",
+  phone1: "Phone 1",
+  phone2: "Phone 2",
+  unix_uid: "Unix UID",
+  position: "Position",
+  password: "Password",
+  primary_project_id: "Primary Project",
+  primary_project_role: "Primary Project Role",
+  submit_nodes: "Submit Nodes",
 };
 
 export const UserForm: React.FC<UserFormProps> = ({ mode, initialValues, onSubmit, isSubmitting = false, error }) => {
@@ -178,12 +199,13 @@ export const UserForm: React.FC<UserFormProps> = ({ mode, initialValues, onSubmi
   return (
     <Box component="form" onSubmit={handleSubmit} sx={{ mt: 2, maxWidth: 600 }}>
       <Stack spacing={2}>
-        {error && <Alert severity="error">{error}</Alert>}
+        <FormErrorAlert error={error ?? null} fieldNameMap={FIELD_NAME_MAP} />
 
         <TextField
           label="Username"
           value={values.username}
           onChange={(e) => handleChange("username", e.target.value)}
+          required
           fullWidth
           disabled={isSubmitting}
         />
@@ -192,6 +214,7 @@ export const UserForm: React.FC<UserFormProps> = ({ mode, initialValues, onSubmi
           label="Name"
           value={values.name}
           onChange={(e) => handleChange("name", e.target.value)}
+          required
           fullWidth
           disabled={isSubmitting}
         />
@@ -300,6 +323,7 @@ export const UserForm: React.FC<UserFormProps> = ({ mode, initialValues, onSubmi
               handleChange("primary_project_id", String(project?.id ?? ""));
             }}
             value={values.primary_project_id ? { id: parseInt(values.primary_project_id, 10) } : undefined}
+            required
           />
         )}
 
@@ -311,6 +335,7 @@ export const UserForm: React.FC<UserFormProps> = ({ mode, initialValues, onSubmi
               label="Primary Project Role"
               value={values.primary_project_role}
               onChange={(e) => handleChange("primary_project_role", e.target.value as RoleEnum | "")}
+              required
               disabled={isSubmitting}
             >
               <MenuItem value="">Select Role</MenuItem>

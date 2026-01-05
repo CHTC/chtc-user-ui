@@ -3,8 +3,7 @@
 import type {
   CurrentUser,
   Group,
-  GroupCreate,
-  GroupUpdate,
+  GroupCreateUpdate,
   JoinedProjectView,
   Note,
   NoteCreate,
@@ -12,8 +11,7 @@ import type {
   PaginationParams,
   PiProjectView,
   Project,
-  ProjectCreate,
-  ProjectUpdate,
+  ProjectCreateUpdate,
   User,
   UserCreate,
   UserProjectCreate,
@@ -46,8 +44,8 @@ export type ApiClient = {
   // Groups
   getGroups: (params?: PaginationParams) => Promise<PaginatedResponse<Group[]>>;
   getGroup: (groupId: number) => Promise<Group>;
-  createGroup: (group: GroupCreate) => Promise<Group>;
-  updateGroup: (groupId: number, group: GroupUpdate) => Promise<Group>;
+  createGroup: (group: GroupCreateUpdate) => Promise<Group>;
+  updateGroup: (groupId: number, group: GroupCreateUpdate) => Promise<Group>;
   deleteGroup: (groupId: number) => Promise<void>;
   getGroupUsers: (groupId: number, params?: PaginationParams) => Promise<User[]>;
   addUserToGroup: (groupId: number, userId: number) => Promise<Record<string, unknown>>;
@@ -56,8 +54,8 @@ export type ApiClient = {
   // Projects
   getProjects: (params?: PaginationParams) => Promise<PaginatedResponse<Project[]>>;
   getProject: (projectId: number) => Promise<Project>;
-  createProject: (project: ProjectCreate) => Promise<Project>;
-  updateProject: (projectId: number, project: ProjectUpdate) => Promise<Project>;
+  createProject: (project: ProjectCreateUpdate) => Promise<Project>;
+  updateProject: (projectId: number, project: ProjectCreateUpdate) => Promise<Project>;
   deleteProject: (projectId: number) => Promise<void>;
   getProjectUsers: (projectId: number, params?: PaginationParams) => Promise<JoinedProjectView[]>;
   addUserToProject: (projectId: number, userProject: UserProjectCreate) => Promise<Record<string, unknown>>;
@@ -238,7 +236,7 @@ export function AuthClientProvider({ children }: { children: React.ReactNode }) 
       return response.json();
     }, []),
 
-    createGroup: useCallback(async (group: GroupCreate): Promise<Group> => {
+    createGroup: useCallback(async (group: GroupCreateUpdate): Promise<Group> => {
       const response = await apiFetch("/groups", {
         method: "POST",
         body: JSON.stringify(group),
@@ -247,7 +245,7 @@ export function AuthClientProvider({ children }: { children: React.ReactNode }) 
       return response.json();
     }, []),
 
-    updateGroup: useCallback(async (groupId: number, group: GroupUpdate): Promise<Group> => {
+    updateGroup: useCallback(async (groupId: number, group: GroupCreateUpdate): Promise<Group> => {
       const response = await apiFetch(`/groups/${groupId}`, {
         method: "PUT",
         body: JSON.stringify(group),
@@ -296,7 +294,7 @@ export function AuthClientProvider({ children }: { children: React.ReactNode }) 
       return response.json();
     }, []),
 
-    createProject: useCallback(async (project: ProjectCreate): Promise<Project> => {
+    createProject: useCallback(async (project: ProjectCreateUpdate): Promise<Project> => {
       const response = await apiFetch("/projects", {
         method: "POST",
         body: JSON.stringify(project),
@@ -305,7 +303,7 @@ export function AuthClientProvider({ children }: { children: React.ReactNode }) 
       return response.json();
     }, []),
 
-    updateProject: useCallback(async (projectId: number, project: ProjectUpdate): Promise<Project> => {
+    updateProject: useCallback(async (projectId: number, project: ProjectCreateUpdate): Promise<Project> => {
       const response = await apiFetch(`/projects/${projectId}`, {
         method: "PUT",
         body: JSON.stringify(project),

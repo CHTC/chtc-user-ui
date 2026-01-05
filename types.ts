@@ -29,10 +29,6 @@ export interface GroupCreateUpdate {
   has_groupdir?: boolean | null;
 }
 
-// Aliases for backwards compatibility
-export type GroupCreate = GroupCreateUpdate;
-export type GroupUpdate = GroupCreateUpdate;
-
 export interface Project {
   id: number;
   name: string;
@@ -72,10 +68,6 @@ export interface ProjectCreateUpdate {
   ticket?: number | null;
   last_contact?: string | null;
 }
-
-// Aliases for backwards compatibility
-export type ProjectCreate = ProjectCreateUpdate;
-export type ProjectUpdate = ProjectCreateUpdate;
 
 export interface User {
   id: number;

@@ -17,6 +17,7 @@ import ListItemText from "@mui/material/ListItemText";
 import Toolbar from "@mui/material/Toolbar";
 import React, { useState } from "react";
 
+import AuthButton from "@/src/components/AuthButton";
 import Title from "@/src/components/Header/Title";
 import { NavigationItem } from "@/types";
 
@@ -64,7 +65,11 @@ const MobileHeader = ({ pages }: { pages: NavigationItem[] }) => {
             ))}
           </List>
           <Divider />
-          <List></List>
+          <List>
+            <ListItem>
+              <AuthButton />
+            </ListItem>
+          </List>
         </Box>
       </Drawer>
     </Toolbar>

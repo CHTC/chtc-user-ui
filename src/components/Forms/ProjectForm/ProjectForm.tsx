@@ -1,8 +1,10 @@
 "use client";
 
+import FormErrorAlert from "@/src/components/FormErrorAlert/FormErrorAlert";
 import UserAutocomplete from "@/src/components/UserAutocomplete/UserAutocomplete";
+import { ApiError } from "@/src/utils/formErrors";
 import { FormMode, ProjectCreateUpdate } from "@/types";
-import { Alert, Box, Button, Stack, TextField } from "@mui/material";
+import { Box, Button, Stack, TextField } from "@mui/material";
 import React, { useState } from "react";
 
 export interface ProjectFormValues {
@@ -32,7 +34,7 @@ export interface ProjectFormProps {
    */
   onSubmit: (payload: ProjectCreateUpdate) => Promise<void> | void;
   isSubmitting?: boolean;
-  error?: string | null;
+  error?: string | ApiError | null;
 }
 
 function normalizeInitialValues(initial?: Partial<ProjectCreateUpdate>): ProjectFormValues {
@@ -50,6 +52,21 @@ function normalizeInitialValues(initial?: Partial<ProjectCreateUpdate>): Project
     last_contact: initial?.last_contact ?? "",
   };
 }
+
+// Field name mappings for error display
+const FIELD_NAME_MAP: Record<string, string> = {
+  name: "Name",
+  accounting_group: "Accounting Group",
+  pi: "PI",
+  staff1: "Staff 1",
+  staff2: "Staff 2",
+  status: "Status",
+  access: "Access",
+  url: "URL",
+  date: "Date",
+  ticket: "Ticket",
+  last_contact: "Last Contact",
+};
 
 export const ProjectForm: React.FC<ProjectFormProps> = ({
   mode,
@@ -87,7 +104,7 @@ export const ProjectForm: React.FC<ProjectFormProps> = ({
   return (
     <Box component="form" onSubmit={handleSubmit} sx={{ mt: 2, maxWidth: 600 }}>
       <Stack spacing={2}>
-        {error && <Alert severity="error">{error}</Alert>}
+        <FormErrorAlert error={error ?? null} fieldNameMap={FIELD_NAME_MAP} />
 
         <TextField
           label="Name"
@@ -163,6 +180,7 @@ export const ProjectForm: React.FC<ProjectFormProps> = ({
           fullWidth
           disabled={true}
           type={"datetime-local"}
+          slotProps={{ inputLabel: { shrink: true } }}
         />
 
         <TextField
@@ -172,6 +190,7 @@ export const ProjectForm: React.FC<ProjectFormProps> = ({
           fullWidth
           disabled={isSubmitting}
           type={"datetime-local"}
+          slotProps={{ inputLabel: { shrink: true } }}
         />
 
         <Box sx={{ display: "flex", gap: 2, mt: 2 }}>

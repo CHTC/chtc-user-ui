@@ -1,29 +1,53 @@
 "use client";
 
-import React, { Suspense } from "react";
-import { useSearchParams } from "next/navigation";
-import { Box, Breadcrumbs, Button, Link, Skeleton, Typography } from "@mui/material";
-import { useAuthClient } from "@/src/components/AuthProvider";
+import { apiFetch, useAuthClient } from "@/src/components/AuthProvider";
 import { ProjectForm } from "@/src/components/Forms/ProjectForm/ProjectForm";
-import { apiFetch } from "@/src/components/AuthProvider";
-import type { ProjectCreate, ProjectCreateUpdate } from "@/types";
-import useSWR from "swr";
-import ProjectUserTable from "@/src/components/ProjectUserTable/ProjectUserTable";
 import ProjectNoteTable from "@/src/components/ProjectNoteTable/ProjectNoteTable";
+import ProjectUserTable from "@/src/components/ProjectUserTable/ProjectUserTable";
+import { ApiError } from "@/src/utils/formErrors";
+import type { ProjectCreateUpdate } from "@/types";
 import { Add } from "@mui/icons-material";
+import { Box, Breadcrumbs, Button, Link, Skeleton, Typography } from "@mui/material";
+import { useSearchParams } from "next/navigation";
+import { Suspense, useState } from "react";
+import useSWR from "swr";
 
 function Page() {
   const { isAuthenticated } = useAuthClient();
 
-  const handleSubmit = async (id: number, payload: ProjectCreateUpdate, update: () => void) => {
+  const handleSubmit = async (
+    id: number,
+    payload: ProjectCreateUpdate,
+    update: () => void,
+    setError: (error: string | ApiError | null) => void,
+    setIsSubmitting: (isSubmitting: boolean) => void,
+  ) => {
+    setError(null);
+    setIsSubmitting(true);
     try {
-      await apiFetch(`/projects/${id}`, {
+      const response = await apiFetch(`/projects/${id}`, {
         method: "PUT",
         body: JSON.stringify(payload),
       });
+
+      if (!response.ok) {
+        // Try to parse structured error response
+        try {
+          const errorData = await response.json();
+          setError(errorData as ApiError);
+        } catch {
+          // Fallback to status text if JSON parsing fails
+          setError(`Failed to update project: ${response.statusText}`);
+        }
+        return;
+      }
+
       update();
-    } catch {
-      // TODO: error handling here
+    } catch (e: unknown) {
+      const message = e instanceof Error ? e.message : "Failed to update project";
+      setError(message);
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -62,11 +86,19 @@ const ProjectFormSuspense = ({
   handleSubmit,
 }: {
   id: number | null;
-  handleSubmit: (id: number, payload: ProjectCreate, update: () => void) => Promise<void>;
+  handleSubmit: (
+    id: number,
+    payload: ProjectCreateUpdate,
+    update: () => void,
+    setError: (error: string | ApiError | null) => void,
+    setIsSubmitting: (isSubmitting: boolean) => void,
+  ) => Promise<void>;
 }) => {
   const { data: project, mutate } = useSWR(id ? [`/projects/${id}`] : null, () => projectFetcher(id), {
     suspense: true,
   });
+  const [error, setError] = useState<string | ApiError | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   if (!id) {
     return <p>No project ID provided.</p>;
@@ -76,7 +108,9 @@ const ProjectFormSuspense = ({
     <ProjectForm
       mode="edit"
       initialValues={project}
-      onSubmit={(payload: ProjectCreate) => handleSubmit(id, payload, mutate)}
+      onSubmit={(payload: ProjectCreateUpdate) => handleSubmit(id, payload, mutate, setError, setIsSubmitting)}
+      error={error}
+      isSubmitting={isSubmitting}
     />
   );
 };
@@ -84,7 +118,13 @@ const ProjectFormSuspense = ({
 const ProjectPage = ({
   handleSubmit,
 }: {
-  handleSubmit: (id: number, payload: ProjectCreate, update: () => void) => Promise<void>;
+  handleSubmit: (
+    id: number,
+    payload: ProjectCreateUpdate,
+    update: () => void,
+    setError: (error: string | ApiError | null) => void,
+    setIsSubmitting: (isSubmitting: boolean) => void,
+  ) => Promise<void>;
 }) => {
   const searchParams = useSearchParams();
   const id = Number.parseInt(searchParams.get("id") || "") || null;
