@@ -1,7 +1,7 @@
 "use client";
 
 import GenericTableView from "@/src/components/GenericTableView/GenericTableView";
-import { createCellRenderer } from "@/src/util/cellRenderers";
+import { createCellRenderer } from "@/src/utils/cellRenderers";
 import type { PiProjectView } from "@/types";
 
 const headers = ["id", "Username", "Name", "Project Name", "Email", "Phone", "NetID"];

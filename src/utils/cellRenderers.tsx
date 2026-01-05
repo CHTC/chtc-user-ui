@@ -1,6 +1,6 @@
 "use client";
 
-import { formatPhoneNumber } from "@/src/util/format";
+import { formatPhoneNumber } from "@/src/utils/format";
 import { Edit } from "@mui/icons-material";
 import { IconButton } from "@mui/material";
 import Link from "next/link";

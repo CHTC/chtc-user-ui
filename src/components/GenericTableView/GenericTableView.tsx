@@ -1,5 +1,6 @@
 "use client";
 
+import { useDebounce } from "@/src/utils/useDebounce";
 import { PaginationParams, SortDirection } from "@/types";
 import { Table } from "@chtc/web-components";
 import { ArrowDownward, ArrowUpward } from "@mui/icons-material";
@@ -61,9 +62,12 @@ function GenericTableView({
   const { client, isAuthenticated } = useAuthClient();
   const rowsPerPage = 50;
 
+  // Debounce search query to avoid excessive API calls while typing
+  const debouncedSearchQuery = useDebounce(searchQuery, 300);
+
   const handleSearch = useCallback(
     (resetPage: boolean = false) => {
-      query(client, { page, page_size: rowsPerPage, sortColumn, sortDirection }, searchQuery)
+      query(client, { page, page_size: rowsPerPage, sortColumn, sortDirection }, debouncedSearchQuery)
         .then((results) => {
           setTotalCount(results.totalCount);
           setData(results.data);
@@ -76,7 +80,7 @@ function GenericTableView({
           console.error("Error fetching data:", error);
         });
     },
-    [client, page, query, searchQuery, sortColumn, sortDirection],
+    [client, page, query, debouncedSearchQuery, sortColumn, sortDirection],
   );
 
   // Get sortable column entries for the dropdown

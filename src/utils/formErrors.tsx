@@ -55,3 +55,21 @@ export function formatErrorMessage(
 
   return "An error occurred";
 }
+
+/**
+ * Standardized error handler for API responses.
+ * Attempts to parse structured error responses, falls back to status text.
+ *
+ * @param response - The fetch Response object
+ * @param defaultMessage - Default error message if parsing fails
+ * @returns Promise<ApiError | string> - Parsed error or fallback message
+ */
+export async function handleApiError(response: Response, defaultMessage: string): Promise<ApiError | string> {
+  try {
+    const errorData = await response.json();
+    return errorData as ApiError;
+  } catch {
+    // Fallback to status text if JSON parsing fails
+    return `${defaultMessage}: ${response.statusText}`;
+  }
+}

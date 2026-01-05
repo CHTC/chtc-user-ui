@@ -1,7 +1,7 @@
 "use client";
 
 import GenericTableView from "@/src/components/GenericTableView/GenericTableView";
-import { createCellRenderer } from "@/src/util/cellRenderers";
+import { createCellRenderer } from "@/src/utils/cellRenderers";
 
 const headers = ["id", "Group Name", "Point of Contact", "GID", "Has Group Directory?"];
 const cellRenderer = createCellRenderer({ editPath: "/groups/edit" });

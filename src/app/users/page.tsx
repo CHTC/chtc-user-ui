@@ -1,7 +1,7 @@
 "use client";
 
 import GenericTableView from "@/src/components/GenericTableView/GenericTableView";
-import { createCellRenderer } from "@/src/util/cellRenderers";
+import { createCellRenderer } from "@/src/utils/cellRenderers";
 
 const headers = ["id", "Username", "Name", "Email", "Phone", "NetID", "Last Modified"];
 const cellRenderer = createCellRenderer({ editPath: "/users/edit" });

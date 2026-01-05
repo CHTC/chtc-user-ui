@@ -1,5 +1,5 @@
 import { apiFetch } from "@/src/components/AuthProvider";
-import useDebounce from "@/src/util/useDebounce";
+import useDebounce from "@/src/utils/useDebounce";
 import type { Project } from "@/types";
 import { Autocomplete, TextField } from "@mui/material";
 import { useEffect, useState } from "react";
