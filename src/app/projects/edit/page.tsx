@@ -1,6 +1,7 @@
 "use client";
 
-import { apiFetch, useAuthClient } from "@/src/components/AuthProvider";
+import { AuthGuard } from "@/src/components/AuthGuard";
+import { apiFetch } from "@/src/components/AuthProvider";
 import { ProjectForm } from "@/src/components/Forms/ProjectForm/ProjectForm";
 import ProjectNoteTable from "@/src/components/ProjectNoteTable/ProjectNoteTable";
 import ProjectUserTable from "@/src/components/ProjectUserTable/ProjectUserTable";
@@ -13,8 +14,6 @@ import { Suspense, useState } from "react";
 import useSWR from "swr";
 
 function Page() {
-  const { isAuthenticated } = useAuthClient();
-
   const handleSubmit = async (
     id: number,
     payload: ProjectCreateUpdate,
@@ -51,23 +50,17 @@ function Page() {
     }
   };
 
-  if (!isAuthenticated) {
-    return (
-      <Box sx={{ width: "100%", padding: 2 }}>
-        <Typography variant="h6">You must be logged in to create a project.</Typography>
-      </Box>
-    );
-  }
-
   return (
-    <Box>
-      <Breadcrumbs>
-        <Typography color="text.primary">Update Project</Typography>
-      </Breadcrumbs>
-      <Suspense fallback={<Skeleton variant={"rectangular"} height={"100"} />}>
-        <ProjectPage handleSubmit={handleSubmit} />
-      </Suspense>
-    </Box>
+    <AuthGuard message="You must be logged in to edit a project.">
+      <Box>
+        <Breadcrumbs>
+          <Typography color="text.primary">Update Project</Typography>
+        </Breadcrumbs>
+        <Suspense fallback={<Skeleton variant={"rectangular"} height={"100"} />}>
+          <ProjectPage handleSubmit={handleSubmit} />
+        </Suspense>
+      </Box>
+    </AuthGuard>
   );
 }
 

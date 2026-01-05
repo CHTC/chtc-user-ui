@@ -1,6 +1,7 @@
 "use client";
 
-import { apiFetch, useAuthClient } from "@/src/components/AuthProvider";
+import { AuthGuard } from "@/src/components/AuthGuard";
+import { apiFetch } from "@/src/components/AuthProvider";
 import { UserForm } from "@/src/components/Forms/UserForm/UserForm";
 import { ApiError } from "@/src/utils/formErrors";
 import { Box, Breadcrumbs, Link, Skeleton, Typography } from "@mui/material";
@@ -14,8 +15,6 @@ import UserProjectTable from "@/src/components/UserProjectTable/UserProjectTable
 import { UserCreate, UserUpdate } from "@/types";
 
 function Page() {
-  const { isAuthenticated } = useAuthClient();
-
   const handleSubmit = async (
     id: number,
     payload: UserCreate | Partial<UserUpdate>,
@@ -52,23 +51,17 @@ function Page() {
     }
   };
 
-  if (!isAuthenticated) {
-    return (
-      <Box sx={{ width: "100%", padding: 2 }}>
-        <Typography variant="h6">You must be logged in to create a user.</Typography>
-      </Box>
-    );
-  }
-
   return (
-    <Box>
-      <Breadcrumbs>
-        <Typography color="text.primary">Update User</Typography>
-      </Breadcrumbs>
-      <Suspense fallback={<Skeleton variant={"rectangular"} height={"100"} />}>
-        <UserPage handleSubmit={handleSubmit} />
-      </Suspense>
-    </Box>
+    <AuthGuard message="You must be logged in to edit a user.">
+      <Box>
+        <Breadcrumbs>
+          <Typography color="text.primary">Update User</Typography>
+        </Breadcrumbs>
+        <Suspense fallback={<Skeleton variant={"rectangular"} height={"100"} />}>
+          <UserPage handleSubmit={handleSubmit} />
+        </Suspense>
+      </Box>
+    </AuthGuard>
   );
 }
 

@@ -40,8 +40,8 @@ export interface GenericListComponentProps {
 
   unauthenticatedMessage: string;
 
-  /** Map of header label to API column name for sortable columns */
-  sortableColumns?: Record<string, string>;
+  /** Map of header label to API column name for sortable columns, or an object with column and default sort direction */
+  sortableColumns?: Record<string, string | { column: string; default: SortDirection }>;
 }
 
 function GenericTableView({
@@ -84,7 +84,14 @@ function GenericTableView({
   );
 
   // Get sortable column entries for the dropdown
-  const sortableEntries = sortableColumns ? Object.entries(sortableColumns) : [];
+  // Extract column name and default direction from both string and object formats
+  const sortableEntries = sortableColumns
+    ? Object.entries(sortableColumns).map(([label, config]) => {
+        const columnName = typeof config === "string" ? config : config.column;
+        const defaultDirection = typeof config === "string" ? "asc" : config.default;
+        return { label, columnName, defaultDirection };
+      })
+    : [];
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === "Enter") {
@@ -147,14 +154,19 @@ function GenericTableView({
                   const value = e.target.value;
                   if (value) {
                     setSortColumn(value);
+                    // Set default direction for this column
+                    const entry = sortableEntries.find((entry) => entry.columnName === value);
+                    if (entry) {
+                      setSortDirection(entry.defaultDirection);
+                    }
                   } else {
                     setSortColumn(undefined);
                   }
                 }}
               >
                 <MenuItem value="">None</MenuItem>
-                {sortableEntries.map(([label, apiColumn]) => (
-                  <MenuItem key={apiColumn} value={apiColumn}>
+                {sortableEntries.map(({ label, columnName }) => (
+                  <MenuItem key={columnName} value={columnName}>
                     {label}
                   </MenuItem>
                 ))}

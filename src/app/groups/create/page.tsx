@@ -1,6 +1,7 @@
 "use client";
 
-import { apiFetch, useAuthClient } from "@/src/components/AuthProvider";
+import { AuthGuard } from "@/src/components/AuthGuard";
+import { apiFetch } from "@/src/components/AuthProvider";
 import { GroupForm } from "@/src/components/Forms/GroupForm/GroupForm";
 import { ApiError } from "@/src/utils/formErrors";
 import type { GroupCreateUpdate } from "@/types";
@@ -9,7 +10,6 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 
 function Page() {
-  const { isAuthenticated } = useAuthClient();
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | ApiError | null>(null);
@@ -45,21 +45,15 @@ function Page() {
     }
   };
 
-  if (!isAuthenticated) {
-    return (
-      <Box sx={{ width: "100%", padding: 2 }}>
-        <Typography variant="h6">You must be logged in to create a group.</Typography>
-      </Box>
-    );
-  }
-
   return (
-    <Box>
-      <Breadcrumbs>
-        <Typography color="text.primary">Create Group</Typography>
-      </Breadcrumbs>
-      <GroupForm mode="create" onSubmit={handleSubmit} isSubmitting={isSubmitting} error={error} />
-    </Box>
+    <AuthGuard message="You must be logged in to create a group.">
+      <Box>
+        <Breadcrumbs>
+          <Typography color="text.primary">Create Group</Typography>
+        </Breadcrumbs>
+        <GroupForm mode="create" onSubmit={handleSubmit} isSubmitting={isSubmitting} error={error} />
+      </Box>
+    </AuthGuard>
   );
 }
 

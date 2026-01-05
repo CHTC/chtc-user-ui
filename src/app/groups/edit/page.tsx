@@ -1,6 +1,7 @@
 "use client";
 
-import { apiFetch, useAuthClient } from "@/src/components/AuthProvider";
+import { AuthGuard } from "@/src/components/AuthGuard";
+import { apiFetch } from "@/src/components/AuthProvider";
 import { GroupForm } from "@/src/components/Forms/GroupForm/GroupForm";
 import GroupUserTable from "@/src/components/GroupUserTable/GroupUserTable";
 import { ApiError } from "@/src/utils/formErrors";
@@ -11,8 +12,6 @@ import { Suspense, useState } from "react";
 import useSWR from "swr";
 
 function Page() {
-  const { isAuthenticated } = useAuthClient();
-
   const handleSubmit = async (
     id: number,
     payload: GroupCreateUpdate,
@@ -49,23 +48,17 @@ function Page() {
     }
   };
 
-  if (!isAuthenticated) {
-    return (
-      <Box sx={{ width: "100%", padding: 2 }}>
-        <Typography variant="h6">You must be logged in to create a group.</Typography>
-      </Box>
-    );
-  }
-
   return (
-    <Box>
-      <Breadcrumbs>
-        <Typography color="text.primary">Update Group</Typography>
-      </Breadcrumbs>
-      <Suspense fallback={<Skeleton variant={"rectangular"} height={"100"} />}>
-        <GroupPage handleSubmit={handleSubmit} />
-      </Suspense>
-    </Box>
+    <AuthGuard message="You must be logged in to edit a group.">
+      <Box>
+        <Breadcrumbs>
+          <Typography color="text.primary">Update Group</Typography>
+        </Breadcrumbs>
+        <Suspense fallback={<Skeleton variant={"rectangular"} height={"100"} />}>
+          <GroupPage handleSubmit={handleSubmit} />
+        </Suspense>
+      </Box>
+    </AuthGuard>
   );
 }
 
