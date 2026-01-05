@@ -1,7 +1,7 @@
 services:
   nginx:
-    image: nginx:latest
+    build:
+      context: ./scripts/dev
+      dockerfile: nginx.Dockerfile
     ports:
       - "4000:4000"
-    volumes:
-      - ./scripts/dev/nginx.conf:/etc/nginx/nginx.conf:ro
