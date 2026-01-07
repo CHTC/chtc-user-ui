@@ -7,7 +7,7 @@ const Icon = ({ size = "50px" }: { size?: CSSProperties["width"] }) => {
     width: size,
   };
 
-  return <img src={`${basePath}/logos/CHTC_Logo_Full_Color.svg`} style={style} alt="CHTC Logo" />;
+  return <img src={`${basePath}/logos/CHTC_Logo_Full_Color_Invert.svg`} style={style} alt="CHTC Logo" />;
 };
 
 export default Icon;
