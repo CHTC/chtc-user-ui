@@ -12,6 +12,11 @@ function Page() {
       <GenericTableView
         headers={headers}
         cellRenderer={cellRenderer}
+        sortableColumns={{
+          "Group Name": "name",
+          "Point of Contact": "point_of_contact",
+          GID: "unix_gid",
+        }}
         query={async (client, opts, searchQuery) => {
           const queryObj = searchQuery ? { name: `like.${searchQuery}` } : undefined;
           const result = await client.getGroups({

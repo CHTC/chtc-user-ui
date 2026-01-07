@@ -1,6 +1,6 @@
 "use client";
 
-import { Box, Typography } from "@mui/material";
+import { Alert, Box } from "@mui/material";
 import { ReactNode } from "react";
 import { useAuthClient } from "./AuthProvider";
 
@@ -18,8 +18,8 @@ export function AuthGuard({ children, message }: AuthGuardProps) {
 
   if (!isAuthenticated) {
     return (
-      <Box sx={{ width: "100%", padding: 2 }}>
-        <Typography variant="h6">{message}</Typography>
+      <Box sx={{ p: 3 }}>
+        <Alert severity="warning">{message}</Alert>
       </Box>
     );
   }

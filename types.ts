@@ -14,6 +14,19 @@ export interface UserSubmitNodeCreate {
   submit_node_id: number;
 }
 
+export interface UserSubmitGet {
+  id: number;
+  submit_node_id: number;
+  submit_node_name: string;
+  user_id: number;
+  disk_quota: number | null;
+  hpc_diskquota: number | null;
+  hpc_inodequota: number | null;
+  hpc_joblimit: number | null;
+  hpc_corelimit: number | null;
+  hpc_fairshare: number | null;
+}
+
 export interface Group {
   id: number;
   name: string;
@@ -85,6 +98,9 @@ export interface User {
   date: string | null;
   unix_uid: number | null;
   position: string;
+  submit_nodes?: UserSubmitGet[];
+  notes?: Note[];
+  projects?: JoinedProjectView[];
 }
 
 export interface UserCreate {

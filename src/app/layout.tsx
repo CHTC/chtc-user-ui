@@ -34,6 +34,7 @@ const pages = [
   { label: "Projects", path: "/projects", icon: <Folder /> },
   { label: "Groups", path: "/groups", icon: <Group /> },
   { label: "PIs", path: "/pis", icon: <School /> },
+  { label: "Email", path: "/email", icon: <People /> },
 ];
 
 export default function RootLayout({

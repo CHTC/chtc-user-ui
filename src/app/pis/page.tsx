@@ -12,6 +12,13 @@ function Page() {
     <GenericTableView
       headers={headers}
       cellRenderer={cellRenderer}
+      sortableColumns={{
+        Username: "username",
+        Name: "name",
+        "Project Name": "project_name",
+        Email: "email1",
+        NetID: "netid",
+      }}
       query={async (client, opts, searchQuery) => {
         const queryObj = searchQuery ? { username: `like.${searchQuery}` } : undefined;
         const result: PiProjectView[] = await client.getPiProjects({

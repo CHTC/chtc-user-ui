@@ -11,6 +11,12 @@ function Page() {
     <GenericTableView
       headers={headers}
       cellRenderer={cellRenderer}
+      sortableColumns={{
+        Name: "name",
+        Staff: "staff1",
+        Status: "status",
+        "Last Contact": { column: "last_contact", default: "desc" },
+      }}
       query={async (client, opts, searchQuery) => {
         const queryObj = searchQuery ? { name: `like.${searchQuery}` } : undefined;
         const result = await client.getProjects({

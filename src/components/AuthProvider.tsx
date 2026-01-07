@@ -12,6 +12,7 @@ import type {
   PiProjectView,
   Project,
   ProjectCreateUpdate,
+  SubmitNode,
   User,
   UserCreate,
   UserProjectCreate,
@@ -66,6 +67,9 @@ export type ApiClient = {
 
   // PI Projects
   getPiProjects: (params?: PaginationParams) => Promise<PiProjectView[]>;
+
+  // Submit Nodes
+  getSubmitNodes: (params?: PaginationParams) => Promise<PaginatedResponse<SubmitNode[]>>;
 };
 
 type AuthContextValue = {
@@ -365,6 +369,15 @@ export function AuthClientProvider({ children }: { children: React.ReactNode }) 
       const response = await apiFetch(`/pi-projects${buildQuery(params)}`);
       if (!response.ok) throw new Error(`Failed to get PI projects: ${response.statusText}`);
       return response.json();
+    }, []),
+
+    // Submit Nodes
+    getSubmitNodes: useCallback(async (params?: PaginationParams): Promise<PaginatedResponse<SubmitNode[]>> => {
+      const response = await apiFetch(`/submit_nodes${buildQuery(params)}`);
+      if (!response.ok) throw new Error(`Failed to get submit nodes: ${response.statusText}`);
+      const totalCount = parseInt(response.headers.get("X-Total-Count") || "0", 10);
+      const data = await response.json();
+      return { data, totalCount };
     }, []),
   };
 
