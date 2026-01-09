@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useRef, useState } from "react";
 
 function generateSwirls(count: number) {
   return Array.from({ length: count }, () => {
@@ -13,8 +13,6 @@ function generateSwirls(count: number) {
   });
 }
 
-const SWIRLS = generateSwirls(9);
-
 function getRandomPosition(size: number) {
   // Allow positions to extend to edges
   const edge = size / 20;
@@ -24,49 +22,72 @@ function getRandomPosition(size: number) {
 }
 
 const AnimatedBackground: React.FC = () => {
+  const [swirls, setSwirls] = useState<ReturnType<typeof generateSwirls> | null>(null);
   const swirlRefs = useRef<(HTMLDivElement | null)[]>([]);
 
+  // Generate swirls only on the client to avoid hydration issues
   useEffect(() => {
+    setSwirls(generateSwirls(9));
+  }, []);
+
+  // Ensure refs array always matches the number of swirls
+  useEffect(() => {
+    if (!swirls) return;
+    swirlRefs.current = swirlRefs.current.slice(0, swirls.length);
+  }, [swirls]);
+
+  useEffect(() => {
+    if (!swirls) return;
     let mounted = true;
     function animateSwirl(index: number) {
       if (!mounted) return;
-      const swirl = SWIRLS[index];
-      const node = swirlRefs.current[index];
-      if (!node) return;
-      const pos = getRandomPosition(swirl.size);
-      node.animate(
-        [
-          {},
+      if (swirls) {
+        const swirl = swirls[index];
+        const node = swirlRefs.current[index];
+        if (!node) return;
+        const pos = getRandomPosition(swirl.size);
+        node.animate(
+          [
+            {},
+            {
+              top: `${pos.top}%`,
+              left: `${pos.left}%`,
+            },
+          ],
           {
-            top: `${pos.top}%`,
-            left: `${pos.left}%`,
-          },
-        ],
-        {
-          duration: 10000 + Math.random() * 1500,
-          fill: "forwards",
-          easing: "ease-in-out",
-        }
-      ).onfinish = () => {
-        if (mounted) {
-          node.style.top = `${pos.top}%`;
-          node.style.left = `${pos.left}%`;
-          animateSwirl(index);
-        }
-      };
+            duration: 10000 + Math.random() * 1500,
+            fill: "forwards",
+            easing: "ease-in-out",
+          }
+        ).onfinish = () => {
+          if (mounted) {
+            node.style.top = `${pos.top}%`;
+            node.style.left = `${pos.left}%`;
+            animateSwirl(index);
+          }
+        };
+      }
     }
-    SWIRLS.forEach((_, i) => animateSwirl(i));
+    swirls.forEach((_, i) => animateSwirl(i));
     return () => {
       mounted = false;
     };
-  }, []);
+  }, [swirls]);
+
+  if (!swirls) return null; // Or a fallback
 
   return (
     <div className="animated-bg">
-      {SWIRLS.map((swirl, i) => (
+      {swirls.map((swirl, i) => (
         <div
           key={i}
-          ref={(el) => (swirlRefs.current[i] = el)}
+          ref={el => {
+            swirlRefs.current[i] = el;
+            // Clean up removed refs
+            if (el === null) {
+              swirlRefs.current = swirlRefs.current.slice(0, swirls.length);
+            }
+          }}
           style={{
             position: "absolute",
             width: swirl.size,
