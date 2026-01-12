@@ -39,7 +39,18 @@ export function createCellRenderer(config: CellRendererConfig) {
 
     if (columnHeader === mergedConfig.linkColumn && cell) {
       return (
-        <Link href={cell.toString()} target="_blank" rel="noopener noreferrer">
+        <Link
+          href={cell.toString()}
+          target="_blank"
+          rel="noopener noreferrer"
+          style={{
+            display: "block",
+            maxWidth: "300px",
+            overflow: "hidden",
+            textOverflow: "ellipsis",
+            whiteSpace: "nowrap",
+          }}
+        >
           {cell}
         </Link>
       );

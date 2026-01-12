@@ -223,6 +223,7 @@ function GenericTableView({
                   borderRight: "1px solid rgba(0, 0, 0, 0.10)",
                 },
               },
+              padding: "8px 16px",
             }}
           />
           <Box sx={{ display: "flex", justifyContent: "flex-end", mt: 3 }}>
