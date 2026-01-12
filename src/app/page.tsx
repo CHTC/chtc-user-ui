@@ -1,22 +1,16 @@
 import { Box, Container, Typography } from "@mui/material";
+import AnimatedBackground from "@/src/components/Background/AnimatedBackground";
 
 export default async function Home() {
   return (
-    <Box sx={{ minHeight: "100vh", bgcolor: "background.default" }}>
+    <Box sx={{ minHeight: "100vh", bgcolor: "#ffffff00" }}>
+      <AnimatedBackground />
       <Container maxWidth="lg" sx={{ my: 4 }}>
-        <Typography variant="h4" component="h2" gutterBottom>
-          CHTC User App Beta
-        </Typography>
+        <Box display={"flex"} justifyContent="center" alignItems="center">
+          <Typography variant="h4" component="h2" sx={{color: "white"}} gutterBottom>
 
-        <Typography variant="body1" gutterBottom>
-          Test credentials (with mock data):
-        </Typography>
-        <Typography variant="body1" component="div">
-          Username: <strong>admin</strong>
-        </Typography>
-        <Typography variant="body1" component="div">
-          Password: <strong>password</strong>
-        </Typography>
+          </Typography>
+        </Box>
       </Container>
     </Box>
   );
