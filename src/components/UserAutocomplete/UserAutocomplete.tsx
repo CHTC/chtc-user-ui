@@ -12,8 +12,6 @@ interface UserAutoCompleteProps {
 }
 
 const UserAutocomplete = ({ value, onSelect, defaultFilter }: UserAutoCompleteProps) => {
-  console.log(value);
-
   const [activeUser, setActiveUser] = useState<User | null>(null);
   const [inputValue, setInputValue] = useState("");
   const debouncedInputValue = useDebounce(inputValue, 300);
@@ -38,15 +36,16 @@ const UserAutocomplete = ({ value, onSelect, defaultFilter }: UserAutoCompletePr
 
   useEffect(() => {
     // Sort through all the users and find the one that matches the value prop by id, username, or email1
-    if (users && value) {
-      const matchedUser = users.find(
+    if (value) {
+      const matchedUser = users?.find(
         (user) => user.id === value.id || user.username === value.username || user.email1 === value.email1,
       );
       if (matchedUser) {
         setActiveUser(matchedUser);
         setInputValue(matchedUser.name || matchedUser.username || matchedUser.email1);
       }
-    } else {
+    } else if (value === null) {
+      // Only clear when explicitly set to null (not undefined)
       setActiveUser(null);
       setInputValue("");
     }
@@ -59,10 +58,10 @@ const UserAutocomplete = ({ value, onSelect, defaultFilter }: UserAutoCompletePr
       getOptionLabel={(option) => option?.name || option?.username || option.email1}
       getOptionKey={(option) => option.id}
       inputValue={inputValue}
-      onInputChange={(event, newInputValue) => {
+      onInputChange={(_event, newInputValue) => {
         setInputValue(newInputValue);
       }}
-      onChange={(event, newValue) => {
+      onChange={(_event, newValue) => {
         onSelect(newValue);
       }}
       renderInput={(params) => <TextField {...params} label="Select User" variant="outlined" />}

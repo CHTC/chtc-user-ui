@@ -165,14 +165,16 @@ export function AuthClientProvider({ children }: { children: React.ReactNode }) 
           body: JSON.stringify({ username, password }),
         });
 
-        if (!response.ok) {
-          return { success: false, error: "Invalid username or password" };
-        }
-
         const data = await response.json();
-        setIsAuthenticated(true);
-        return { success: true, message: data.message };
+
+        if (!response.ok) {
+          return { success: false, error: data.detail ?? "Login failed" };
+        } else {
+          setIsAuthenticated(true);
+          return { success: true, message: data.message };
+        }
       } catch (error) {
+        console.error("Login error:", error);
         return { success: false, error: error instanceof Error ? error.message : "Login failed" };
       }
     }, []),

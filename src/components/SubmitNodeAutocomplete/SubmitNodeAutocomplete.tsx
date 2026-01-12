@@ -39,15 +39,16 @@ const SubmitNodeAutocomplete = ({ value, onSelect, defaultFilter, required }: Su
   );
 
   useEffect(() => {
-    if (submitNodes && value) {
-      const matchedSubmitNode = submitNodes.find(
+    if (value) {
+      const matchedSubmitNode = submitNodes?.find(
         (submitNode) => submitNode.id === value.id || submitNode.name === value.name,
       );
       if (matchedSubmitNode) {
         setActiveSubmitNode(matchedSubmitNode);
         setInputValue(matchedSubmitNode.name);
       }
-    } else if (!value) {
+    } else if (value === null) {
+      // Only clear when explicitly set to null (not undefined)
       setActiveSubmitNode(null);
       setInputValue("");
     }

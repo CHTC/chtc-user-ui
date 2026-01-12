@@ -37,13 +37,14 @@ const ProjectAutocomplete = ({ value, onSelect, defaultFilter, required }: Proje
   });
 
   useEffect(() => {
-    if (projects && value) {
-      const matchedProject = projects.find((project) => project.id === value.id || project.name === value.name);
+    if (value) {
+      const matchedProject = projects?.find((project) => project.id === value.id || project.name === value.name);
       if (matchedProject) {
         setActiveProject(matchedProject);
         setInputValue(matchedProject.name);
       }
-    } else if (!value) {
+    } else if (value === null) {
+      // only clear when explicitly set to null (not undefined)
       setActiveProject(null);
       setInputValue("");
     }

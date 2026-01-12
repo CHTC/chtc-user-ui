@@ -66,7 +66,7 @@ const MobileHeader = ({ pages }: { pages: NavigationItem[] }) => {
           </List>
           <Divider />
           <List>
-            <ListItem>
+            <ListItem onClick={(e) => e.stopPropagation()}>
               <AuthButton />
             </ListItem>
           </List>
