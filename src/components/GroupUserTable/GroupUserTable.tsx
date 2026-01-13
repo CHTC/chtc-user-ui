@@ -1,7 +1,9 @@
 import { apiFetch } from "@/src/components/AuthProvider";
 import UserAutocomplete from "@/src/components/UserAutocomplete/UserAutocomplete";
 import { User } from "@/types";
-import { Button, Table, TableBody, TableCell, TableHead, TableRow } from "@mui/material";
+import { ConfirmButton } from "@chtc/web-components";
+import { Delete } from "@mui/icons-material";
+import { Table, TableBody, TableCell, TableHead, TableRow } from "@mui/material";
 import useSWR from "swr";
 
 interface GroupUserTableProps {
@@ -36,7 +38,7 @@ const GroupUserTable = ({ groupId }: GroupUserTableProps) => {
               <TableCell>{user.username}</TableCell>
               <TableCell>{user.netid}</TableCell>
               <TableCell>
-                <Button
+                {/* <Button
                   variant="contained"
                   color="secondary"
                   onClick={async () => {
@@ -48,7 +50,19 @@ const GroupUserTable = ({ groupId }: GroupUserTableProps) => {
                   }}
                 >
                   Remove
-                </Button>
+                </Button> */}
+                <ConfirmButton
+                  aria-label={"Remove User"}
+                  color={"error"}
+                  onConfirm={async () => {
+                    await apiFetch(`/groups/${groupId}/users/${user.id}`, {
+                      method: "DELETE",
+                    });
+                    mutate();
+                  }}
+                >
+                  <Delete />
+                </ConfirmButton>
               </TableCell>
             </TableRow>
           ))}

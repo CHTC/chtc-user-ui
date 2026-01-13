@@ -97,7 +97,6 @@ const ProjectUserTable = ({ projectId }: ProjectUserTableProps) => {
                         method: "DELETE",
                       });
                       mutate();
-                      // Optionally, you can add a way to refresh the data here
                     }}
                   >
                     <Delete />

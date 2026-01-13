@@ -127,9 +127,14 @@ const GroupPage = ({
       <Suspense fallback={<Skeleton variant={"rectangular"} height={"100px"} />}>
         <GroupFormSuspense id={id} handleSubmit={handleSubmit} />
       </Suspense>
-      <Suspense fallback={<Skeleton variant={"rectangular"} height={"100px"} />}>
-        <GroupUserTable groupId={id} />
-      </Suspense>
+      <Box>
+        <Typography variant={"h4"} component="h3" mt={4}>
+          Users
+        </Typography>
+        <Suspense fallback={<Skeleton variant={"rectangular"} height={"100px"} />}>
+          <GroupUserTable groupId={id} />
+        </Suspense>
+      </Box>
     </>
   );
 };
