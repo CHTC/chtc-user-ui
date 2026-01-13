@@ -80,7 +80,7 @@ function Page() {
         case "all_pis": {
           const piProjects = await client.getPiProjects({ page_size: 10000 });
           const emailSet = new Set<string>();
-          piProjects.forEach((pi) => {
+          piProjects.data.forEach((pi) => {
             if (pi.email1) emailSet.add(pi.email1);
           });
           resultEmails = Array.from(emailSet).sort();

@@ -1,5 +1,5 @@
-import { Box, Container, Typography } from "@mui/material";
 import AnimatedBackground from "@/src/components/Background/AnimatedBackground";
+import { Box } from "@mui/material";
 
 export default async function Home() {
   return (
