@@ -133,6 +133,9 @@ export const UserForm: React.FC<UserFormProps> = ({ mode, initialValues, onSubmi
       : values.submit_nodes;
   const isNodeAssigned = selectedSubmitNodeId ? userSubmitNodeIds.includes(selectedSubmitNodeId as number) : false;
 
+  // Validation: exactly one of auth_netid or auth_username must be true
+  const isAuthValid = values.auth_netid !== values.auth_username; // XOR condition
+
   const handleChange = (field: keyof UserFormValues, value: string | boolean | number[]) => {
     setValues((prev) => ({ ...prev, [field]: value }));
   };
@@ -354,38 +357,46 @@ export const UserForm: React.FC<UserFormProps> = ({ mode, initialValues, onSubmi
               </FormControl>
             )}
 
-            <FormControlLabel
-              control={
-                <Checkbox
-                  checked={values.is_admin}
-                  onChange={(e) => handleChange("is_admin", e.target.checked)}
-                  disabled={isSubmitting}
-                />
-              }
-              label="Is Admin"
-            />
+            <Box sx={{ display: "flex", gap: 2, alignItems: "center", flexWrap: "wrap" }}>
+              <FormControlLabel
+                control={
+                  <Checkbox
+                    checked={values.is_admin}
+                    onChange={(e) => handleChange("is_admin", e.target.checked)}
+                    disabled={isSubmitting}
+                  />
+                }
+                label="Is Admin"
+              />
 
-            <FormControlLabel
-              control={
-                <Checkbox
-                  checked={values.auth_netid}
-                  onChange={(e) => handleChange("auth_netid", e.target.checked)}
-                  disabled={isSubmitting}
-                />
-              }
-              label="Auth via NetID"
-            />
+              <FormControlLabel
+                control={
+                  <Checkbox
+                    checked={values.auth_netid}
+                    onChange={(e) => handleChange("auth_netid", e.target.checked)}
+                    disabled={isSubmitting}
+                  />
+                }
+                label="Auth via NetID"
+              />
 
-            <FormControlLabel
-              control={
-                <Checkbox
-                  checked={values.auth_username}
-                  onChange={(e) => handleChange("auth_username", e.target.checked)}
-                  disabled={isSubmitting}
-                />
-              }
-              label="Auth via Username"
-            />
+              <FormControlLabel
+                control={
+                  <Checkbox
+                    checked={values.auth_username}
+                    onChange={(e) => handleChange("auth_username", e.target.checked)}
+                    disabled={isSubmitting}
+                  />
+                }
+                label="Auth via Username"
+              />
+            </Box>
+
+            {!isAuthValid && (
+              <Typography color="error" variant="body2">
+                You must select exactly one authentication method (NetID or Username)
+              </Typography>
+            )}
 
             {mode === "create" && (
               <TextField
@@ -398,8 +409,8 @@ export const UserForm: React.FC<UserFormProps> = ({ mode, initialValues, onSubmi
               />
             )}
 
-            <Box sx={{ display: "flex", gap: 2, mt: 2 }}>
-              <Button type="submit" variant="contained" color="primary" disabled={isSubmitting}>
+            <Box sx={{ display: "flex", justifyContent: "flex-end", gap: 2, mt: 2 }}>
+              <Button type="submit" variant="contained" color="primary" disabled={isSubmitting || !isAuthValid}>
                 {mode === "create" ? "Create" : "Save"}
               </Button>
             </Box>
