@@ -1,95 +1,68 @@
 import { apiFetch } from "@/src/components/AuthProvider";
+import DeleteActionButton from "@/src/components/DeleteActionButton/DeleteActionButton";
+import EditLink from "@/src/components/EditLink/EditLink";
 import UserAutocomplete from "@/src/components/UserAutocomplete/UserAutocomplete";
+import { useTableFetch } from "@/src/utils/useTableFetch";
 import { User } from "@/types";
-import { ConfirmButton } from "@chtc/web-components";
-import { Delete, OpenInNew } from "@mui/icons-material";
-import { Box, IconButton, Table, TableBody, TableCell, TableHead, TableRow } from "@mui/material";
-import Link from "next/link";
-import useSWR from "swr";
+import { Grid, Stack, Table, TableBody, TableCell, TableHead, TableRow, Typography } from "@mui/material";
 
 interface GroupUserTableProps {
   groupId: number;
 }
 
 const GroupUserTable = ({ groupId }: GroupUserTableProps) => {
-  const { data: users, mutate } = useSWR(
-    `/groups/${groupId}/users`,
-    async (): Promise<User[]> => {
-      const groupUserResponse = await apiFetch(`/groups/${groupId}/users`);
-      return groupUserResponse.json();
-    },
-    { suspense: true },
-  );
+  const { data: users, mutate } = useTableFetch<User[]>(`/groups/${groupId}/users`);
 
   return (
-    <Table>
-      <TableHead>
-        <TableRow>
-          <TableCell>Name</TableCell>
-          <TableCell>Username</TableCell>
-          <TableCell>NetID</TableCell>
-          <TableCell>Action</TableCell>
-        </TableRow>
-      </TableHead>
-      <TableBody>
-        {users &&
-          (users || []).map((user) => (
-            <TableRow key={user.id}>
-              <TableCell>{user.name}</TableCell>
-              <TableCell>
-                <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-                  {user.username}
-                  <IconButton component={Link} href={`/users/edit?id=${user.id}`} size="small" aria-label="Go to user">
-                    <OpenInNew fontSize="small" />
-                  </IconButton>
-                </Box>
-              </TableCell>
-              <TableCell>{user.netid}</TableCell>
-              <TableCell>
-                {/* <Button
-                  variant="contained"
-                  color="secondary"
-                  onClick={async () => {
-                    await apiFetch(`/groups/${groupId}/users/${user.id}`, {
-                      method: "DELETE",
-                    });
-                    mutate();
-                    // Optionally, you can add a way to refresh the data here
-                  }}
-                >
-                  Remove
-                </Button> */}
-                <ConfirmButton
-                  aria-label={"Remove User"}
-                  color={"error"}
-                  onConfirm={async () => {
-                    await apiFetch(`/groups/${groupId}/users/${user.id}`, {
-                      method: "DELETE",
-                    });
-                    mutate();
-                  }}
-                >
-                  <Delete />
-                </ConfirmButton>
-              </TableCell>
+    <Grid container spacing={3}>
+      <Grid size={{ xs: 12, md: 8 }}>
+        <Table>
+          <TableHead>
+            <TableRow>
+              <TableCell>Username</TableCell>
+              <TableCell>Name</TableCell>
+              <TableCell>NetID</TableCell>
+              <TableCell>Action</TableCell>
             </TableRow>
-          ))}
-        <TableRow>
-          <TableCell colSpan={4} align="center">
-            <UserAutocomplete
-              onSelect={async (user: User | null) => {
-                // TODO: user can be null here
-                await apiFetch(`/groups/${groupId}/users`, {
-                  method: "POST",
-                  body: JSON.stringify({ id: user?.id }),
-                });
-                mutate();
-              }}
-            />
-          </TableCell>
-        </TableRow>
-      </TableBody>
-    </Table>
+          </TableHead>
+          <TableBody>
+            {users &&
+              (users || []).map((user) => (
+                <TableRow key={user.id}>
+                  <TableCell>
+                    {user.username} <EditLink href={`/users/edit?id=${user.id}`} ariaLabel="Go to user" />
+                  </TableCell>
+                  <TableCell>{user.name}</TableCell>
+                  <TableCell>{user.netid}</TableCell>
+                  <TableCell>
+                    <DeleteActionButton
+                      url={`/groups/${groupId}/users/${user.id}`}
+                      onSuccess={mutate}
+                      ariaLabel="Remove User"
+                    />
+                  </TableCell>
+                </TableRow>
+              ))}
+          </TableBody>
+        </Table>
+      </Grid>
+
+      <Grid size={{ xs: 12, md: 4 }}>
+        <Stack spacing={2}>
+          <Typography variant="h6">Add User to Group</Typography>
+          <UserAutocomplete
+            onSelect={async (user: User | null) => {
+              if (!user) return;
+              await apiFetch(`/groups/${groupId}/users`, {
+                method: "POST",
+                body: JSON.stringify({ id: user.id }),
+              });
+              mutate();
+            }}
+          />
+        </Stack>
+      </Grid>
+    </Grid>
   );
 };
 

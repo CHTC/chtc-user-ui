@@ -3,9 +3,10 @@
 import FormErrorAlert from "@/src/components/FormErrorAlert/FormErrorAlert";
 import UserAutocompleteMultiple from "@/src/components/UserAutocompleteMultiple/UserAutocompleteMultiple";
 import { ApiError } from "@/src/utils/formErrors";
+import { useFormState } from "@/src/utils/useFormState";
 import type { NoteCreate, User } from "@/types";
 import { Box, Button, Stack, TextField } from "@mui/material";
-import React, { useState } from "react";
+import React from "react";
 
 export type NoteFormMode = "create" | "edit";
 
@@ -60,11 +61,7 @@ export const NoteForm: React.FC<NoteFormProps> = ({
   isSubmitting = false,
   error,
 }) => {
-  const [values, setValues] = useState<NoteFormValues>(() => normalizeInitialValues(initialValues));
-
-  const handleChange = (field: keyof NoteFormValues, value: string | User[]) => {
-    setValues((prev) => ({ ...prev, [field]: value }));
-  };
+  const { values, handleChange } = useFormState<NoteFormValues>(() => normalizeInitialValues(initialValues));
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

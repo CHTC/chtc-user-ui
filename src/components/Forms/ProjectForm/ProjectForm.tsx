@@ -3,9 +3,10 @@
 import FormErrorAlert from "@/src/components/FormErrorAlert/FormErrorAlert";
 import UserAutocomplete from "@/src/components/UserAutocomplete/UserAutocomplete";
 import { ApiError } from "@/src/utils/formErrors";
+import { useFormState } from "@/src/utils/useFormState";
 import { FormMode, ProjectCreateUpdate } from "@/types";
 import { Box, Button, Stack, TextField } from "@mui/material";
-import React, { useState } from "react";
+import React from "react";
 
 export interface ProjectFormValues {
   name: string;
@@ -75,11 +76,7 @@ export const ProjectForm: React.FC<ProjectFormProps> = ({
   isSubmitting = false,
   error,
 }) => {
-  const [values, setValues] = useState<ProjectFormValues>(() => normalizeInitialValues(initialValues));
-
-  const handleChange = (field: keyof ProjectFormValues, value: string) => {
-    setValues((prev) => ({ ...prev, [field]: value }));
-  };
+  const { values, handleChange } = useFormState<ProjectFormValues>(() => normalizeInitialValues(initialValues));
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

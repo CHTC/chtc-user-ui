@@ -1,25 +1,15 @@
-import { apiFetch } from "@/src/components/AuthProvider";
+import DeleteActionButton from "@/src/components/DeleteActionButton/DeleteActionButton";
+import EditLink from "@/src/components/EditLink/EditLink";
+import { useTableFetch } from "@/src/utils/useTableFetch";
 import { JoinedProjectView } from "@/types";
-import { Delete, OpenInNew } from "@mui/icons-material";
-import { Box, IconButton, Table, TableBody, TableCell, TableHead, TableRow } from "@mui/material";
-import Link from "next/link";
-import useSWR from "swr";
-
-import { ConfirmButton } from "@chtc/web-components";
+import { Table, TableBody, TableCell, TableHead, TableRow } from "@mui/material";
 
 interface UserProjectTableProps {
   userId: number;
 }
 
 const UserProjectTable = ({ userId }: UserProjectTableProps) => {
-  const { data: projects, mutate } = useSWR(
-    `/users/${userId}/projects`,
-    async (): Promise<JoinedProjectView[]> => {
-      const projectUserResponse = await apiFetch(`/users/${userId}/projects`);
-      return projectUserResponse.json();
-    },
-    { suspense: true },
-  );
+  const { data: projects, mutate } = useTableFetch<JoinedProjectView[]>(`/users/${userId}/projects`);
 
   return (
     <Table>
@@ -40,17 +30,8 @@ const UserProjectTable = ({ userId }: UserProjectTableProps) => {
           (projects || []).map((project) => (
             <TableRow key={project.project_id}>
               <TableCell>
-                <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-                  {project.project_name}
-                  <IconButton
-                    component={Link}
-                    href={`/projects/edit?id=${project.project_id}`}
-                    size="small"
-                    aria-label="Go to project"
-                  >
-                    <OpenInNew fontSize="small" />
-                  </IconButton>
-                </Box>
+                {project.project_name}{" "}
+                <EditLink href={`/projects/edit?id=${project.project_id}`} ariaLabel="Go to project" />
               </TableCell>
               <TableCell>{project.role}</TableCell>
               <TableCell>{project.is_primary ? "Yes" : "No"}</TableCell>
@@ -63,21 +44,11 @@ const UserProjectTable = ({ userId }: UserProjectTableProps) => {
               </TableCell>
               <TableCell>{project.project_accounting_group}</TableCell>
               <TableCell>
-                <Box sx={{ display: "flex", gap: 1 }}>
-                  <ConfirmButton
-                    aria-label={"Delete Note"}
-                    color={"error"}
-                    onConfirm={async () => {
-                      await apiFetch(`/projects/${project.project_id}/users/${userId}`, {
-                        method: "DELETE",
-                      });
-                      mutate();
-                      // Optionally, you can add a way to refresh the data here
-                    }}
-                  >
-                    <Delete />
-                  </ConfirmButton>
-                </Box>
+                <DeleteActionButton
+                  url={`/projects/${project.project_id}/users/${userId}`}
+                  onSuccess={mutate}
+                  ariaLabel="Delete User"
+                />
               </TableCell>
             </TableRow>
           ))}

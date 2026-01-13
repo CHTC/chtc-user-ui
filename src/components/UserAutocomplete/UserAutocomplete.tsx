@@ -1,9 +1,5 @@
-import { apiFetch } from "@/src/components/AuthProvider";
-import useDebounce from "@/src/utils/useDebounce";
+import { GenericAutocomplete } from "@/src/components/GenericAutocomplete/GenericAutocomplete";
 import { User } from "@/types";
-import { Autocomplete, TextField } from "@mui/material";
-import { useEffect, useState } from "react";
-import useSWR from "swr";
 
 interface UserAutoCompleteProps {
   value?: Partial<User>;
@@ -12,59 +8,16 @@ interface UserAutoCompleteProps {
 }
 
 const UserAutocomplete = ({ value, onSelect, defaultFilter }: UserAutoCompleteProps) => {
-  const [activeUser, setActiveUser] = useState<User | null>(null);
-  const [inputValue, setInputValue] = useState("");
-  const debouncedInputValue = useDebounce(inputValue, 300);
-
-  const { data: users } = useSWR([`/users?page_size=100`, debouncedInputValue], async (): Promise<User[]> => {
-    const urlParams = new URLSearchParams();
-    urlParams.append("page_size", "100");
-
-    if (debouncedInputValue) {
-      urlParams.append("name", `like.${debouncedInputValue}`);
-    }
-
-    if (defaultFilter) {
-      for (const [key, value] of Object.entries(defaultFilter)) {
-        urlParams.append(key, value);
-      }
-    }
-
-    const userResponse = await apiFetch(`/users?${urlParams.toString()}`);
-    return userResponse.json();
-  });
-
-  useEffect(() => {
-    // Sort through all the users and find the one that matches the value prop by id, username, or email1
-    if (value) {
-      const matchedUser = users?.find(
-        (user) => user.id === value.id || user.username === value.username || user.email1 === value.email1,
-      );
-      if (matchedUser) {
-        setActiveUser(matchedUser);
-        setInputValue(matchedUser.name || matchedUser.username || matchedUser.email1);
-      }
-    } else if (value === null) {
-      // Only clear when explicitly set to null (not undefined)
-      setActiveUser(null);
-      setInputValue("");
-    }
-  }, [users, value]);
-
   return (
-    <Autocomplete
-      value={activeUser}
-      options={users || []}
+    <GenericAutocomplete<User>
+      endpoint="/users"
+      label="Select User"
+      value={value}
+      onSelect={onSelect}
+      defaultFilter={defaultFilter}
       getOptionLabel={(option) => option?.name || option?.username || option.email1}
-      getOptionKey={(option) => option.id}
-      inputValue={inputValue}
-      onInputChange={(_event, newInputValue) => {
-        setInputValue(newInputValue);
-      }}
-      onChange={(_event, newValue) => {
-        onSelect(newValue);
-      }}
-      renderInput={(params) => <TextField {...params} label="Select User" variant="outlined" />}
+      matchItem={(user, val) => user.id === val.id || user.username === val.username || user.email1 === val.email1}
+      searchField="name"
     />
   );
 };

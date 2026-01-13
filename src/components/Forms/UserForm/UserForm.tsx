@@ -244,6 +244,7 @@ export const UserForm: React.FC<UserFormProps> = ({ mode, initialValues, onSubmi
           <Stack spacing={2} mt={2}>
             <TextField
               label="Username"
+              required={values.auth_username === true}
               value={values.username}
               onChange={(e) => handleChange("username", e.target.value)}
               fullWidth
@@ -278,6 +279,7 @@ export const UserForm: React.FC<UserFormProps> = ({ mode, initialValues, onSubmi
 
             <TextField
               label="NetID"
+              required={values.auth_netid === true}
               value={values.netid}
               onChange={(e) => handleChange("netid", e.target.value)}
               fullWidth

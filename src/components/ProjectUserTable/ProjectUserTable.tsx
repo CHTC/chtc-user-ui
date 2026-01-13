@@ -1,47 +1,42 @@
 import { apiFetch } from "@/src/components/AuthProvider";
+import DeleteActionButton from "@/src/components/DeleteActionButton/DeleteActionButton";
+import EditLink from "@/src/components/EditLink/EditLink";
 import UserAutocomplete from "@/src/components/UserAutocomplete/UserAutocomplete";
+import { useTableFetch } from "@/src/utils/useTableFetch";
 import { JoinedProjectView, RoleEnum, User } from "@/types";
-import { Delete, OpenInNew } from "@mui/icons-material";
+import { Add } from "@mui/icons-material";
 import {
   Box,
   Button,
+  Collapse,
   FormControl,
   FormControlLabel,
-  IconButton,
   InputLabel,
   MenuItem,
   Select,
+  Stack,
   Switch,
   Table,
   TableBody,
   TableCell,
   TableHead,
   TableRow,
+  Typography,
 } from "@mui/material";
-import Link from "next/link";
 import { useState } from "react";
-import useSWR from "swr";
-
-import { ConfirmButton } from "@chtc/web-components";
 
 interface ProjectUserTableProps {
   projectId: number;
 }
 
 const ProjectUserTable = ({ projectId }: ProjectUserTableProps) => {
-  const { data: users, mutate } = useSWR(
-    `/projects/${projectId}/users`,
-    async (): Promise<JoinedProjectView[]> => {
-      const projectUserResponse = await apiFetch(`/projects/${projectId}/users`);
-      return projectUserResponse.json();
-    },
-    { suspense: true },
-  );
+  const { data: users, mutate } = useTableFetch<JoinedProjectView[]>(`/projects/${projectId}/users`);
 
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [role, setRole] = useState<RoleEnum | "">("");
   const [isPrimary, setIsPrimary] = useState<boolean>(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showAddForm, setShowAddForm] = useState(false);
 
   const handleAddUser = async () => {
     if (!selectedUser || !role) return;
@@ -58,6 +53,7 @@ const ProjectUserTable = ({ projectId }: ProjectUserTableProps) => {
       setSelectedUser(null);
       setRole("");
       setIsPrimary(false);
+      setShowAddForm(false);
       mutate();
     } finally {
       setIsSubmitting(false);
@@ -65,126 +61,95 @@ const ProjectUserTable = ({ projectId }: ProjectUserTableProps) => {
   };
 
   return (
-    <Table>
-      <TableHead>
-        <TableRow>
-          <TableCell>Username</TableCell>
-          <TableCell>Name</TableCell>
-          <TableCell>Role</TableCell>
-          <TableCell>Tickets Assigned</TableCell>
-          <TableCell>Email</TableCell>
-          <TableCell>Phone</TableCell>
-          <TableCell>NetID</TableCell>
-          <TableCell>Action</TableCell>
-        </TableRow>
-      </TableHead>
-      <TableBody>
-        {users &&
-          (users || []).map((user) => (
-            <TableRow key={user.id}>
-              <TableCell>
-                <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-                  {user.username}
-                  <IconButton component={Link} href={`/users/edit?id=${user.id}`} size="small" aria-label="Go to user">
-                    <OpenInNew fontSize="small" />
-                  </IconButton>
-                </Box>
-              </TableCell>
-              <TableCell>{user.name}</TableCell>
-              <TableCell>{user.role}</TableCell>
-              <TableCell>{user.last_note_ticket}</TableCell>
-              <TableCell>{user.email1}</TableCell>
-              <TableCell>{user.phone1}</TableCell>
-              <TableCell>{user.netid}</TableCell>
-              <TableCell>
-                <Box sx={{ display: "flex", gap: 1 }}>
-                  <ConfirmButton
-                    aria-label={"Delete Note"}
-                    color={"error"}
-                    onConfirm={async () => {
-                      await apiFetch(`/projects/${projectId}/users/${user.id}`, {
-                        method: "DELETE",
-                      });
-                      mutate();
-                    }}
-                  >
-                    <Delete />
-                  </ConfirmButton>
-                </Box>
-              </TableCell>
-            </TableRow>
-          ))}
-        <TableRow>
-          <TableCell colSpan={8} align="center">
-            <Box
-              sx={{
-                display: "flex",
-                flexWrap: "wrap",
-                gap: 2,
-                width: "100%",
-              }}
-            >
-              <Box sx={{ flex: { xs: "1 1 100%", md: "1 1 20%" }, minWidth: 0 }}>
-                <UserAutocomplete
-                  value={selectedUser ?? undefined}
-                  onSelect={(user) => setSelectedUser(user || null)}
-                />
-              </Box>
+    <Box>
+      <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 2 }}>
+        <Typography variant="h6">Project Members</Typography>
+        <Button variant="contained" startIcon={<Add />} onClick={() => setShowAddForm(!showAddForm)}>
+          {showAddForm ? "Hide Form" : "Add Member"}
+        </Button>
+      </Box>
 
-              <Box sx={{ flex: { xs: "1 1 100%", md: "1 1 15%" }, minWidth: 0 }}>
-                <FormControl fullWidth>
-                  <InputLabel id="role-select-label">Role</InputLabel>
-                  <Select
-                    labelId="role-select-label"
-                    label="Role"
-                    value={role}
-                    onChange={(e) => setRole(e.target.value as RoleEnum | "")}
-                  >
-                    <MenuItem value="">Select Role</MenuItem>
-                    <MenuItem value="MEMBER">Member</MenuItem>
-                    <MenuItem value="PI">PI</MenuItem>
-                  </Select>
-                </FormControl>
-              </Box>
+      <Collapse in={showAddForm}>
+        <Box sx={{ mb: 3, p: 2, bgcolor: "grey.50", borderRadius: 1 }}>
+          <Typography variant="subtitle1" sx={{ mb: 2 }}>
+            Add Project Member
+          </Typography>
+          <Stack spacing={2}>
+            <UserAutocomplete value={selectedUser ?? undefined} onSelect={(user) => setSelectedUser(user || null)} />
 
-              <Box
-                sx={{
-                  flex: { xs: "1 1 100%", md: "1 1 15%" },
-                  minWidth: 0,
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: { xs: "flex-start", md: "center" },
-                }}
-              >
-                <FormControlLabel
-                  control={<Switch checked={isPrimary} onChange={(e) => setIsPrimary(e.target.checked)} />}
-                  label="Primary"
-                />
-              </Box>
-
-              <Box
-                sx={{
-                  flex: { xs: "1 1 100%", md: "1 1 25%" },
-                  minWidth: 0,
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: { xs: "flex-start", md: "flex-end" },
-                }}
-              >
-                <Button
-                  variant="contained"
-                  color="primary"
-                  disabled={!selectedUser || !role || isSubmitting}
-                  onClick={handleAddUser}
+            <Box sx={{ display: "flex", gap: 2, flexWrap: "wrap" }}>
+              <FormControl sx={{ flex: 1, minWidth: 200 }}>
+                <InputLabel id="role-select-label">Role</InputLabel>
+                <Select
+                  labelId="role-select-label"
+                  label="Role"
+                  value={role}
+                  onChange={(e) => setRole(e.target.value as RoleEnum | "")}
                 >
-                  Add User
-                </Button>
-              </Box>
+                  <MenuItem value="">Select Role</MenuItem>
+                  <MenuItem value="MEMBER">Member</MenuItem>
+                  <MenuItem value="PI">PI</MenuItem>
+                </Select>
+              </FormControl>
+
+              <FormControlLabel
+                control={<Switch checked={isPrimary} onChange={(e) => setIsPrimary(e.target.checked)} />}
+                label="Primary"
+                sx={{ ml: 1 }}
+              />
+
+              <Button
+                variant="contained"
+                color="primary"
+                disabled={!selectedUser || !role || isSubmitting}
+                onClick={handleAddUser}
+                sx={{ minWidth: 120 }}
+              >
+                Add User
+              </Button>
             </Box>
-          </TableCell>
-        </TableRow>
-      </TableBody>
-    </Table>
+          </Stack>
+        </Box>
+      </Collapse>
+
+      <Table>
+        <TableHead>
+          <TableRow>
+            <TableCell>Username</TableCell>
+            <TableCell>Name</TableCell>
+            <TableCell>Role</TableCell>
+            <TableCell>Tickets Assigned</TableCell>
+            <TableCell>Email</TableCell>
+            <TableCell>Phone</TableCell>
+            <TableCell>NetID</TableCell>
+            <TableCell>Action</TableCell>
+          </TableRow>
+        </TableHead>
+        <TableBody>
+          {users &&
+            (users || []).map((user) => (
+              <TableRow key={user.id}>
+                <TableCell>
+                  {user.username} <EditLink href={`/users/edit?id=${user.id}`} ariaLabel="Go to user" />
+                </TableCell>
+                <TableCell>{user.name}</TableCell>
+                <TableCell>{user.role}</TableCell>
+                <TableCell>{user.last_note_ticket}</TableCell>
+                <TableCell>{user.email1}</TableCell>
+                <TableCell>{user.phone1}</TableCell>
+                <TableCell>{user.netid}</TableCell>
+                <TableCell>
+                  <DeleteActionButton
+                    url={`/projects/${projectId}/users/${user.id}`}
+                    onSuccess={mutate}
+                    ariaLabel="Remove User"
+                  />
+                </TableCell>
+              </TableRow>
+            ))}
+        </TableBody>
+      </Table>
+    </Box>
   );
 };
 

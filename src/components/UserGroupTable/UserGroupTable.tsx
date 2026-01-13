@@ -1,25 +1,15 @@
-import { apiFetch } from "@/src/components/AuthProvider";
+import DeleteActionButton from "@/src/components/DeleteActionButton/DeleteActionButton";
+import EditLink from "@/src/components/EditLink/EditLink";
+import { useTableFetch } from "@/src/utils/useTableFetch";
 import { Group } from "@/types";
-import { Delete, OpenInNew } from "@mui/icons-material";
-import { Box, IconButton, Table, TableBody, TableCell, TableHead, TableRow } from "@mui/material";
-import Link from "next/link";
-import useSWR from "swr";
-
-import { ConfirmButton } from "@chtc/web-components";
+import { Table, TableBody, TableCell, TableHead, TableRow } from "@mui/material";
 
 interface UserProjectTableProps {
   userId: number;
 }
 
 const UserProjectTable = ({ userId }: UserProjectTableProps) => {
-  const { data: groups, mutate } = useSWR(
-    `/users/${userId}/groups`,
-    async (): Promise<Group[]> => {
-      const groupUserResponse = await apiFetch(`/users/${userId}/groups`);
-      return groupUserResponse.json();
-    },
-    { suspense: true },
-  );
+  const { data: groups, mutate } = useTableFetch<Group[]>(`/users/${userId}/groups`);
 
   return (
     <Table>
@@ -36,36 +26,16 @@ const UserProjectTable = ({ userId }: UserProjectTableProps) => {
           (groups || []).map((group) => (
             <TableRow key={group.id}>
               <TableCell>
-                <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-                  {group.name}
-                  <IconButton
-                    component={Link}
-                    href={`/groups/edit?id=${group.id}`}
-                    size="small"
-                    aria-label="Go to group"
-                  >
-                    <OpenInNew fontSize="small" />
-                  </IconButton>
-                </Box>
+                {group.name} <EditLink href={`/groups/edit?id=${group.id}`} ariaLabel="Go to group" />
               </TableCell>
               <TableCell>{group.point_of_contact}</TableCell>
               <TableCell>{group.unix_gid}</TableCell>
               <TableCell>
-                <Box sx={{ display: "flex", gap: 1 }}>
-                  <ConfirmButton
-                    aria-label={"Delete Group"}
-                    color={"error"}
-                    onConfirm={async () => {
-                      await apiFetch(`/groups/${group.id}/users/${group.id}`, {
-                        method: "DELETE",
-                      });
-                      mutate();
-                      // Optionally, you can add a way to refresh the data here
-                    }}
-                  >
-                    <Delete />
-                  </ConfirmButton>
-                </Box>
+                <DeleteActionButton
+                  url={`/groups/${group.id}/users/${userId}`}
+                  onSuccess={mutate}
+                  ariaLabel="Delete Group"
+                />
               </TableCell>
             </TableRow>
           ))}

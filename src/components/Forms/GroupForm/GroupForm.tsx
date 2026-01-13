@@ -3,9 +3,10 @@
 import FormErrorAlert from "@/src/components/FormErrorAlert/FormErrorAlert";
 import UserAutocomplete from "@/src/components/UserAutocomplete/UserAutocomplete";
 import { ApiError } from "@/src/utils/formErrors";
+import { useFormState } from "@/src/utils/useFormState";
 import type { GroupCreateUpdate } from "@/types";
 import { Box, Button, Checkbox, FormControlLabel, Stack, TextField } from "@mui/material";
-import React, { useState } from "react";
+import React from "react";
 
 export type GroupFormMode = "create" | "edit";
 
@@ -50,11 +51,7 @@ const FIELD_NAME_MAP: Record<string, string> = {
 };
 
 export const GroupForm: React.FC<GroupFormProps> = ({ mode, initialValues, onSubmit, isSubmitting = false, error }) => {
-  const [values, setValues] = useState<GroupFormValues>(() => normalizeInitialValues(initialValues));
-
-  const handleChange = (field: keyof GroupFormValues, value: string | boolean) => {
-    setValues((prev) => ({ ...prev, [field]: value }));
-  };
+  const { values, handleChange } = useFormState<GroupFormValues>(() => normalizeInitialValues(initialValues));
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
