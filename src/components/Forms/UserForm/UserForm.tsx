@@ -246,7 +246,6 @@ export const UserForm: React.FC<UserFormProps> = ({ mode, initialValues, onSubmi
               label="Username"
               value={values.username}
               onChange={(e) => handleChange("username", e.target.value)}
-              required
               fullWidth
               disabled={isSubmitting}
             />

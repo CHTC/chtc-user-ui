@@ -1,12 +1,13 @@
 import { apiFetch } from "@/src/components/AuthProvider";
 import UserAutocomplete from "@/src/components/UserAutocomplete/UserAutocomplete";
 import { JoinedProjectView, RoleEnum, User } from "@/types";
-import { Delete } from "@mui/icons-material";
+import { Delete, OpenInNew } from "@mui/icons-material";
 import {
   Box,
   Button,
   FormControl,
   FormControlLabel,
+  IconButton,
   InputLabel,
   MenuItem,
   Select,
@@ -17,6 +18,7 @@ import {
   TableHead,
   TableRow,
 } from "@mui/material";
+import Link from "next/link";
 import { useState } from "react";
 import useSWR from "swr";
 
@@ -80,7 +82,14 @@ const ProjectUserTable = ({ projectId }: ProjectUserTableProps) => {
         {users &&
           (users || []).map((user) => (
             <TableRow key={user.id}>
-              <TableCell>{user.username}</TableCell>
+              <TableCell>
+                <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                  {user.username}
+                  <IconButton component={Link} href={`/users/edit?id=${user.id}`} size="small" aria-label="Go to user">
+                    <OpenInNew fontSize="small" />
+                  </IconButton>
+                </Box>
+              </TableCell>
               <TableCell>{user.name}</TableCell>
               <TableCell>{user.role}</TableCell>
               <TableCell>{user.last_note_ticket}</TableCell>

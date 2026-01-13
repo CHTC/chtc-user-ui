@@ -2,8 +2,9 @@ import { apiFetch } from "@/src/components/AuthProvider";
 import UserAutocomplete from "@/src/components/UserAutocomplete/UserAutocomplete";
 import { User } from "@/types";
 import { ConfirmButton } from "@chtc/web-components";
-import { Delete } from "@mui/icons-material";
-import { Table, TableBody, TableCell, TableHead, TableRow } from "@mui/material";
+import { Delete, OpenInNew } from "@mui/icons-material";
+import { Box, IconButton, Table, TableBody, TableCell, TableHead, TableRow } from "@mui/material";
+import Link from "next/link";
 import useSWR from "swr";
 
 interface GroupUserTableProps {
@@ -35,7 +36,14 @@ const GroupUserTable = ({ groupId }: GroupUserTableProps) => {
           (users || []).map((user) => (
             <TableRow key={user.id}>
               <TableCell>{user.name}</TableCell>
-              <TableCell>{user.username}</TableCell>
+              <TableCell>
+                <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                  {user.username}
+                  <IconButton component={Link} href={`/users/edit?id=${user.id}`} size="small" aria-label="Go to user">
+                    <OpenInNew fontSize="small" />
+                  </IconButton>
+                </Box>
+              </TableCell>
               <TableCell>{user.netid}</TableCell>
               <TableCell>
                 {/* <Button

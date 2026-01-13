@@ -1,7 +1,8 @@
 import { apiFetch } from "@/src/components/AuthProvider";
 import { Group } from "@/types";
-import { Delete } from "@mui/icons-material";
-import { Box, Table, TableBody, TableCell, TableHead, TableRow } from "@mui/material";
+import { Delete, OpenInNew } from "@mui/icons-material";
+import { Box, IconButton, Table, TableBody, TableCell, TableHead, TableRow } from "@mui/material";
+import Link from "next/link";
 import useSWR from "swr";
 
 import { ConfirmButton } from "@chtc/web-components";
@@ -34,7 +35,19 @@ const UserProjectTable = ({ userId }: UserProjectTableProps) => {
         {groups &&
           (groups || []).map((group) => (
             <TableRow key={group.id}>
-              <TableCell>{group.name}</TableCell>
+              <TableCell>
+                <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                  {group.name}
+                  <IconButton
+                    component={Link}
+                    href={`/groups/edit?id=${group.id}`}
+                    size="small"
+                    aria-label="Go to group"
+                  >
+                    <OpenInNew fontSize="small" />
+                  </IconButton>
+                </Box>
+              </TableCell>
               <TableCell>{group.point_of_contact}</TableCell>
               <TableCell>{group.unix_gid}</TableCell>
               <TableCell>
