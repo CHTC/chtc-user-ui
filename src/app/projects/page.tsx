@@ -18,7 +18,7 @@ function Page() {
         "Last Contact": { column: "last_contact", default: "desc" },
       }}
       query={async (client, opts, searchQuery) => {
-        const queryObj = searchQuery ? { name: `like.${searchQuery}` } : undefined;
+        const queryObj = searchQuery ? { name: `ilike.${searchQuery}` } : undefined;
         const result = await client.getProjects({
           ...opts,
           ...(queryObj && { query: queryObj }),

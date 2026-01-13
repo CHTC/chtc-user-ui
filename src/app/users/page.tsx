@@ -19,7 +19,7 @@ function Page() {
         "Last Modified": { column: "date", default: "desc" },
       }}
       query={async (client, opts, searchQuery) => {
-        const queryObj = searchQuery ? { username: `like.${searchQuery}` } : undefined;
+        const queryObj = searchQuery ? { username: `ilike.${searchQuery}` } : undefined;
         const result = await client.getUsers({
           ...opts,
           ...(queryObj && { query: queryObj }),

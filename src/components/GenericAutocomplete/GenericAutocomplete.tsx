@@ -48,7 +48,7 @@ export function GenericAutocomplete<T extends { id: number }>({
     urlParams.append("page_size", "100");
 
     if (debouncedInputValue) {
-      urlParams.append(searchField, `like.${debouncedInputValue}`);
+      urlParams.append(searchField, `ilike.${debouncedInputValue}`);
     }
 
     if (defaultFilter) {

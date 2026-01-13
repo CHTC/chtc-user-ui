@@ -24,7 +24,7 @@ const SubmitNodeAutocomplete = ({ value, onSelect, defaultFilter, required }: Su
       urlParams.append("page_size", "100");
 
       if (debouncedInputValue) {
-        urlParams.append("name", `like.${debouncedInputValue}`);
+        urlParams.append("name", `ilike.${debouncedInputValue}`);
       }
 
       if (defaultFilter) {

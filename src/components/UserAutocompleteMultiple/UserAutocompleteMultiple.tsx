@@ -21,7 +21,7 @@ const UserAutocompleteMultiple = ({ value, dataUrl, onSelect, defaultFilter }: U
     urlParams.append("page_size", "100");
 
     if (debouncedInputValue) {
-      urlParams.append("name", `like.${debouncedInputValue}`);
+      urlParams.append("name", `ilike.${debouncedInputValue}`);
     }
 
     if (defaultFilter) {

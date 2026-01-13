@@ -20,7 +20,7 @@ function Page() {
         NetID: "netid",
       }}
       query={async (client, opts, searchQuery) => {
-        const queryObj = searchQuery ? { username: `like.${searchQuery}` } : undefined;
+        const queryObj = searchQuery ? { username: `ilike.${searchQuery}` } : undefined;
         const result = await client.getPiProjects({
           ...opts,
           ...(queryObj && { query: queryObj }),

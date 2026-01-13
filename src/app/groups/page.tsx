@@ -18,7 +18,7 @@ function Page() {
           GID: "unix_gid",
         }}
         query={async (client, opts, searchQuery) => {
-          const queryObj = searchQuery ? { name: `like.${searchQuery}` } : undefined;
+          const queryObj = searchQuery ? { name: `ilike.${searchQuery}` } : undefined;
           const result = await client.getGroups({
             ...opts,
             ...(queryObj && { query: queryObj }),
