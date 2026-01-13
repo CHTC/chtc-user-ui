@@ -91,9 +91,7 @@ function Page() {
           // auth_username OR auth_netid
           // TODO: Update API to support "or" queries
           const result = await client.getUsers({ page_size: 10000 });
-          const data = result.data.filter((user =>
-            user.auth_username === true || user.auth_netid === true
-          ));
+          const data = result.data.filter((user) => user.auth_username === true || user.auth_netid === true);
           resultEmails = extractEmails(data);
           break;
         }

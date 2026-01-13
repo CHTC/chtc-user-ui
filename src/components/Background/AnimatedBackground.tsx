@@ -58,7 +58,7 @@ const AnimatedBackground: React.FC = () => {
             duration: 10000 + Math.random() * 1500,
             fill: "forwards",
             easing: "ease-in-out",
-          }
+          },
         ).onfinish = () => {
           if (mounted) {
             node.style.top = `${pos.top}%`;
@@ -81,7 +81,7 @@ const AnimatedBackground: React.FC = () => {
       {swirls.map((swirl, i) => (
         <div
           key={i}
-          ref={el => {
+          ref={(el) => {
             swirlRefs.current[i] = el;
             // Clean up removed refs
             if (el === null) {

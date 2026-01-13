@@ -12,6 +12,7 @@ import {
   InputLabel,
   MenuItem,
   Select,
+  Skeleton,
   TextField,
   Typography,
 } from "@mui/material";
@@ -58,6 +59,7 @@ function GenericTableView({
   const [page, setPage] = useState(0);
   const [sortColumn, setSortColumn] = useState<string | undefined>();
   const [sortDirection, setSortDirection] = useState<SortDirection>("asc");
+  const [isLoading, setIsLoading] = useState(false);
 
   const { client, isAuthenticated } = useAuthClient();
   const rowsPerPage = 50;
@@ -67,6 +69,7 @@ function GenericTableView({
 
   const handleSearch = useCallback(
     (resetPage: boolean = false) => {
+      setIsLoading(true);
       query(client, { page, page_size: rowsPerPage, sortColumn, sortDirection }, debouncedSearchQuery)
         .then((results) => {
           setTotalCount(results.totalCount);
@@ -78,6 +81,9 @@ function GenericTableView({
         })
         .catch((error) => {
           console.error("Error fetching data:", error);
+        })
+        .finally(() => {
+          setIsLoading(false);
         });
     },
     [client, page, query, debouncedSearchQuery, sortColumn, sortDirection],
@@ -194,7 +200,11 @@ function GenericTableView({
           />
         </Box>
       </Box>
-      {data.length === 0 ? (
+      {isLoading ? (
+        <Box sx={{ width: "100%" }}>
+          <Skeleton variant="rectangular" height={400} />
+        </Box>
+      ) : data.length === 0 ? (
         <p>No results found.</p>
       ) : (
         <>

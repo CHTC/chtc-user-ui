@@ -54,7 +54,7 @@ function Page() {
         <Breadcrumbs>
           <Typography color="text.primary">Update Group</Typography>
         </Breadcrumbs>
-        <Suspense fallback={<Skeleton variant={"rectangular"} height={"100"} />}>
+        <Suspense fallback={<Skeleton variant={"rectangular"} height={"400px"} />}>
           <GroupPage handleSubmit={handleSubmit} />
         </Suspense>
       </Box>
@@ -124,10 +124,10 @@ const GroupPage = ({
 
   return (
     <>
-      <Suspense fallback={<Skeleton variant={"rectangular"} height={"100"} />}>
+      <Suspense fallback={<Skeleton variant={"rectangular"} height={"100px"} />}>
         <GroupFormSuspense id={id} handleSubmit={handleSubmit} />
       </Suspense>
-      <Suspense fallback={<Skeleton variant={"rectangular"} height={"100"} />}>
+      <Suspense fallback={<Skeleton variant={"rectangular"} height={"100px"} />}>
         <GroupUserTable groupId={id} />
       </Suspense>
     </>
