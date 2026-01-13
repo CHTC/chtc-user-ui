@@ -4,7 +4,19 @@ import { AuthGuard } from "@/src/components/AuthGuard";
 import { apiFetch } from "@/src/components/AuthProvider";
 import { UserForm } from "@/src/components/Forms/UserForm/UserForm";
 import { ApiError } from "@/src/utils/formErrors";
-import { Box, Breadcrumbs, Link, Skeleton, Typography } from "@mui/material";
+import {
+  Box,
+  Breadcrumbs,
+  Grid,
+  Link,
+  Skeleton,
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableRow,
+  Typography,
+} from "@mui/material";
 import { useSearchParams } from "next/navigation";
 import { Suspense, useState } from "react";
 
@@ -12,7 +24,7 @@ import useSWR from "swr";
 
 import UserGroupTable from "@/src/components/UserGroupTable/UserGroupTable";
 import UserProjectTable from "@/src/components/UserProjectTable/UserProjectTable";
-import { UserCreate, UserUpdate } from "@/types";
+import { User, UserCreate, UserSubmitGet, UserUpdate } from "@/types";
 
 function Page() {
   const handleSubmit = async (
@@ -75,6 +87,38 @@ const userFetcher = async (id: number | null) => {
   return response.json();
 };
 
+const AccessPointsTable = ({ submitNodes }: { submitNodes?: UserSubmitGet[] }) => {
+  return (
+    <Table>
+      <TableHead>
+        <TableRow>
+          <TableCell>Name</TableCell>
+          <TableCell>Disk Quota</TableCell>
+          <TableCell>HPC Disk</TableCell>
+          <TableCell>HPC Inode</TableCell>
+          <TableCell>Job Limit</TableCell>
+          <TableCell>Core Limit</TableCell>
+          <TableCell>Fairshare</TableCell>
+        </TableRow>
+      </TableHead>
+      <TableBody>
+        {submitNodes &&
+          (submitNodes || []).map((node) => (
+            <TableRow key={node.id}>
+              <TableCell>{node.submit_node_name}</TableCell>
+              <TableCell>{node.disk_quota ?? ""}</TableCell>
+              <TableCell>{node.hpc_diskquota ?? ""}</TableCell>
+              <TableCell>{node.hpc_inodequota ?? ""}</TableCell>
+              <TableCell>{node.hpc_joblimit ?? ""}</TableCell>
+              <TableCell>{node.hpc_corelimit ?? ""}</TableCell>
+              <TableCell>{node.hpc_fairshare ?? ""}</TableCell>
+            </TableRow>
+          ))}
+      </TableBody>
+    </Table>
+  );
+};
+
 const UserFormSuspense = ({
   id,
   handleSubmit,
@@ -88,7 +132,9 @@ const UserFormSuspense = ({
     setIsSubmitting: (isSubmitting: boolean) => void,
   ) => Promise<void>;
 }) => {
-  const { data: user, mutate } = useSWR(id ? [`/users/${id}`] : null, () => userFetcher(id), { suspense: true });
+  const { data: user, mutate } = useSWR(id ? [`/users/${id}`] : null, () => userFetcher(id) as Promise<User>, {
+    suspense: true,
+  });
   const [error, setError] = useState<string | ApiError | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -97,15 +143,27 @@ const UserFormSuspense = ({
   }
 
   return (
-    <UserForm
-      mode="edit"
-      initialValues={user}
-      onSubmit={(payload: UserCreate | Partial<UserUpdate>) =>
-        handleSubmit(id, payload, mutate, setError, setIsSubmitting)
-      }
-      error={error}
-      isSubmitting={isSubmitting}
-    />
+    <Grid container spacing={3}>
+      <Grid size={{ xs: 12, md: 6 }}>
+        <UserForm
+          mode="edit"
+          initialValues={user as Partial<UserCreate & UserUpdate>}
+          onSubmit={(payload: UserCreate | Partial<UserUpdate>) =>
+            handleSubmit(id, payload, mutate, setError, setIsSubmitting)
+          }
+          error={error}
+          isSubmitting={isSubmitting}
+        />
+      </Grid>
+      <Grid size={{ xs: 12, md: 6 }}>
+        <Box>
+          <Typography variant={"h4"} component="h3" sx={{ mb: 2 }}>
+            Access Points
+          </Typography>
+          <AccessPointsTable submitNodes={user?.submit_nodes} />
+        </Box>
+      </Grid>
+    </Grid>
   );
 };
 
