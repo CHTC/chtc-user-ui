@@ -21,12 +21,12 @@ function Page() {
       }}
       query={async (client, opts, searchQuery) => {
         const queryObj = searchQuery ? { username: `like.${searchQuery}` } : undefined;
-        const result: PiProjectView[] = await client.getPiProjects({
+        const result = await client.getPiProjects({
           ...opts,
           ...(queryObj && { query: queryObj }),
         });
 
-        const data = result.map((pi: PiProjectView) => [
+        const data = result.data.map((pi: PiProjectView) => [
           pi.user_id ?? "",
           pi.username ?? "",
           pi.name ?? "",
@@ -36,7 +36,7 @@ function Page() {
           pi.netid ?? "",
         ]);
 
-        return { data, totalCount: result.length };
+        return { data, totalCount: result.totalCount };
       }}
       queryLabel="Search by Username"
       timeColumn="Last Modified"

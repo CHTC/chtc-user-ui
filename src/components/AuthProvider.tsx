@@ -66,7 +66,7 @@ export type ApiClient = {
   deleteNoteFromProject: (projectId: number, noteId: number) => Promise<void>;
 
   // PI Projects
-  getPiProjects: (params?: PaginationParams) => Promise<PiProjectView[]>;
+  getPiProjects: (params?: PaginationParams) => Promise<PaginatedResponse<PiProjectView[]>>;
 
   // Submit Nodes
   getSubmitNodes: (params?: PaginationParams) => Promise<PaginatedResponse<SubmitNode[]>>;
@@ -367,10 +367,12 @@ export function AuthClientProvider({ children }: { children: React.ReactNode }) 
     }, []),
 
     // PI Projects
-    getPiProjects: useCallback(async (params?: PaginationParams): Promise<PiProjectView[]> => {
+    getPiProjects: useCallback(async (params?: PaginationParams): Promise<PaginatedResponse<PiProjectView[]>> => {
       const response = await apiFetch(`/pi-projects${buildQuery(params)}`);
       if (!response.ok) throw new Error(`Failed to get PI projects: ${response.statusText}`);
-      return response.json();
+      const totalCount = parseInt(response.headers.get("X-Total-Count") || "0", 10);
+      const data = await response.json();
+      return { data, totalCount };
     }, []),
 
     // Submit Nodes
