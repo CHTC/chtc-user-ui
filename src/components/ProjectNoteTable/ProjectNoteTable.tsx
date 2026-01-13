@@ -2,7 +2,7 @@ import { apiFetch } from "@/src/components/AuthProvider";
 import { Note } from "@/types";
 import { ConfirmButton } from "@chtc/web-components";
 import { Delete, Edit } from "@mui/icons-material";
-import { Box, IconButton, Table, TableBody, TableCell, TableHead, TableRow } from "@mui/material";
+import { Box, IconButton, Table, TableBody, TableCell, TableHead, TableRow, Tooltip } from "@mui/material";
 import Link from "next/link";
 import useSWR from "swr";
 
@@ -38,7 +38,14 @@ const ProjectNoteTable = ({ projectId }: ProjectNoteTableProps) => {
             <TableRow key={note.id}>
               <TableCell>{note.author}</TableCell>
               <TableCell>{note.ticket}</TableCell>
-              <TableCell>{note.note?.substring(0, 20)}...</TableCell>
+              <TableCell>
+                <Tooltip title={note.note || ""} arrow>
+                  <span style={{ cursor: "help" }}>
+                    {note.note?.substring(0, 50)}
+                    {note.note && note.note.length > 50 ? "..." : ""}
+                  </span>
+                </Tooltip>
+              </TableCell>
               <TableCell>{note.date ? new Date(note?.date).toLocaleString() : ""}</TableCell>
               <TableCell>{note.users.map((x) => x.username).join(", ")}</TableCell>
               <TableCell>
