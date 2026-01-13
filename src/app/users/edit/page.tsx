@@ -4,19 +4,7 @@ import { AuthGuard } from "@/src/components/AuthGuard";
 import { apiFetch } from "@/src/components/AuthProvider";
 import { UserForm } from "@/src/components/Forms/UserForm/UserForm";
 import { ApiError } from "@/src/utils/formErrors";
-import {
-  Box,
-  Breadcrumbs,
-  Grid,
-  Link,
-  Skeleton,
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableRow,
-  Typography,
-} from "@mui/material";
+import { Box, Link, Skeleton, Typography } from "@mui/material";
 import { useSearchParams } from "next/navigation";
 import { Suspense, useState } from "react";
 
@@ -24,7 +12,7 @@ import useSWR from "swr";
 
 import UserGroupTable from "@/src/components/UserGroupTable/UserGroupTable";
 import UserProjectTable from "@/src/components/UserProjectTable/UserProjectTable";
-import { User, UserCreate, UserSubmitGet, UserUpdate } from "@/types";
+import { User, UserCreate, UserUpdate } from "@/types";
 
 function Page() {
   const handleSubmit = async (
@@ -65,14 +53,9 @@ function Page() {
 
   return (
     <AuthGuard message="You must be logged in to edit a user.">
-      <Box>
-        <Breadcrumbs>
-          <Typography color="text.primary">Update User</Typography>
-        </Breadcrumbs>
-        <Suspense fallback={<Skeleton variant={"rectangular"} height={"100"} />}>
-          <UserPage handleSubmit={handleSubmit} />
-        </Suspense>
-      </Box>
+      <Suspense fallback={<Skeleton variant={"rectangular"} height={"100"} />}>
+        <UserPage handleSubmit={handleSubmit} />
+      </Suspense>
     </AuthGuard>
   );
 }
@@ -85,38 +68,6 @@ const userFetcher = async (id: number | null) => {
     throw new Error(`Failed to fetch user with id ${id}: ${response.statusText}`);
   }
   return response.json();
-};
-
-const AccessPointsTable = ({ submitNodes }: { submitNodes?: UserSubmitGet[] }) => {
-  return (
-    <Table>
-      <TableHead>
-        <TableRow>
-          <TableCell>Name</TableCell>
-          <TableCell>Disk Quota</TableCell>
-          <TableCell>HPC Disk</TableCell>
-          <TableCell>HPC Inode</TableCell>
-          <TableCell>Job Limit</TableCell>
-          <TableCell>Core Limit</TableCell>
-          <TableCell>Fairshare</TableCell>
-        </TableRow>
-      </TableHead>
-      <TableBody>
-        {submitNodes &&
-          (submitNodes || []).map((node) => (
-            <TableRow key={node.id}>
-              <TableCell>{node.submit_node_name}</TableCell>
-              <TableCell>{node.disk_quota ?? ""}</TableCell>
-              <TableCell>{node.hpc_diskquota ?? ""}</TableCell>
-              <TableCell>{node.hpc_inodequota ?? ""}</TableCell>
-              <TableCell>{node.hpc_joblimit ?? ""}</TableCell>
-              <TableCell>{node.hpc_corelimit ?? ""}</TableCell>
-              <TableCell>{node.hpc_fairshare ?? ""}</TableCell>
-            </TableRow>
-          ))}
-      </TableBody>
-    </Table>
-  );
 };
 
 const UserFormSuspense = ({
@@ -143,27 +94,20 @@ const UserFormSuspense = ({
   }
 
   return (
-    <Grid container spacing={3}>
-      <Grid size={{ xs: 12, md: 6 }}>
-        <UserForm
-          mode="edit"
-          initialValues={user as Partial<UserCreate & UserUpdate>}
-          onSubmit={(payload: UserCreate | Partial<UserUpdate>) =>
-            handleSubmit(id, payload, mutate, setError, setIsSubmitting)
-          }
-          error={error}
-          isSubmitting={isSubmitting}
-        />
-      </Grid>
-      <Grid size={{ xs: 12, md: 6 }}>
-        <Box>
-          <Typography variant={"h4"} component="h3" sx={{ mb: 2 }}>
-            Access Points
-          </Typography>
-          <AccessPointsTable submitNodes={user?.submit_nodes} />
-        </Box>
-      </Grid>
-    </Grid>
+    <Box>
+      <Typography variant={"h4"} component="h3" sx={{ mb: 2 }}>
+        Update User
+      </Typography>
+      <UserForm
+        mode="edit"
+        initialValues={user as Partial<UserCreate & UserUpdate>}
+        onSubmit={(payload: UserCreate | Partial<UserUpdate>) =>
+          handleSubmit(id, payload, mutate, setError, setIsSubmitting)
+        }
+        error={error}
+        isSubmitting={isSubmitting}
+      />
+    </Box>
   );
 };
 

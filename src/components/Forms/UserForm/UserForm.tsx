@@ -5,18 +5,25 @@ import FormErrorAlert from "@/src/components/FormErrorAlert/FormErrorAlert";
 import ProjectAutocomplete from "@/src/components/ProjectAutocomplete/ProjectAutocomplete";
 import { ApiError } from "@/src/utils/formErrors";
 import type { PositionEnum, RoleEnum, UserCreate, UserUpdate } from "@/types";
-import { Project, SubmitNode, UserSubmitNodeCreate } from "@/types";
+import { Project, SubmitNode, UserSubmitGet, UserSubmitNodeCreate } from "@/types";
 import {
   Box,
   Button,
   Checkbox,
   FormControl,
   FormControlLabel,
+  Grid,
   InputLabel,
   MenuItem,
   Select,
   Stack,
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableRow,
   TextField,
+  Typography,
 } from "@mui/material";
 import React, { useState } from "react";
 import useSWR from "swr";
@@ -117,9 +124,37 @@ const FIELD_NAME_MAP: Record<string, string> = {
 
 export const UserForm: React.FC<UserFormProps> = ({ mode, initialValues, onSubmit, isSubmitting = false, error }) => {
   const [values, setValues] = useState<UserFormValues>(() => normalizeInitialValues(initialValues));
+  const [selectedSubmitNodeId, setSelectedSubmitNodeId] = useState<number | "">("");
+
+  // Check if selected node is already assigned
+  const userSubmitNodeIds =
+    mode === "edit"
+      ? ((initialValues?.submit_nodes as UserSubmitGet[] | undefined)?.map((n) => n.submit_node_id) ?? [])
+      : values.submit_nodes;
+  const isNodeAssigned = selectedSubmitNodeId ? userSubmitNodeIds.includes(selectedSubmitNodeId as number) : false;
 
   const handleChange = (field: keyof UserFormValues, value: string | boolean | number[]) => {
     setValues((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const handleAddSubmitNode = () => {
+    if (!selectedSubmitNodeId) return;
+
+    // Add to local state - changes will be saved when form is submitted
+    handleChange("submit_nodes", [...values.submit_nodes, selectedSubmitNodeId as number]);
+    setSelectedSubmitNodeId("");
+  };
+
+  const handleRemoveSubmitNode = () => {
+    if (!selectedSubmitNodeId) return;
+
+    // Remove from local state - changes will be saved when form is submitted
+    const nodeId = selectedSubmitNodeId as number;
+    handleChange(
+      "submit_nodes",
+      values.submit_nodes.filter((id) => id !== nodeId),
+    );
+    setSelectedSubmitNodeId("");
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -197,204 +232,280 @@ export const UserForm: React.FC<UserFormProps> = ({ mode, initialValues, onSubmi
   });
 
   return (
-    <Box component="form" onSubmit={handleSubmit} sx={{ mt: 2, maxWidth: 600 }}>
-      <Stack spacing={2}>
-        <FormErrorAlert error={error ?? null} fieldNameMap={FIELD_NAME_MAP} />
+    <Box component="form" onSubmit={handleSubmit} sx={{ mt: 2 }}>
+      <FormErrorAlert error={error ?? null} fieldNameMap={FIELD_NAME_MAP} />
 
-        <TextField
-          label="Username"
-          value={values.username}
-          onChange={(e) => handleChange("username", e.target.value)}
-          required
-          fullWidth
-          disabled={isSubmitting}
-        />
-
-        <TextField
-          label="Name"
-          value={values.name}
-          onChange={(e) => handleChange("name", e.target.value)}
-          required
-          fullWidth
-          disabled={isSubmitting}
-        />
-
-        <TextField
-          label="Email (primary)"
-          value={values.email1}
-          onChange={(e) => handleChange("email1", e.target.value)}
-          required
-          fullWidth
-          disabled={isSubmitting}
-        />
-
-        <TextField
-          label="Email (secondary)"
-          value={values.email2}
-          onChange={(e) => handleChange("email2", e.target.value)}
-          fullWidth
-          disabled={isSubmitting}
-        />
-
-        <TextField
-          label="NetID"
-          value={values.netid}
-          onChange={(e) => handleChange("netid", e.target.value)}
-          fullWidth
-          disabled={isSubmitting}
-        />
-
-        <TextField
-          label="Phone 1"
-          value={values.phone1}
-          onChange={(e) => handleChange("phone1", e.target.value)}
-          fullWidth
-          disabled={isSubmitting}
-        />
-
-        <TextField
-          label="Phone 2"
-          value={values.phone2}
-          onChange={(e) => handleChange("phone2", e.target.value)}
-          fullWidth
-          disabled={isSubmitting}
-        />
-
-        <TextField
-          label="Unix UID"
-          value={values.unix_uid}
-          onChange={(e) => handleChange("unix_uid", e.target.value)}
-          fullWidth
-          disabled={isSubmitting}
-          helperText="Optional numeric UNIX user ID"
-        />
-
-        <FormControl fullWidth>
-          <InputLabel id="position-label">Position</InputLabel>
-          <Select
-            labelId="position-label"
-            label="Position"
-            value={values.position}
-            onChange={(e) => handleChange("position", e.target.value as PositionEnum | "")}
-            disabled={isSubmitting}
-          >
-            <MenuItem value="">Select Position</MenuItem>
-            <MenuItem value="FACULTY">Faculty</MenuItem>
-            <MenuItem value="STAFF">Staff</MenuItem>
-            <MenuItem value="POSTDOC">Postdoc</MenuItem>
-            <MenuItem value="GRAD_STUDENT">Grad Student</MenuItem>
-            <MenuItem value="UNDERGRADUATE">Undergraduate</MenuItem>
-            <MenuItem value="OTHER">Other</MenuItem>
-          </Select>
-        </FormControl>
-
-        {submitNodes && Array.isArray(submitNodes) && submitNodes.length > 0 && (
-          <Box>
-            <Box sx={{ mb: 1, fontWeight: 500 }}>Submit Nodes</Box>
-            <Stack direction="column" spacing={0} flexWrap="wrap">
-              {submitNodes.map((node) => {
-                const checked = values.submit_nodes.includes(node.id);
-                return (
-                  <FormControlLabel
-                    key={node.id}
-                    control={
-                      <Checkbox
-                        checked={checked}
-                        onChange={(e) => {
-                          const next = e.target.checked
-                            ? [...values.submit_nodes, node.id]
-                            : values.submit_nodes.filter((id) => id !== node.id);
-                          handleChange("submit_nodes", next);
-                        }}
-                        disabled={isSubmitting}
-                      />
-                    }
-                    label={node.name}
-                  />
-                );
-              })}
-            </Stack>
-          </Box>
-        )}
-
-        {mode === "create" && (
-          <ProjectAutocomplete
-            onSelect={(project: Project | null) => {
-              handleChange("primary_project_id", String(project?.id ?? ""));
-            }}
-            value={values.primary_project_id ? { id: parseInt(values.primary_project_id, 10) } : undefined}
-            required
-          />
-        )}
-
-        {mode === "create" && (
-          <FormControl fullWidth>
-            <InputLabel id="primary-project-role-label">Primary Project Role</InputLabel>
-            <Select
-              labelId="primary-project-role-label"
-              label="Primary Project Role"
-              value={values.primary_project_role}
-              onChange={(e) => handleChange("primary_project_role", e.target.value as RoleEnum | "")}
+      <Grid container spacing={3}>
+        <Grid size={{ xs: 12, md: 6 }}>
+          <Stack spacing={2}>
+            <TextField
+              label="Username"
+              value={values.username}
+              onChange={(e) => handleChange("username", e.target.value)}
               required
-              disabled={isSubmitting}
-            >
-              <MenuItem value="">Select Role</MenuItem>
-              <MenuItem value="MEMBER">Member</MenuItem>
-              <MenuItem value="PI">PI</MenuItem>
-            </Select>
-          </FormControl>
-        )}
-
-        <FormControlLabel
-          control={
-            <Checkbox
-              checked={values.is_admin}
-              onChange={(e) => handleChange("is_admin", e.target.checked)}
+              fullWidth
               disabled={isSubmitting}
             />
-          }
-          label="Is Admin"
-        />
 
-        <FormControlLabel
-          control={
-            <Checkbox
-              checked={values.auth_netid}
-              onChange={(e) => handleChange("auth_netid", e.target.checked)}
+            <TextField
+              label="Name"
+              value={values.name}
+              onChange={(e) => handleChange("name", e.target.value)}
+              required
+              fullWidth
               disabled={isSubmitting}
             />
-          }
-          label="Auth via NetID"
-        />
 
-        <FormControlLabel
-          control={
-            <Checkbox
-              checked={values.auth_username}
-              onChange={(e) => handleChange("auth_username", e.target.checked)}
+            <TextField
+              label="Email (primary)"
+              value={values.email1}
+              onChange={(e) => handleChange("email1", e.target.value)}
+              required
+              fullWidth
               disabled={isSubmitting}
             />
-          }
-          label="Auth via Username"
-        />
 
-        {mode === "create" && (
-          <TextField
-            label="Password"
-            type="password"
-            value={values.password}
-            onChange={(e) => handleChange("password", e.target.value)}
-            fullWidth
-            disabled={isSubmitting}
-          />
-        )}
+            <TextField
+              label="Email (secondary)"
+              value={values.email2}
+              onChange={(e) => handleChange("email2", e.target.value)}
+              fullWidth
+              disabled={isSubmitting}
+            />
 
-        <Box sx={{ display: "flex", gap: 2, mt: 2 }}>
-          <Button type="submit" variant="contained" color="primary" disabled={isSubmitting}>
-            {mode === "create" ? "Create" : "Save"}
-          </Button>
-        </Box>
-      </Stack>
+            <TextField
+              label="NetID"
+              value={values.netid}
+              onChange={(e) => handleChange("netid", e.target.value)}
+              fullWidth
+              disabled={isSubmitting}
+            />
+
+            <TextField
+              label="Phone 1"
+              value={values.phone1}
+              onChange={(e) => handleChange("phone1", e.target.value)}
+              fullWidth
+              disabled={isSubmitting}
+            />
+
+            <TextField
+              label="Phone 2"
+              value={values.phone2}
+              onChange={(e) => handleChange("phone2", e.target.value)}
+              fullWidth
+              disabled={isSubmitting}
+            />
+
+            <TextField
+              label="Unix UID"
+              value={values.unix_uid}
+              onChange={(e) => handleChange("unix_uid", e.target.value)}
+              fullWidth
+              disabled={isSubmitting}
+              helperText="Optional numeric UNIX user ID"
+            />
+
+            <FormControl fullWidth>
+              <InputLabel id="position-label">Position</InputLabel>
+              <Select
+                labelId="position-label"
+                label="Position"
+                value={values.position}
+                onChange={(e) => handleChange("position", e.target.value as PositionEnum | "")}
+                disabled={isSubmitting}
+              >
+                <MenuItem value="">Select Position</MenuItem>
+                <MenuItem value="FACULTY">Faculty</MenuItem>
+                <MenuItem value="STAFF">Staff</MenuItem>
+                <MenuItem value="POSTDOC">Postdoc</MenuItem>
+                <MenuItem value="GRAD_STUDENT">Grad Student</MenuItem>
+                <MenuItem value="UNDERGRADUATE">Undergraduate</MenuItem>
+                <MenuItem value="OTHER">Other</MenuItem>
+              </Select>
+            </FormControl>
+
+            {mode === "create" && (
+              <ProjectAutocomplete
+                onSelect={(project: Project | null) => {
+                  handleChange("primary_project_id", String(project?.id ?? ""));
+                }}
+                value={values.primary_project_id ? { id: parseInt(values.primary_project_id, 10) } : undefined}
+                required
+              />
+            )}
+
+            {mode === "create" && (
+              <FormControl fullWidth>
+                <InputLabel id="primary-project-role-label">Primary Project Role</InputLabel>
+                <Select
+                  labelId="primary-project-role-label"
+                  label="Primary Project Role"
+                  value={values.primary_project_role}
+                  onChange={(e) => handleChange("primary_project_role", e.target.value as RoleEnum | "")}
+                  required
+                  disabled={isSubmitting}
+                >
+                  <MenuItem value="">Select Role</MenuItem>
+                  <MenuItem value="MEMBER">Member</MenuItem>
+                  <MenuItem value="PI">PI</MenuItem>
+                </Select>
+              </FormControl>
+            )}
+
+            <FormControlLabel
+              control={
+                <Checkbox
+                  checked={values.is_admin}
+                  onChange={(e) => handleChange("is_admin", e.target.checked)}
+                  disabled={isSubmitting}
+                />
+              }
+              label="Is Admin"
+            />
+
+            <FormControlLabel
+              control={
+                <Checkbox
+                  checked={values.auth_netid}
+                  onChange={(e) => handleChange("auth_netid", e.target.checked)}
+                  disabled={isSubmitting}
+                />
+              }
+              label="Auth via NetID"
+            />
+
+            <FormControlLabel
+              control={
+                <Checkbox
+                  checked={values.auth_username}
+                  onChange={(e) => handleChange("auth_username", e.target.checked)}
+                  disabled={isSubmitting}
+                />
+              }
+              label="Auth via Username"
+            />
+
+            {mode === "create" && (
+              <TextField
+                label="Password"
+                type="password"
+                value={values.password}
+                onChange={(e) => handleChange("password", e.target.value)}
+                fullWidth
+                disabled={isSubmitting}
+              />
+            )}
+
+            <Box sx={{ display: "flex", gap: 2, mt: 2 }}>
+              <Button type="submit" variant="contained" color="primary" disabled={isSubmitting}>
+                {mode === "create" ? "Create" : "Save"}
+              </Button>
+            </Box>
+          </Stack>
+        </Grid>
+
+        <Grid size={{ xs: 12, md: 6 }}>
+          <Stack spacing={2}>
+            <Typography variant="h6">Submit Nodes</Typography>
+
+            <Stack direction="row" spacing={2} alignItems="center">
+              <FormControl sx={{ flexGrow: 1 }}>
+                <InputLabel id="submit-node-label">Select Submit Node</InputLabel>
+                <Select
+                  labelId="submit-node-label"
+                  label="Select Submit Node"
+                  value={selectedSubmitNodeId}
+                  onChange={(e) => setSelectedSubmitNodeId(e.target.value as number)}
+                  disabled={isSubmitting}
+                >
+                  <MenuItem value="">
+                    <em>None</em>
+                  </MenuItem>
+                  {submitNodes?.map((node) => (
+                    <MenuItem key={node.id} value={node.id}>
+                      {node.name}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+              <Button
+                variant="contained"
+                color="primary"
+                onClick={handleAddSubmitNode}
+                disabled={!selectedSubmitNodeId || isNodeAssigned || isSubmitting}
+              >
+                Add
+              </Button>
+              <Button
+                variant="contained"
+                color="error"
+                onClick={handleRemoveSubmitNode}
+                disabled={!selectedSubmitNodeId || !isNodeAssigned || isSubmitting}
+              >
+                Remove
+              </Button>
+            </Stack>
+
+            <Table>
+              <TableHead>
+                <TableRow>
+                  <TableCell>Name</TableCell>
+                  {mode === "edit" && (
+                    <>
+                      <TableCell>Disk Quota</TableCell>
+                      <TableCell>HPC Disk</TableCell>
+                      <TableCell>HPC Inode</TableCell>
+                      <TableCell>Job Limit</TableCell>
+                      <TableCell>Core Limit</TableCell>
+                      <TableCell>Fairshare</TableCell>
+                    </>
+                  )}
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {values.submit_nodes.length > 0 ? (
+                  values.submit_nodes.map((nodeId) => {
+                    const node = submitNodes?.find((n) => n.id === nodeId);
+                    if (!node) return null;
+
+                    if (mode === "edit") {
+                      // For edit mode, try to get quota info from initialValues
+                      const initialNode = (initialValues?.submit_nodes as UserSubmitGet[] | undefined)?.find(
+                        (n) => n.submit_node_id === nodeId,
+                      );
+                      return (
+                        <TableRow key={nodeId}>
+                          <TableCell>{node.name}</TableCell>
+                          <TableCell>{initialNode?.disk_quota ?? ""}</TableCell>
+                          <TableCell>{initialNode?.hpc_diskquota ?? ""}</TableCell>
+                          <TableCell>{initialNode?.hpc_inodequota ?? ""}</TableCell>
+                          <TableCell>{initialNode?.hpc_joblimit ?? ""}</TableCell>
+                          <TableCell>{initialNode?.hpc_corelimit ?? ""}</TableCell>
+                          <TableCell>{initialNode?.hpc_fairshare ?? ""}</TableCell>
+                        </TableRow>
+                      );
+                    } else {
+                      // For create mode, just show the name
+                      return (
+                        <TableRow key={nodeId}>
+                          <TableCell>{node.name}</TableCell>
+                        </TableRow>
+                      );
+                    }
+                  })
+                ) : (
+                  <TableRow>
+                    <TableCell colSpan={mode === "edit" ? 7 : 1} align="center">
+                      No submit nodes selected
+                    </TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
+          </Stack>
+        </Grid>
+      </Grid>
     </Box>
   );
 };
