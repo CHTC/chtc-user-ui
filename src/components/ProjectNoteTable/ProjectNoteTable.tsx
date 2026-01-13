@@ -14,7 +14,7 @@ const ProjectNoteTable = ({ projectId }: ProjectNoteTableProps) => {
   const { data: notes, mutate } = useSWR(
     `/projects/${projectId}/notes`,
     async (): Promise<Note[]> => {
-      const projectUserResponse = await apiFetch(`/projects/${projectId}/notes`);
+      const projectUserResponse = await apiFetch(`/projects/${projectId}/notes?date=order_by.desc`);
       return projectUserResponse.json();
     },
     { suspense: true },

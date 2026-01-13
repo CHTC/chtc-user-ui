@@ -232,12 +232,13 @@ export const UserForm: React.FC<UserFormProps> = ({ mode, initialValues, onSubmi
   });
 
   return (
-    <Box component="form" onSubmit={handleSubmit} sx={{ mt: 2 }}>
+    <Box component="form" onSubmit={handleSubmit}>
       <FormErrorAlert error={error ?? null} fieldNameMap={FIELD_NAME_MAP} />
 
-      <Grid container spacing={3}>
+      <Grid container spacing={3} sx={{ mt: 2 }}>
         <Grid size={{ xs: 12, md: 6 }}>
-          <Stack spacing={2}>
+          <Typography variant="h4">Basic Info</Typography>
+          <Stack spacing={2} mt={2}>
             <TextField
               label="Username"
               value={values.username}
@@ -407,7 +408,7 @@ export const UserForm: React.FC<UserFormProps> = ({ mode, initialValues, onSubmi
 
         <Grid size={{ xs: 12, md: 6 }}>
           <Stack spacing={2}>
-            <Typography variant="h6">Submit Nodes</Typography>
+            <Typography variant="h4">Submit Nodes</Typography>
 
             <Stack direction="row" spacing={2} alignItems="center">
               <FormControl sx={{ flexGrow: 1 }}>

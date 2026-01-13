@@ -95,9 +95,6 @@ const UserFormSuspense = ({
 
   return (
     <Box>
-      <Typography variant={"h4"} component="h3" sx={{ mb: 2 }}>
-        Update User
-      </Typography>
       <UserForm
         mode="edit"
         initialValues={user as Partial<UserCreate & UserUpdate>}
