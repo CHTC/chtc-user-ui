@@ -164,13 +164,22 @@ export function AuthClientProvider({ children }: { children: React.ReactNode }) 
           method: "POST",
           body: JSON.stringify({ username, password }),
         });
-
-        const data = await response.json();
-
+        
         if (!response.ok) {
-          return { success: false, error: data.detail ?? "Login failed" };
+          // account for non-JSON error responses
+          let errorMsg = `Login failed: ${response.statusText}`;
+          try {
+            const data = await response.json();
+            if (data.error) {
+              errorMsg = data.error;
+            }
+          } catch {
+            // ignore JSON parse errors
+          }
+          return { success: false, error: errorMsg };
         } else {
           setIsAuthenticated(true);
+          const data = await response.json();
           return { success: true, message: data.message };
         }
       } catch (error) {

@@ -19,17 +19,20 @@ const theme = responsiveFontSizes(
       },
     },
     typography: {
+      allVariants: {
+        fontWeight: 500,
+      },
       h1: {
         fontFamily: rhd.style.fontFamily,
-        fontWeight: 500,
+        fontWeight: 600,
       },
       h2: {
         fontFamily: rhd.style.fontFamily,
-        fontWeight: 500,
+        fontWeight: 600,
       },
       h3: {
         fontFamily: rhd.style.fontFamily,
-        fontWeight: 500,
+        fontWeight: 600,
       },
       h4: {
         fontFamily: rhd.style.fontFamily,
@@ -37,11 +40,11 @@ const theme = responsiveFontSizes(
       },
       h5: {
         fontFamily: rhd.style.fontFamily,
-        fontWeight: 700,
+        fontWeight: 800,
       },
       h6: {
         fontFamily: rhd.style.fontFamily,
-        fontWeight: 700,
+        fontWeight: 800,
       },
       fontFamily: [rht.style.fontFamily, "Helvetica Neue", "Helvetica", "Arial", "Lucida Grande", "sans-serif"].join(
         ",",
