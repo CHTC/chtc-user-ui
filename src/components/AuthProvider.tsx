@@ -164,7 +164,7 @@ export function AuthClientProvider({ children }: { children: React.ReactNode }) 
           method: "POST",
           body: JSON.stringify({ username, password }),
         });
-        
+
         if (!response.ok) {
           // account for non-JSON error responses
           let errorMsg = `Login failed: ${response.statusText}`;

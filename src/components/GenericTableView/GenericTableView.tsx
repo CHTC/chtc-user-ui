@@ -16,7 +16,7 @@ import {
   TextField,
   Typography,
 } from "@mui/material";
-import { ReactElement, useCallback, useEffect, useState } from "react";
+import { ReactElement, useCallback, useEffect, useRef, useState } from "react";
 import { ApiClient, useAuthClient } from "../AuthProvider";
 import { PageSelector } from "./PageSelector";
 
@@ -64,26 +64,42 @@ function GenericTableView({
   const { client, isAuthenticated } = useAuthClient();
   const rowsPerPage = 50;
 
+  // Track the latest request
+  const requestIdRef = useRef(0);
+
   // Debounce search query to avoid excessive API calls while typing
   const debouncedSearchQuery = useDebounce(searchQuery, 300);
 
   const handleSearch = useCallback(
     (resetPage: boolean = false) => {
+      // Increment request ID counter
+      requestIdRef.current += 1;
+      const currentRequestId = requestIdRef.current;
+
       setIsLoading(true);
       query(client, { page, page_size: rowsPerPage, sortColumn, sortDirection }, debouncedSearchQuery)
         .then((results) => {
-          setTotalCount(results.totalCount);
-          setData(results.data);
+          // Only update state if this is still the latest request
+          if (currentRequestId === requestIdRef.current) {
+            setTotalCount(results.totalCount);
+            setData(results.data);
 
-          if (resetPage) {
-            setPage(0);
+            if (resetPage) {
+              setPage(0);
+            }
           }
         })
         .catch((error) => {
-          console.error("Error fetching data:", error);
+          // Only log error if this is still the latest request
+          if (currentRequestId === requestIdRef.current) {
+            console.error("Error fetching data:", error);
+          }
         })
         .finally(() => {
-          setIsLoading(false);
+          // Only clear loading if this is still the latest request
+          if (currentRequestId === requestIdRef.current) {
+            setIsLoading(false);
+          }
         });
     },
     [client, page, query, debouncedSearchQuery, sortColumn, sortDirection],
@@ -202,7 +218,8 @@ function GenericTableView({
       </Box>
       {isLoading ? (
         <Box sx={{ width: "100%" }}>
-          <Skeleton variant="rectangular" height={400} />
+          {/* Rough estimate of skeleton height based on 50 rows */}
+          <Skeleton variant="rectangular" height={`${63 * 50}px`} />
         </Box>
       ) : data.length === 0 ? (
         <p>No results found.</p>
