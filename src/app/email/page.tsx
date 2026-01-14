@@ -89,10 +89,11 @@ function Page() {
 
         case "all_active_users": {
           // auth_username OR auth_netid
-          // TODO: Update API to support "or" queries
-          const result = await client.getUsers({ page_size: 10000 });
-          const data = result.data.filter((user) => user.auth_username === true || user.auth_netid === true);
-          resultEmails = extractEmails(data);
+          const result = await client.getUsers({
+            page_size: 10000,
+            query: { or: "(auth_username.eq.true,auth_netid.eq.true)" },
+          });
+          resultEmails = extractEmails(result.data);
           break;
         }
 
