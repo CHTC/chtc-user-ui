@@ -20,7 +20,7 @@ function Page() {
         NetID: "netid",
       }}
       query={async (client, opts, searchQuery) => {
-        const queryObj = searchQuery ? { username: `ilike.${searchQuery}` } : undefined;
+        const queryObj = searchQuery ? { or: `(name.ilike.${searchQuery},netid.ilike.${searchQuery})` } : undefined;
         const result = await client.getPiProjects({
           ...opts,
           ...(queryObj && { query: queryObj }),
@@ -38,7 +38,7 @@ function Page() {
 
         return { data, totalCount: result.totalCount };
       }}
-      queryLabel="Search by Username"
+      queryLabel="Search by Name or NetID"
       timeColumn="Last Modified"
       unauthenticatedMessage="You must be logged in to view PI projects."
     />

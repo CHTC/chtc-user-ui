@@ -19,7 +19,7 @@ function Page() {
         "Last Modified": { column: "date", default: "desc" },
       }}
       query={async (client, opts, searchQuery) => {
-        const queryObj = searchQuery ? { username: `ilike.${searchQuery}` } : undefined;
+        const queryObj = searchQuery ? { or: `(name.ilike.${searchQuery},netid.ilike.${searchQuery})` } : undefined;
         const result = await client.getUsers({
           ...opts,
           ...(queryObj && { query: queryObj }),
@@ -37,7 +37,7 @@ function Page() {
 
         return { data, totalCount: result.totalCount };
       }}
-      queryLabel="Search by Username"
+      queryLabel="Search by Name or NetID"
       timeColumn="Last Modified"
       unauthenticatedMessage="You must be logged in to view users."
     />
