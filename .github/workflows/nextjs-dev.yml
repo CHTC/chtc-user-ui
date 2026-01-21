@@ -1,6 +1,6 @@
 # To get started with Next.js see: https://nextjs.org/docs/getting-started
 #
-name: Deploy Next.js site to Pages
+name: Generate Dev Artifact for Dev Site
 
 on:
   # Runs on pushes targeting the default branch
@@ -16,7 +16,7 @@ permissions:
 # Allow only one concurrent deployment, skipping runs queued between the run in-progress and latest queued.
 # However, do NOT cancel in-progress runs as we want to allow these production deployments to complete.
 concurrency:
-  group: "pages"
+  group: "dev-pages"
   cancel-in-progress: false
 
 jobs:
