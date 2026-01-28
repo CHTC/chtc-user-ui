@@ -6,7 +6,7 @@ services:
     working_dir: /app
     command: python scripts/dev/generate_tokens.py
     env_file:
-      - .
+      - .env
 
   nginx:
     build:
@@ -14,5 +14,10 @@ services:
       dockerfile: nginx.Dockerfile
     ports:
       - "80:80"
+    environment:
+      NGINX_ENVSUBST_OUTPUT_DIR: /etc/nginx
     env_file:
-      - dev.env
+      - .env
+    depends_on:
+      setup:
+        condition: service_completed_successfully

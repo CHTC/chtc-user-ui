@@ -60,17 +60,24 @@ def update_env_file(env_path: Path, login_token: str, csrf_token: str):
 
 
 def main():
+    # Create a synthetic session id for this test client
+    session_id = "test-session-admin"
+
     # Generate LOGIN_TOKEN with extended expiry for dev
     login_token = create_login_token(
         expires_delta=timedelta(days=30),
-        user_id=1,
-        username="dev_user",
-        type="login"
+        user_id=4,
+        username="dev",
+        is_admin=True,
+        type="login",
+        session_id=session_id,
     )
 
     # Generate CSRF_TOKEN with extended expiry for dev
     csrf_token = create_login_token(
         expires_delta=timedelta(days=30),
+        random_value="csrf-protection",
+        session_id=session_id,
         type="csrf"
     )
 
@@ -78,7 +85,7 @@ def main():
     print(f"CSRF_TOKEN: {csrf_token[:50]}...")
 
     # Update .env file in working directory
-    env_path = Path.cwd() / 'dev.env'
+    env_path = Path.cwd() / '.env'
     update_env_file(env_path, login_token, csrf_token)
 
 
