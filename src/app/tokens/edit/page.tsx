@@ -4,7 +4,7 @@ import { AuthGuard } from "@/src/components/AuthGuard";
 import { apiFetch } from "@/src/components/AuthProvider";
 import DeleteActionButton from "@/src/components/DeleteActionButton/DeleteActionButton";
 import type { TokenGet, TokenPermissionGet } from "@/types";
-import { Box, Breadcrumbs, Grid, Paper, Skeleton, Stack, Table, TableBody, TableCell, TableHead, TableRow, Typography } from "@mui/material";
+import { Box, Breadcrumbs, Grid, Skeleton, Stack, Table, TableBody, TableCell, TableHead, TableRow, Typography } from "@mui/material";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense } from "react";
 import useSWR from "swr";
@@ -62,14 +62,6 @@ const TokenPage = () => {
     return <Typography color="error">No token ID provided.</Typography>;
   }
 
-  const handleDelete = async () => {
-    const response = await apiFetch(`/tokens/${id}`, { method: "DELETE" });
-    if (!response.ok) {
-      throw new Error(`Failed to delete token: ${response.statusText}`);
-    }
-    router.push("/tokens");
-  };
-
   const tokenData = token as TokenGet;
 
   return (
@@ -120,7 +112,7 @@ const TokenPage = () => {
         <RouteAutocomplete
           label={"Select a route to add permission"}
           onSelect={async (r) => {
-            let response = await apiFetch(`/tokens/${id}/permissions`, {
+            await apiFetch(`/tokens/${id}/permissions`, {
               method: "POST",
               body: JSON.stringify({
                 method: r?.method,

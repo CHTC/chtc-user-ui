@@ -41,7 +41,7 @@ const FIELD_NAME_MAP: Record<string, string> = {
   expires_at: "Expires At",
 };
 
-export const TokenForm: React.FC<TokenFormProps> = ({ mode, initialValues, onSubmit, isSubmitting = false, error }) => {
+export const TokenForm: React.FC<TokenFormProps> = ({ initialValues, onSubmit, isSubmitting = false, error }) => {
   const { values, handleChange } = useFormState<TokenFormValues>(() => normalizeInitialValues(initialValues));
 
   const handleSubmit = async (e: React.FormEvent) => {
