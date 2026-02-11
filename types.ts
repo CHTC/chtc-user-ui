@@ -5,6 +5,40 @@ export type PositionEnum = "SELECT" | "FACULTY" | "STAFF" | "POSTDOC" | "GRAD_ST
 
 export type RoleEnum = "MEMBER" | "PI";
 
+export interface TokenGet {
+  id: number;
+  created_by: number;
+  description: string;
+  created_at: string;
+  expires_at: string | null;
+}
+
+export interface TokenGetFull extends TokenGet {
+  token: string;
+}
+
+export interface TokenPost {
+  description: string;
+  expires_at?: string | null;
+}
+
+export interface TokenPermissionGet {
+  token_id: number;
+  method: string;
+  route: string;
+}
+
+export interface TokenPermissionPost {
+  token_id: number;
+  method: string;
+  route: string;
+}
+
+export interface RouteGet {
+  method: string;
+  route: string;
+}
+
 export interface SubmitNode {
   id: number;
   name: string;
