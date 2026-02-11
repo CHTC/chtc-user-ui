@@ -4,14 +4,14 @@ import { AuthGuard } from "@/src/components/AuthGuard";
 import { apiFetch } from "@/src/components/AuthProvider";
 import { TokenForm } from "@/src/components/Forms/TokenForm/TokenForm";
 import { ApiError } from "@/src/utils/formErrors";
-import type { TokenPost } from "@/types";
-import { Alert, Box, Breadcrumbs, Typography } from "@mui/material";
+import type {TokenGetFull, TokenPost } from "@/types";
+import { Alert, AlertTitle, Box, Breadcrumbs, Link, Typography } from "@mui/material";
 import { useState } from "react";
 
 function Page() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | ApiError | null>(null);
-  const [tokenValue, setTokenValue] = useState<string | null>(null);
+  const [tokenValue, setTokenValue] = useState<TokenGetFull | null>(null);
 
   const handleSubmit = async (payload: TokenPost) => {
     setError(null);
@@ -35,7 +35,7 @@ function Page() {
       }
 
       const tokenData = await tokenResponse.json();
-      setTokenValue(tokenData.token);
+      setTokenValue(tokenData);
     } catch (e: unknown) {
       const message = e instanceof Error ? e.message : "Failed to create token";
       setError(message);
@@ -54,7 +54,13 @@ function Page() {
         {tokenValue ? (
           <Box sx={{ mt: 2 }}>
             <Alert severity="success" sx={{ mb: 2 }}>
-              Token created successfully! Please copy this token now as it will not be shown again.
+              <AlertTitle>Token created successfully!</AlertTitle>
+              <Typography variant={"body2"}>
+                Please copy this token now as it will not be shown again.
+              </Typography>
+              <Typography variant={"body2"}>
+                You can add permissions to this token on its <Link href={`/tokens/edit/?id=${tokenValue.id}`}>edit</Link> page.
+              </Typography>
             </Alert>
             <Alert severity="warning" sx={{ mb: 2 }}>
               <Typography variant="body2" sx={{ fontWeight: "bold", mb: 1 }}>
@@ -70,7 +76,7 @@ function Page() {
                   borderRadius: 1,
                 }}
               >
-                {tokenValue}
+                {tokenValue.token}
               </Typography>
             </Alert>
           </Box>
