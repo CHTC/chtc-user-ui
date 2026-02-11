@@ -12,32 +12,32 @@
     "analyze": "ANALYZE=true next build"
   },
   "dependencies": {
-    "@chtc/web-components": "^1.0.10",
+    "@chtc/web-components": "^1.0.20",
     "@emotion/cache": "^11.14.0",
     "@emotion/react": "^11.14.0",
     "@emotion/styled": "^11.14.1",
-    "@mui/icons-material": "^7.3.1",
-    "@mui/material": "^7.3.1",
-    "@mui/material-nextjs": "^7.3.0",
-    "@next/bundle-analyzer": "^15.5.3",
+    "@mui/icons-material": "^7.3.7",
+    "@mui/material": "^7.3.7",
+    "@mui/material-nextjs": "^7.3.7",
+    "@next/bundle-analyzer": "^15.5.12",
     "@stefanprobst/rehype-extract-toc": "^3.0.0",
-    "estree-util-value-to-estree": "^3.4.0",
-    "glob": "^11.0.3",
-    "next": "15.5.0",
-    "next-image-export-optimizer": "^1.19.0",
+    "estree-util-value-to-estree": "^3.5.0",
+    "glob": "^11.1.0",
+    "next": "^15.5.12",
+    "next-image-export-optimizer": "^1.20.1",
     "raw-loader": "^4.0.2",
     "react": "19.1.0",
     "react-dom": "19.1.0",
-    "swr": "^2.3.8"
+    "swr": "^2.4.0"
   },
   "devDependencies": {
-    "@eslint/eslintrc": "^3",
-    "@types/node": "^20",
-    "@types/react": "^19",
-    "@types/react-dom": "^19",
-    "eslint": "^9",
+    "@eslint/eslintrc": "^3.3.3",
+    "@types/node": "^20.19.33",
+    "@types/react": "^19.2.14",
+    "@types/react-dom": "^19.2.3",
+    "eslint": "^9.39.2",
     "eslint-config-next": "15.4.6",
-    "prettier": "^3.7.4",
-    "typescript": "^5"
+    "prettier": "^3.8.1",
+    "typescript": "^5.9.3"
   }
 }

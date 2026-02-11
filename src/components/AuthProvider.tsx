@@ -12,7 +12,11 @@ import type {
   PiProjectView,
   Project,
   ProjectCreateUpdate,
+  RouteGet,
   SubmitNode,
+  TokenGet,
+  TokenGetFull,
+  TokenPost,
   User,
   UserCreate,
   UserProjectCreate,
@@ -70,6 +74,15 @@ export type ApiClient = {
 
   // Submit Nodes
   getSubmitNodes: (params?: PaginationParams) => Promise<PaginatedResponse<SubmitNode[]>>;
+
+  // Tokens
+  getTokens: (params?: PaginationParams) => Promise<PaginatedResponse<TokenGet[]>>;
+  getToken: (tokenId: number) => Promise<TokenGetFull>;
+  createToken: (token: TokenPost) => Promise<TokenGetFull>;
+  deleteToken: (tokenId: number) => Promise<void>;
+
+  // Routes
+  getRoutes: (params?: PaginationParams) => Promise<PaginatedResponse<RouteGet[]>>;
 };
 
 type AuthContextValue = {
@@ -388,6 +401,44 @@ export function AuthClientProvider({ children }: { children: React.ReactNode }) 
     getSubmitNodes: useCallback(async (params?: PaginationParams): Promise<PaginatedResponse<SubmitNode[]>> => {
       const response = await apiFetch(`/submit_nodes${buildQuery(params)}`);
       if (!response.ok) throw new Error(`Failed to get submit nodes: ${response.statusText}`);
+      const totalCount = parseInt(response.headers.get("X-Total-Count") || "0", 10);
+      const data = await response.json();
+      return { data, totalCount };
+    }, []),
+
+    // Tokens
+    getTokens: useCallback(async (params?: PaginationParams): Promise<PaginatedResponse<TokenGet[]>> => {
+      const response = await apiFetch(`/tokens${buildQuery(params)}`);
+      if (!response.ok) throw new Error(`Failed to get tokens: ${response.statusText}`);
+      const totalCount = parseInt(response.headers.get("X-Total-Count") || "0", 10);
+      const data = await response.json();
+      return { data, totalCount };
+    }, []),
+
+    getToken: useCallback(async (tokenId: number): Promise<TokenGetFull> => {
+      const response = await apiFetch(`/tokens/${tokenId}`);
+      if (!response.ok) throw new Error(`Failed to get token: ${response.statusText}`);
+      return response.json();
+    }, []),
+
+    createToken: useCallback(async (token: TokenPost): Promise<TokenGetFull> => {
+      const response = await apiFetch("/tokens", {
+        method: "POST",
+        body: JSON.stringify(token),
+      });
+      if (!response.ok) throw new Error(`Failed to create token: ${response.statusText}`);
+      return response.json();
+    }, []),
+
+    deleteToken: useCallback(async (tokenId: number): Promise<void> => {
+      const response = await apiFetch(`/tokens/${tokenId}`, { method: "DELETE" });
+      if (!response.ok) throw new Error(`Failed to delete token: ${response.statusText}`);
+    }, []),
+
+    // Routes
+    getRoutes: useCallback(async (params?: PaginationParams): Promise<PaginatedResponse<RouteGet[]>> => {
+      const response = await apiFetch(`/routes${buildQuery(params)}`);
+      if (!response.ok) throw new Error(`Failed to get routes: ${response.statusText}`);
       const totalCount = parseInt(response.headers.get("X-Total-Count") || "0", 10);
       const data = await response.json();
       return { data, totalCount };
