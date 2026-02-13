@@ -128,12 +128,8 @@ function GenericTableView({
     }
   }, [handleSearch, isAuthenticated]);
 
-  if (!isAuthenticated) {
-    return <AuthGuard message={unauthenticatedMessage}></AuthGuard>;
-  }
-
   return (
-    <>
+    <AuthGuard message={unauthenticatedMessage}>
       <Box sx={{ display: "flex", gap: 2, mb: 3, alignItems: "center" }}>
         <TextField
           label={queryLabel}
@@ -263,7 +259,7 @@ function GenericTableView({
           </Box>
         </>
       )}
-    </>
+    </AuthGuard>
   );
 }
 
