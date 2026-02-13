@@ -42,11 +42,9 @@ export interface UserFormValues {
   phone1: string;
   phone2: string;
   is_admin: boolean;
-  auth_netid: boolean;
-  auth_username: boolean;
+  active: boolean;
   unix_uid: string; // string in form, converted to number | null
   position: PositionEnum | "";
-  password: string;
   primary_project_id: string; // string in form, converted to number
   primary_project_role: RoleEnum | "";
   submit_nodes: number[]; // store selected submit_node IDs for easier diffing
@@ -76,11 +74,9 @@ function normalizeInitialValues(initial?: Partial<UserCreate & UserUpdate>): Use
     phone1: initial?.phone1 ?? "",
     phone2: initial?.phone2 ?? "",
     is_admin: initial?.is_admin ?? false,
-    auth_netid: initial?.auth_netid ?? false,
-    auth_username: initial?.auth_username ?? false,
+    active: initial?.active ?? true,
     unix_uid: initial?.unix_uid !== undefined && initial?.unix_uid !== null ? String(initial.unix_uid) : "",
     position: initial?.position ?? "",
-    password: initial?.password ?? "",
     primary_project_id:
       initial?.primary_project_id !== undefined && initial?.primary_project_id !== null
         ? String(initial.primary_project_id)
@@ -116,7 +112,6 @@ const FIELD_NAME_MAP: Record<string, string> = {
   phone2: "Phone 2",
   unix_uid: "Unix UID",
   position: "Position",
-  password: "Password",
   primary_project_id: "Primary Project",
   primary_project_role: "Primary Project Role",
   submit_nodes: "Submit Nodes",
@@ -132,9 +127,6 @@ export const UserForm: React.FC<UserFormProps> = ({ mode, initialValues, onSubmi
       ? ((initialValues?.submit_nodes as UserSubmitGet[] | undefined)?.map((n) => n.submit_node_id) ?? [])
       : values.submit_nodes;
   const isNodeAssigned = selectedSubmitNodeId ? userSubmitNodeIds.includes(selectedSubmitNodeId as number) : false;
-
-  // Validation: exactly one of auth_netid or auth_username must be true
-  const isAuthValid = values.auth_netid !== values.auth_username; // XOR condition
 
   const handleChange = (field: keyof UserFormValues, value: string | boolean | number[]) => {
     setValues((prev) => ({ ...prev, [field]: value }));
@@ -173,11 +165,9 @@ export const UserForm: React.FC<UserFormProps> = ({ mode, initialValues, onSubmi
         phone1: values.phone1 || null,
         phone2: values.phone2 || null,
         is_admin: values.is_admin,
-        auth_netid: values.auth_netid,
-        auth_username: values.auth_username,
+        active: values.active,
         unix_uid: values.unix_uid ? Number(values.unix_uid) : null,
         position: values.position || null,
-        password: values.password || null,
         primary_project_id: Number(values.primary_project_id),
         primary_project_role: values.primary_project_role as RoleEnum,
         ...(values.submit_nodes?.length
@@ -210,8 +200,7 @@ export const UserForm: React.FC<UserFormProps> = ({ mode, initialValues, onSubmi
     maybeSet("phone1", (values.phone1 || null) as UserUpdate["phone1"], initial.phone1);
     maybeSet("phone2", (values.phone2 || null) as UserUpdate["phone2"], initial.phone2);
     maybeSet("is_admin", values.is_admin as UserUpdate["is_admin"], initial.is_admin);
-    maybeSet("auth_netid", values.auth_netid as UserUpdate["auth_netid"], initial.auth_netid);
-    maybeSet("auth_username", values.auth_username as UserUpdate["auth_username"], initial.auth_username);
+    maybeSet("active", values.active as UserUpdate["active"], initial.active);
     maybeSet(
       "unix_uid",
       (values.unix_uid ? Number(values.unix_uid) : null) as UserUpdate["unix_uid"],
@@ -243,15 +232,6 @@ export const UserForm: React.FC<UserFormProps> = ({ mode, initialValues, onSubmi
           <Typography variant="h4">Basic Info</Typography>
           <Stack spacing={2} mt={2}>
             <TextField
-              label="Username"
-              required={values.auth_username === true}
-              value={values.username}
-              onChange={(e) => handleChange("username", e.target.value)}
-              fullWidth
-              disabled={isSubmitting}
-            />
-
-            <TextField
               label="Name"
               value={values.name}
               onChange={(e) => handleChange("name", e.target.value)}
@@ -279,7 +259,7 @@ export const UserForm: React.FC<UserFormProps> = ({ mode, initialValues, onSubmi
 
             <TextField
               label="NetID"
-              required={values.auth_netid === true}
+              required={values.active === true}
               value={values.netid}
               onChange={(e) => handleChange("netid", e.target.value)}
               fullWidth
@@ -373,45 +353,23 @@ export const UserForm: React.FC<UserFormProps> = ({ mode, initialValues, onSubmi
               <FormControlLabel
                 control={
                   <Checkbox
-                    checked={values.auth_netid}
-                    onChange={(e) => handleChange("auth_netid", e.target.checked)}
+                    checked={values.active}
+                    onChange={(e) => handleChange("active", e.target.checked)}
                     disabled={isSubmitting}
                   />
                 }
-                label="Auth via NetID"
-              />
-
-              <FormControlLabel
-                control={
-                  <Checkbox
-                    checked={values.auth_username}
-                    onChange={(e) => handleChange("auth_username", e.target.checked)}
-                    disabled={isSubmitting}
-                  />
-                }
-                label="Auth via Username"
+                label="Active (must have NetID)"
               />
             </Box>
 
-            {!isAuthValid && (
+            {!true && (
               <Typography color="error" variant="body2">
                 You must select exactly one authentication method (NetID or Username)
               </Typography>
             )}
 
-            {mode === "create" && (
-              <TextField
-                label="Password"
-                type="password"
-                value={values.password}
-                onChange={(e) => handleChange("password", e.target.value)}
-                fullWidth
-                disabled={isSubmitting}
-              />
-            )}
-
             <Box sx={{ display: "flex", justifyContent: "flex-end", gap: 2, mt: 2 }}>
-              <Button type="submit" variant="contained" color="primary" disabled={isSubmitting || !isAuthValid}>
+              <Button type="submit" variant="contained" color="primary" disabled={isSubmitting}>
                 {mode === "create" ? "Create" : "Save"}
               </Button>
             </Box>

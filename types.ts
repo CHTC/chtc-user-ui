@@ -93,8 +93,7 @@ export interface User {
   phone1: string | null;
   phone2: string | null;
   is_admin: boolean | null;
-  auth_netid: boolean | null;
-  auth_username: boolean | null;
+  active: boolean | null;
   date: string | null;
   unix_uid: number | null;
   position: string;
@@ -113,8 +112,7 @@ export interface UserCreate {
   phone1?: string | null;
   phone2?: string | null;
   is_admin?: boolean | null;
-  auth_netid?: boolean | null;
-  auth_username?: boolean | null;
+  active?: boolean | null;
   date?: string | null;
   unix_uid?: number | null;
   position?: PositionEnum | null;
@@ -134,8 +132,7 @@ export interface UserUpdate {
   phone1?: string | null;
   phone2?: string | null;
   is_admin?: boolean | null;
-  auth_netid?: boolean | null;
-  auth_username?: boolean | null;
+  active?: boolean | null;
   date?: string | null;
   unix_uid?: number | null;
   position?: PositionEnum | null;
@@ -177,8 +174,7 @@ export interface JoinedProjectView {
   phone1: string | null;
   phone2: string | null;
   is_admin: boolean | null;
-  auth_netid: boolean | null;
-  auth_username: boolean | null;
+  active: boolean | null;
   date: string | null;
   unix_uid: number | null;
   position: string;

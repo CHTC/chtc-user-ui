@@ -19,6 +19,7 @@ import {
 import { ReactElement, useCallback, useEffect, useRef, useState } from "react";
 import { ApiClient, useAuthClient } from "../AuthProvider";
 import { PageSelector } from "./PageSelector";
+import { AuthGuard } from "../AuthGuard";
 
 export interface GenericListComponentProps {
   cellRenderer: (
@@ -128,11 +129,7 @@ function GenericTableView({
   }, [handleSearch, isAuthenticated]);
 
   if (!isAuthenticated) {
-    return (
-      <Box sx={{ width: "100%", padding: 2 }}>
-        <Typography variant="h6">{unauthenticatedMessage}</Typography>
-      </Box>
-    );
+    return <AuthGuard message={unauthenticatedMessage}></AuthGuard>;
   }
 
   return (
