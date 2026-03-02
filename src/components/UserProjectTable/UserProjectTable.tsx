@@ -11,6 +11,8 @@ interface UserProjectTableProps {
 const UserProjectTable = ({ userId }: UserProjectTableProps) => {
   const { data: projects, mutate } = useTableFetch<JoinedProjectView[]>(`/users/${userId}/projects`);
 
+  console.log("Fetched projects for user:", projects);
+
   return (
     <Table>
       <TableHead>
@@ -36,7 +38,13 @@ const UserProjectTable = ({ userId }: UserProjectTableProps) => {
               <TableCell>{project.role}</TableCell>
               <TableCell>{project.is_primary ? "Yes" : "No"}</TableCell>
               <TableCell>
-                {project.project_staff1} {project.project_staff2}
+                {project.project_staff1?.name ?? project.project_staff2?.email1 ?? ""}
+                {project.project_staff2 && (
+                  <>
+                    <br />
+                    {project.project_staff2?.name ?? project.project_staff2?.email1 ?? ""}
+                  </>
+                )}
               </TableCell>
               <TableCell>{project.project_status}</TableCell>
               <TableCell>
