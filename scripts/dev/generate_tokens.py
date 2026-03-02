@@ -67,7 +67,6 @@ def main():
     login_token = create_login_token(
         expires_delta=timedelta(days=30),
         user_id=4,
-        username="dev",
         is_admin=True,
         type="login",
         session_id=session_id,

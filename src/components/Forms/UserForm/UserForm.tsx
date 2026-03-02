@@ -34,7 +34,6 @@ export type UserFormMode = "create" | "edit";
 export type { ApiError } from "@/src/utils/formErrors";
 
 export interface UserFormValues {
-  username: string;
   name: string;
   email1: string;
   email2: string;
@@ -66,7 +65,6 @@ export interface UserFormProps {
 
 function normalizeInitialValues(initial?: Partial<UserCreate & UserUpdate>): UserFormValues {
   return {
-    username: initial?.username ?? "",
     name: initial?.name ?? "",
     email1: initial?.email1 ?? "",
     email2: initial?.email2 ?? "",
@@ -103,7 +101,6 @@ const arraysEqual = (a: number[] | undefined, b: number[] | undefined) => {
 
 // Field name mappings for error display
 const FIELD_NAME_MAP: Record<string, string> = {
-  username: "Username",
   name: "Name",
   email1: "Email (primary)",
   email2: "Email (secondary)",
@@ -157,7 +154,6 @@ export const UserForm: React.FC<UserFormProps> = ({ mode, initialValues, onSubmi
 
     if (mode === "create") {
       const payload: UserCreate = {
-        username: values.username || null,
         name: values.name || null,
         email1: values.email1,
         email2: values.email2 || null,
@@ -192,7 +188,6 @@ export const UserForm: React.FC<UserFormProps> = ({ mode, initialValues, onSubmi
       }
     };
 
-    maybeSet("username", (values.username || null) as UserUpdate["username"], initial.username);
     maybeSet("name", (values.name || null) as UserUpdate["name"], initial.name);
     maybeSet("email1", values.email1 as UserUpdate["email1"], initial.email1);
     maybeSet("email2", (values.email2 || null) as UserUpdate["email2"], initial.email2);
@@ -361,12 +356,6 @@ export const UserForm: React.FC<UserFormProps> = ({ mode, initialValues, onSubmi
                 label="Active (must have NetID)"
               />
             </Box>
-
-            {!true && (
-              <Typography color="error" variant="body2">
-                You must select exactly one authentication method (NetID or Username)
-              </Typography>
-            )}
 
             <Box sx={{ display: "flex", justifyContent: "flex-end", gap: 2, mt: 2 }}>
               <Button type="submit" variant="contained" color="primary" disabled={isSubmitting}>

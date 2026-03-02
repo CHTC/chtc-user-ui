@@ -82,6 +82,7 @@ export function GenericAutocomplete<T extends { id: number }>({
     <Autocomplete
       value={activeItem}
       options={items || []}
+      getOptionKey={(option) => option.id}
       getOptionLabel={getOptionLabel}
       isOptionEqualToValue={(option, val) => option.id === val.id}
       inputValue={inputValue}

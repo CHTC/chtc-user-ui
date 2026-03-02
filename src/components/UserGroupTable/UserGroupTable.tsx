@@ -28,7 +28,7 @@ const UserProjectTable = ({ userId }: UserProjectTableProps) => {
               <TableCell>
                 {group.name} <EditLink href={`/groups/edit?id=${group.id}`} ariaLabel="Go to group" />
               </TableCell>
-              <TableCell>{group.point_of_contact}</TableCell>
+              <TableCell>{group.point_of_contact?.name ?? group.point_of_contact?.email1 ?? ""}</TableCell>
               <TableCell>{group.unix_gid}</TableCell>
               <TableCell>
                 <DeleteActionButton

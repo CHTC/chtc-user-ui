@@ -4,7 +4,7 @@ import FormErrorAlert from "@/src/components/FormErrorAlert/FormErrorAlert";
 import UserAutocomplete from "@/src/components/UserAutocomplete/UserAutocomplete";
 import { ApiError } from "@/src/utils/formErrors";
 import { useFormState } from "@/src/utils/useFormState";
-import { FormMode, ProjectCreateUpdate } from "@/types";
+import { FormMode, Project, ProjectCreateUpdate, User } from "@/types";
 import { Box, Button, Stack, TextField } from "@mui/material";
 import React from "react";
 
@@ -12,8 +12,8 @@ export interface ProjectFormValues {
   name: string;
   accounting_group: string;
   pi: string; // stringified user ID
-  staff1: string;
-  staff2: string;
+  staff1: User | null;
+  staff2: User | null;
   status: string;
   access: string;
   url: string;
@@ -28,7 +28,7 @@ export interface ProjectFormProps {
    * Initial values for the form. Can come from either a GroupCreate payload
    * (e.g. when editing unsaved data) or a GroupUpdate/group API response.
    */
-  initialValues?: Partial<ProjectCreateUpdate>;
+  initialValues?: Partial<Project>;
   /**
    * Called with cleaned form values converted to API payload shape.
    * For create, treat it as GroupCreate; for edit, as GroupUpdate.
@@ -38,13 +38,13 @@ export interface ProjectFormProps {
   error?: string | ApiError | null;
 }
 
-function normalizeInitialValues(initial?: Partial<ProjectCreateUpdate>): ProjectFormValues {
+function normalizeInitialValues(initial?: Partial<Project>): ProjectFormValues {
   return {
     name: initial?.name ?? "",
     accounting_group: initial?.accounting_group ?? "",
     pi: initial?.pi !== undefined && initial?.pi !== null ? String(initial.pi) : "",
-    staff1: initial?.staff1 ?? "",
-    staff2: initial?.staff2 ?? "",
+    staff1: initial?.staff1 ?? null,
+    staff2: initial?.staff2 ?? null,
     status: initial?.status ?? "",
     access: initial?.access ?? "",
     url: initial?.url ?? "",
@@ -85,8 +85,8 @@ export const ProjectForm: React.FC<ProjectFormProps> = ({
       name: values.name.trim(),
       accounting_group: values.accounting_group.trim(),
       pi: values.pi ? Number(values.pi) : null,
-      staff1: values.staff1 || null,
-      staff2: values.staff2 || null,
+      staff1: values.staff1?.id ?? null,
+      staff2: values.staff2?.id ?? null,
       status: values.status || null,
       access: values.access || null,
       url: values.url || null,
@@ -122,16 +122,18 @@ export const ProjectForm: React.FC<ProjectFormProps> = ({
         />
 
         <UserAutocomplete
-          value={{ username: values.staff1 }}
-          onSelect={(user) => handleChange("staff1", user?.username || "")}
+          label="Staff 1"
+          value={values.staff1 ?? undefined}
+          onSelect={(user) => handleChange("staff1", user)}
           defaultFilter={{
             is_admin: "is.true",
           }}
         />
 
         <UserAutocomplete
-          value={{ username: values.staff2 }}
-          onSelect={(user) => handleChange("staff2", user?.username || "")}
+          label="Staff 2"
+          value={values.staff2 ?? undefined}
+          onSelect={(user) => handleChange("staff2", user)}
           defaultFilter={{
             is_admin: "is.true",
           }}

@@ -64,14 +64,14 @@ export interface UserSubmitGet {
 export interface Group {
   id: number;
   name: string;
-  point_of_contact: string | null;
+  point_of_contact: User | null;
   unix_gid: number | null;
   has_groupdir: boolean | null;
 }
 
 export interface GroupCreateUpdate {
   name: string;
-  point_of_contact?: string | null;
+  point_of_contact?: number | null;
   unix_gid?: number | null;
   has_groupdir?: boolean | null;
 }
@@ -80,8 +80,8 @@ export interface Project {
   id: number;
   name: string;
   pi: number | null;
-  staff1: string | null;
-  staff2: string | null;
+  staff1: User | null;
+  staff2: User | null;
   status: string | null;
   access: string | null;
   accounting_group: string;
@@ -93,7 +93,6 @@ export interface Project {
 
 export interface PiProjectView {
   user_id: number;
-  username: string | null;
   name: string | null;
   project_id: number;
   project_name: string;
@@ -105,8 +104,8 @@ export interface PiProjectView {
 export interface ProjectCreateUpdate {
   name: string;
   pi?: number | null;
-  staff1?: string | null;
-  staff2?: string | null;
+  staff1?: number | null;
+  staff2?: number | null;
   status?: string | null;
   access?: string | null;
   accounting_group: string;
@@ -118,7 +117,6 @@ export interface ProjectCreateUpdate {
 
 export interface User {
   id: number;
-  username: string | null;
   name: string | null;
   email1: string;
   email2: string | null;
@@ -137,7 +135,6 @@ export interface User {
 }
 
 export interface UserCreate {
-  username?: string | null;
   name?: string | null;
   email1: string;
   email2?: string | null;
@@ -157,7 +154,6 @@ export interface UserCreate {
 }
 
 export interface UserUpdate {
-  username?: string | null;
   name?: string | null;
   email1: string;
   email2?: string | null;
@@ -178,7 +174,7 @@ export interface Note {
   id: number;
   ticket: string | null;
   note: string | null;
-  author: string | null;
+  author: User | null;
   date: string | null;
   users: User[];
 }
@@ -193,13 +189,12 @@ export interface JoinedProjectView {
   id: number;
   project_id: number;
   project_name: string;
-  project_staff1: string | null;
-  project_staff2: string | null;
+  project_staff1: User | null;
+  project_staff2: User | null;
   project_status: string | null;
   project_accounting_group: string;
   project_last_contact: string | null;
   is_primary: boolean;
-  username: string | null;
   name: string | null;
   email1: string;
   email2: string | null;
@@ -227,13 +222,7 @@ export interface Relationship {
   id: number;
 }
 
-export interface Login {
-  username: string;
-  password: string;
-}
-
 export interface CurrentUser {
-  username: string;
   is_admin: boolean;
 }
 
@@ -267,7 +256,8 @@ export interface HTTPValidationError {
 export type FormMode = "create" | "edit";
 
 // UI Types
-import { ReactNode } from "react";
+
+import type { ReactNode } from "react";
 
 export interface NavigationItem {
   label: string;
