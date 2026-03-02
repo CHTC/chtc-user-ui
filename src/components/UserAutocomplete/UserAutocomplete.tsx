@@ -17,7 +17,6 @@ const UserAutocomplete = ({ label, value, onSelect, defaultFilter }: UserAutoCom
       onSelect={onSelect}
       defaultFilter={defaultFilter}
       getOptionLabel={(option) => option?.name || option.email1}
-      matchItem={(user, val) => user.id === val.id || user.email1 === val.email1}
       searchField="name"
     />
   );

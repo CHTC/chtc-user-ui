@@ -2,8 +2,8 @@ import { Add } from "@mui/icons-material";
 import { Box, Button, Link, Typography } from "@mui/material";
 
 export default function RootLayout({
-                                     children,
-                                   }: Readonly<{
+  children,
+}: Readonly<{
   children: React.ReactNode;
 }>) {
   return (

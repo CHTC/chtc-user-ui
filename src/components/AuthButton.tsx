@@ -1,6 +1,4 @@
-import {
-  Button
-} from "@mui/material";
+import { Button } from "@mui/material";
 import { useAuthClient } from "./AuthProvider";
 
 export function AuthButton() {
