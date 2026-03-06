@@ -64,9 +64,7 @@ export function GenericAutocomplete<T extends { id: number }>({
       loading={isValidating}
       // Custom filtering to emulate ilike
       filterOptions={(options, state) =>
-        options.filter((option) =>
-          getOptionLabel(option).toLowerCase().includes(state.inputValue.toLowerCase()),
-        )
+        options.filter((option) => getOptionLabel(option).toLowerCase().includes(state.inputValue.toLowerCase()))
       }
       getOptionKey={(option) => option.id}
       getOptionLabel={getOptionLabel}

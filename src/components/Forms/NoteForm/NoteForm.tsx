@@ -13,7 +13,7 @@ export type NoteFormMode = "create" | "edit";
 export interface NoteFormValues {
   ticket: string;
   note: string;
-  author: string;
+  author: User | null;
   date: string;
   users: User[]; // selected users in the UI
 }
@@ -36,7 +36,7 @@ export interface NoteFormProps {
 
 function normalizeInitialValues(initial?: Partial<NoteFormValues>): NoteFormValues {
   return {
-    author: initial?.author ?? "",
+    author: initial?.author ?? null,
     date: initial?.date ?? "",
     ticket: initial?.ticket ?? "",
     note: initial?.note ?? "",
@@ -106,10 +106,14 @@ export const NoteForm: React.FC<NoteFormProps> = ({
           disabled={isSubmitting}
         />
 
+        {/* UserAutocomplete could be used here, but since we never write to
+            author from the form (it's always set to current user on the backend),
+            we can just display it as a disabled text field */}
+        {/* Also when we perform a PUT I don't think the author is mutated? So the
+            user would have to refresh the page to see the author change */}
         <TextField
           label="Author"
-          value={values.author}
-          onChange={(e) => handleChange("author", e.target.value)}
+          value={values.author?.name}
           fullWidth
           disabled={true}
           helperText={"Automatically set to current user on creation/update"}

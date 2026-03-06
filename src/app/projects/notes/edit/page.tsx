@@ -23,8 +23,9 @@ function Page() {
         body: JSON.stringify(payload),
       });
       update();
-    } catch {
+    } catch (error) {
       // TODO: error handling here
+      console.error("Failed to update note:", error);
     }
   };
 
