@@ -133,9 +133,6 @@ export const UserForm: React.FC<UserFormProps> = ({ mode, initialValues, onSubmi
       : values.submit_nodes;
   const isNodeAssigned = selectedSubmitNodeId ? userSubmitNodeIds.includes(selectedSubmitNodeId as number) : false;
 
-  // Validation: exactly one of auth_netid or auth_username must be true
-  const isAuthValid = values.auth_netid !== values.auth_username; // XOR condition
-
   const handleChange = (field: keyof UserFormValues, value: string | boolean | number[]) => {
     setValues((prev) => ({ ...prev, [field]: value }));
   };
@@ -393,12 +390,6 @@ export const UserForm: React.FC<UserFormProps> = ({ mode, initialValues, onSubmi
               />
             </Box>
 
-            {!isAuthValid && (
-              <Typography color="error" variant="body2">
-                You must select exactly one authentication method (NetID or Username)
-              </Typography>
-            )}
-
             {mode === "create" && (
               <TextField
                 label="Password"
@@ -411,7 +402,7 @@ export const UserForm: React.FC<UserFormProps> = ({ mode, initialValues, onSubmi
             )}
 
             <Box sx={{ display: "flex", justifyContent: "flex-end", gap: 2, mt: 2 }}>
-              <Button type="submit" variant="contained" color="primary" disabled={isSubmitting || !isAuthValid}>
+              <Button type="submit" variant="contained" color="primary" disabled={isSubmitting}>
                 {mode === "create" ? "Create" : "Save"}
               </Button>
             </Box>
