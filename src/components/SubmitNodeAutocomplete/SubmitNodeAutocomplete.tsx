@@ -6,9 +6,10 @@ interface SubmitNodeAutocompleteProps {
   onSelect: (submitNode: SubmitNode | null) => void;
   defaultFilter?: Record<string, string>;
   required?: boolean;
+  disabled?: boolean;
 }
 
-const SubmitNodeAutocomplete = ({ value, onSelect, defaultFilter, required }: SubmitNodeAutocompleteProps) => {
+const SubmitNodeAutocomplete = ({ value, onSelect, defaultFilter, required, disabled }: SubmitNodeAutocompleteProps) => {
   return (
     <GenericAutocomplete<SubmitNode>
       endpoint="/submit_nodes"
@@ -19,6 +20,7 @@ const SubmitNodeAutocomplete = ({ value, onSelect, defaultFilter, required }: Su
       getOptionLabel={(option) => option.name}
       searchField="name"
       required={required}
+      disabled={disabled}
     />
   );
 };

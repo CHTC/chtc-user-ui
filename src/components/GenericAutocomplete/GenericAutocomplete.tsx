@@ -20,6 +20,8 @@ export interface GenericAutocompleteProps<T extends { id: number }> {
   searchField: string;
   /** Whether the field is required */
   required?: boolean;
+  /** Whether the autocomplete should be disabled */
+  disabled?: boolean;
 }
 
 /**
@@ -35,6 +37,7 @@ export function GenericAutocomplete<T extends { id: number }>({
   getOptionLabel,
   searchField,
   required = false,
+  disabled = false,
 }: GenericAutocompleteProps<T>) {
   const [searchInput, setSearchInput] = useState("");
   const debouncedInput = useDebounce(searchInput, 300);
@@ -59,6 +62,7 @@ export function GenericAutocomplete<T extends { id: number }>({
 
   return (
     <Autocomplete
+      disabled={disabled}
       value={activeItem}
       options={items}
       loading={isValidating}
