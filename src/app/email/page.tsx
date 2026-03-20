@@ -57,8 +57,11 @@ async function fetchEmails(filters: CommittedFilters): Promise<string[]> {
     throw new Error("Cannot filter by PI role when no project is selected");
   }
 
-  const params: Record<string, string> = {};
-  params.page_size = "10000";
+  const params: Record<string, string> = {
+    // technically, if there are more than 10k users, and we apply client-side filters,
+    // we would miss some users?
+    page_size: "10000",
+  };
   if (status === "active") params.active = "eq.true";
   if (status === "past") params.active = "eq.false";
   if (role === "admin") params.is_admin = "eq.true";
