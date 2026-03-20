@@ -12,10 +12,8 @@ export default function RootLayout({
         <Link href="/tokens" style={{ textDecoration: "none", color: "inherit" }}>
           Tokens
         </Link>
-        <Button startIcon={<Add />}>
-          <Link href={`/tokens/create`} style={{ textDecoration: "none", color: "inherit" }}>
-            Add Token
-          </Link>
+        <Button startIcon={<Add />} href={`/tokens/create`}>
+          Add Token
         </Button>
       </Typography>
       <Box>{children}</Box>

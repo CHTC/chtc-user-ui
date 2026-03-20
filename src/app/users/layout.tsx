@@ -12,10 +12,8 @@ export default function RootLayout({
         <Link href="/users" style={{ textDecoration: "none", color: "inherit" }}>
           Users
         </Link>
-        <Button startIcon={<Add />}>
-          <Link href={`/users/create`} style={{ textDecoration: "none", color: "inherit" }}>
-            Add User
-          </Link>
+        <Button startIcon={<Add />} href={`/users/create`}>
+          Add User
         </Button>
       </Typography>
       <Box>{children}</Box>

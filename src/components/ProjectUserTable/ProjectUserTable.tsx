@@ -4,7 +4,7 @@ import EditLink from "@/src/components/EditLink/EditLink";
 import UserAutocomplete from "@/src/components/UserAutocomplete/UserAutocomplete";
 import { useTableFetch } from "@/src/utils/useTableFetch";
 import { JoinedProjectView, RoleEnum, User } from "@/types";
-import { Add } from "@mui/icons-material";
+import { ArrowDropDown, ArrowDropUp } from "@mui/icons-material";
 import {
   Box,
   Button,
@@ -64,7 +64,7 @@ const ProjectUserTable = ({ projectId }: ProjectUserTableProps) => {
     <Box>
       <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 2 }}>
         <Typography variant="h6">Project Members</Typography>
-        <Button variant="contained" startIcon={<Add />} onClick={() => setShowAddForm(!showAddForm)}>
+        <Button startIcon={showAddForm ? <ArrowDropUp /> : <ArrowDropDown />} onClick={() => setShowAddForm(!showAddForm)}>
           {showAddForm ? "Hide Form" : "Add Member"}
         </Button>
       </Box>
