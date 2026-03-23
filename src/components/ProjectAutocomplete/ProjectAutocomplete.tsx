@@ -6,9 +6,10 @@ interface ProjectAutocompleteProps {
   onSelect: (project: Project | null) => void;
   defaultFilter?: Record<string, string>;
   required?: boolean;
+  disabled?: boolean;
 }
 
-const ProjectAutocomplete = ({ value, onSelect, defaultFilter, required }: ProjectAutocompleteProps) => {
+const ProjectAutocomplete = ({ value, onSelect, defaultFilter, required, disabled }: ProjectAutocompleteProps) => {
   return (
     <GenericAutocomplete<Project>
       endpoint="/projects"
@@ -19,6 +20,7 @@ const ProjectAutocomplete = ({ value, onSelect, defaultFilter, required }: Proje
       getOptionLabel={(option) => option?.name ?? ""}
       searchField="name"
       required={required}
+      disabled={disabled}
     />
   );
 };
