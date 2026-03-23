@@ -28,27 +28,24 @@ const RouteAutocomplete = ({
   const [inputValue, setInputValue] = useState("");
   const debouncedInputValue = useDebounce(inputValue, 300);
 
-  const { data: routes } = useSWR(
-    [`/routes?page_size=100`, debouncedInputValue],
-    async (): Promise<RouteGet[]> => {
-      const urlParams = new URLSearchParams();
-      urlParams.append("page_size", "100");
+  const { data: routes } = useSWR([`/routes?page_size=100`, debouncedInputValue], async (): Promise<RouteGet[]> => {
+    const urlParams = new URLSearchParams();
+    urlParams.append("page_size", "100");
 
-      if (debouncedInputValue) {
-        // Search in both route and method fields
-        urlParams.append("or", `(route.ilike.${debouncedInputValue},method.ilike.${debouncedInputValue})`);
+    if (debouncedInputValue) {
+      // Search in both route and method fields
+      urlParams.append("or", `(route.ilike.${debouncedInputValue},method.ilike.${debouncedInputValue})`);
+    }
+
+    if (defaultFilter) {
+      for (const [key, filterValue] of Object.entries(defaultFilter)) {
+        urlParams.append(key, filterValue);
       }
+    }
 
-      if (defaultFilter) {
-        for (const [key, filterValue] of Object.entries(defaultFilter)) {
-          urlParams.append(key, filterValue);
-        }
-      }
-
-      const response = await apiFetch(`/routes?${urlParams.toString()}`);
-      return response.json();
-    },
-  );
+    const response = await apiFetch(`/routes?${urlParams.toString()}`);
+    return response.json();
+  });
 
   useEffect(() => {
     if (value && value.method !== undefined && value.route !== undefined) {
@@ -71,7 +68,7 @@ const RouteAutocomplete = ({
 
   return (
     <Autocomplete
-      size={'small'}
+      size={"small"}
       value={activeRoute}
       options={routes || []}
       getOptionLabel={getOptionLabel}
@@ -82,7 +79,7 @@ const RouteAutocomplete = ({
       }}
       onChange={(_event, newValue) => {
         onSelect(newValue);
-        setActiveRoute(null)
+        setActiveRoute(null);
       }}
       renderInput={(params) => <TextField {...params} label={label} variant="outlined" required={required} />}
       sx={{

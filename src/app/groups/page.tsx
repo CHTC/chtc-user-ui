@@ -27,7 +27,7 @@ function Page() {
           const data = result.data.map((group) => [
             group.id,
             group.name,
-            group.point_of_contact ?? "",
+            group.point_of_contact?.name ?? group.point_of_contact?.email1 ?? "",
             group.unix_gid ?? "",
             group.has_groupdir ? "Yes" : "No",
           ]);

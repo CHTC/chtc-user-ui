@@ -39,7 +39,7 @@ const UserAutocompleteMultiple = ({ value, dataUrl, onSelect, defaultFilter }: U
       multiple
       value={value}
       options={users || []}
-      getOptionLabel={(option) => option?.name || option?.username || option.email1}
+      getOptionLabel={(option) => option?.name || option.email1}
       getOptionKey={(option) => option.id}
       inputValue={inputValue}
       onInputChange={(event, newInputValue) => {

@@ -5,7 +5,7 @@ import { ReactNode } from "react";
 import { useAuthClient } from "./AuthProvider";
 
 export interface AuthGuardProps {
-  children: ReactNode;
+  children?: ReactNode;
   message: string;
 }
 

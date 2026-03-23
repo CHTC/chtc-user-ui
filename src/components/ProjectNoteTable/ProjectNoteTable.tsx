@@ -28,7 +28,7 @@ const ProjectNoteTable = ({ projectId }: ProjectNoteTableProps) => {
         {notes &&
           (notes || []).map((note) => (
             <TableRow key={note.id}>
-              <TableCell>{note.author}</TableCell>
+              <TableCell>{note.author?.name}</TableCell>
               <TableCell>{note.ticket}</TableCell>
               <TableCell>
                 <Tooltip title={note.note || ""} arrow>
@@ -39,7 +39,7 @@ const ProjectNoteTable = ({ projectId }: ProjectNoteTableProps) => {
                 </Tooltip>
               </TableCell>
               <TableCell>{note.date ? new Date(note?.date).toLocaleString() : ""}</TableCell>
-              <TableCell>{note.users.map((x) => x.username).join(", ")}</TableCell>
+              <TableCell>{note.users.map((x) => x.netid).join(", ")}</TableCell>
               <TableCell>
                 <Box sx={{ display: "flex", gap: 1 }}>
                   <DeleteActionButton

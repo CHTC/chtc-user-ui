@@ -17,7 +17,6 @@ const ProjectAutocomplete = ({ value, onSelect, defaultFilter, required }: Proje
       onSelect={onSelect}
       defaultFilter={defaultFilter}
       getOptionLabel={(option) => option?.name ?? ""}
-      matchItem={(project, val) => project.id === val.id || project.name === val.name}
       searchField="name"
       required={required}
     />

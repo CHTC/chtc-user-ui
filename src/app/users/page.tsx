@@ -3,7 +3,7 @@
 import GenericTableView from "@/src/components/GenericTableView/GenericTableView";
 import { createCellRenderer } from "@/src/utils/cellRenderers";
 
-const headers = ["id", "Username", "Name", "Email", "Phone", "NetID", "Last Modified"];
+const headers = ["id", "Name", "Email", "Phone", "NetID", "Last Modified"];
 const cellRenderer = createCellRenderer({ editPath: "/users/edit" });
 
 function Page() {
@@ -12,7 +12,6 @@ function Page() {
       headers={headers}
       cellRenderer={cellRenderer}
       sortableColumns={{
-        Username: "username",
         Name: "name",
         Email: "email1",
         NetID: "netid",
@@ -27,7 +26,6 @@ function Page() {
 
         const data = result.data.map((user) => [
           user.id ?? "",
-          user.username ?? "",
           user.name ?? "",
           user.email1 ?? "",
           user.phone1 ?? "",

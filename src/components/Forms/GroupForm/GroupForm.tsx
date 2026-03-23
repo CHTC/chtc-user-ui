@@ -4,7 +4,7 @@ import FormErrorAlert from "@/src/components/FormErrorAlert/FormErrorAlert";
 import UserAutocomplete from "@/src/components/UserAutocomplete/UserAutocomplete";
 import { ApiError } from "@/src/utils/formErrors";
 import { useFormState } from "@/src/utils/useFormState";
-import type { GroupCreateUpdate } from "@/types";
+import type { Group, GroupCreateUpdate, User } from "@/types";
 import { Box, Button, Checkbox, FormControlLabel, Stack, TextField } from "@mui/material";
 import React from "react";
 
@@ -12,7 +12,7 @@ export type GroupFormMode = "create" | "edit";
 
 export interface GroupFormValues {
   name: string;
-  point_of_contact: string;
+  point_of_contact: User | null;
   unix_gid: string;
   has_groupdir: boolean;
 }
@@ -23,7 +23,7 @@ export interface GroupFormProps {
    * Initial values for the form. Can come from either a GroupCreate payload
    * (e.g. when editing unsaved data) or a GroupUpdate/group API response.
    */
-  initialValues?: Partial<GroupCreateUpdate>;
+  initialValues?: Partial<Group>;
   /**
    * Called with cleaned form values converted to API payload shape.
    * For create, treat it as GroupCreate; for edit, as GroupUpdate.
@@ -33,10 +33,10 @@ export interface GroupFormProps {
   error?: string | ApiError | null;
 }
 
-function normalizeInitialValues(initial?: Partial<GroupCreateUpdate>): GroupFormValues {
+function normalizeInitialValues(initial?: Partial<Group>): GroupFormValues {
   return {
     name: initial?.name ?? "",
-    point_of_contact: initial?.point_of_contact ?? "",
+    point_of_contact: initial?.point_of_contact ?? null,
     unix_gid: initial?.unix_gid !== undefined && initial?.unix_gid !== null ? String(initial.unix_gid) : "",
     has_groupdir: initial?.has_groupdir ?? true,
   };
@@ -58,7 +58,7 @@ export const GroupForm: React.FC<GroupFormProps> = ({ mode, initialValues, onSub
 
     const payload: GroupCreateUpdate = {
       name: values.name.trim(),
-      point_of_contact: values.point_of_contact || null,
+      point_of_contact: values.point_of_contact?.id || null,
       unix_gid: values.unix_gid ? Number(values.unix_gid) : null,
       has_groupdir: values.has_groupdir,
     };
@@ -81,8 +81,9 @@ export const GroupForm: React.FC<GroupFormProps> = ({ mode, initialValues, onSub
         />
 
         <UserAutocomplete
-          value={{ username: values.point_of_contact }}
-          onSelect={(user) => handleChange("point_of_contact", user?.username || "")}
+          label="Point of Contact"
+          value={values.point_of_contact ?? undefined}
+          onSelect={(user) => handleChange("point_of_contact", user)}
           defaultFilter={{
             is_admin: "is.true",
           }}

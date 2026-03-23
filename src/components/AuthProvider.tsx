@@ -35,7 +35,6 @@ export type LoginResult =
 
 export type ApiClient = {
   // Authentication
-  login: (username: string, password: string) => Promise<LoginResult>;
   logout: () => Promise<{ message: string }>;
   getCurrentUser: () => Promise<CurrentUser>;
 
@@ -170,37 +169,6 @@ export function AuthClientProvider({ children }: { children: React.ReactNode }) 
   }, []);
 
   const client: ApiClient = {
-    // Authentication
-    login: useCallback(async (username: string, password: string): Promise<LoginResult> => {
-      try {
-        const response = await apiFetch("/login", {
-          method: "POST",
-          body: JSON.stringify({ username, password }),
-        });
-
-        if (!response.ok) {
-          // account for non-JSON error responses
-          let errorMsg = `Login failed: ${response.statusText}`;
-          try {
-            const data = await response.json();
-            if (data.error) {
-              errorMsg = data.error;
-            }
-          } catch {
-            // ignore JSON parse errors
-          }
-          return { success: false, error: errorMsg };
-        } else {
-          setIsAuthenticated(true);
-          const data = await response.json();
-          return { success: true, message: data.message };
-        }
-      } catch (error) {
-        console.error("Login error:", error);
-        return { success: false, error: error instanceof Error ? error.message : "Login failed" };
-      }
-    }, []),
-
     logout: useCallback(async (): Promise<{ message: string }> => {
       const response = await apiFetch("/logout", { method: "POST" });
       if (!response.ok) throw new Error(`Logout failed: ${response.statusText}`);

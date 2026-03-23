@@ -27,7 +27,7 @@ function Page() {
         const data = result.data.map((project) => [
           project.id,
           project.name,
-          project.staff1 ?? "",
+          project.staff1?.name ?? project.staff1?.email1 ?? "",
           project.status ?? "",
           project.url ?? "",
           project.last_contact ?? "",

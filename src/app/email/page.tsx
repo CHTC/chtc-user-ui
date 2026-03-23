@@ -26,7 +26,6 @@ type QueryType =
   | "all_pis"
   | "all_active_users"
   | "all_past_users"
-  | "all_off_campus_users"
   | "users_with_submit_node"
   | "users_in_project";
 
@@ -88,36 +87,20 @@ function Page() {
         }
 
         case "all_active_users": {
-          // auth_username OR auth_netid
+          // active
           const result = await client.getUsers({
             page_size: 10000,
-            query: { or: "(auth_username.eq.true,auth_netid.eq.true)" },
+            query: { active: "eq.true" },
           });
           resultEmails = extractEmails(result.data);
           break;
         }
 
         case "all_past_users": {
-          // !auth_username && !auth_netid
+          // !active
           const result = await client.getUsers({
             page_size: 10000,
-            query: {
-              auth_username: "not.eq.true",
-              auth_netid: "not.eq.true",
-            },
-          });
-          resultEmails = extractEmails(result.data);
-          break;
-        }
-
-        case "all_off_campus_users": {
-          // auth_username && !auth_netid
-          const result = await client.getUsers({
-            page_size: 10000,
-            query: {
-              auth_username: "eq.true",
-              auth_netid: "not.eq.true",
-            },
+            query: { active: "eq.false" },
           });
           resultEmails = extractEmails(result.data);
           break;
@@ -171,10 +154,6 @@ function Page() {
   return (
     <AuthGuard message="You must be logged in to view this page.">
       <Box>
-        <Typography variant="h3" component="h1" gutterBottom>
-          Email List Generator
-        </Typography>
-
         <Paper sx={{ p: 3, mb: 3 }}>
           <FormControl fullWidth sx={{ mb: 2 }}>
             <InputLabel>Query Type</InputLabel>
@@ -191,7 +170,6 @@ function Page() {
               <MenuItem value="all_pis">All PIs</MenuItem>
               <MenuItem value="all_active_users">All Active Users</MenuItem>
               <MenuItem value="all_past_users">All Past Users</MenuItem>
-              <MenuItem value="all_off_campus_users">All Off-Campus Users</MenuItem>
               <MenuItem value="users_with_submit_node">Users with Specific Submit Node</MenuItem>
               <MenuItem value="users_in_project">Users Involved in a Project</MenuItem>
             </Select>

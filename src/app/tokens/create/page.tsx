@@ -4,7 +4,7 @@ import { AuthGuard } from "@/src/components/AuthGuard";
 import { apiFetch } from "@/src/components/AuthProvider";
 import { TokenForm } from "@/src/components/Forms/TokenForm/TokenForm";
 import { ApiError } from "@/src/utils/formErrors";
-import type {TokenGetFull, TokenPost } from "@/types";
+import type { TokenGetFull, TokenPost } from "@/types";
 import { Alert, AlertTitle, Box, Breadcrumbs, Link, Typography } from "@mui/material";
 import { useState } from "react";
 
@@ -55,11 +55,10 @@ function Page() {
           <Box sx={{ mt: 2 }}>
             <Alert severity="success" sx={{ mb: 2 }}>
               <AlertTitle>Token created successfully!</AlertTitle>
+              <Typography variant={"body2"}>Please copy this token now as it will not be shown again.</Typography>
               <Typography variant={"body2"}>
-                Please copy this token now as it will not be shown again.
-              </Typography>
-              <Typography variant={"body2"}>
-                You can add permissions to this token on its <Link href={`/tokens/edit/?id=${tokenValue.id}`}>edit</Link> page.
+                You can add permissions to this token on its{" "}
+                <Link href={`/tokens/edit/?id=${tokenValue.id}`}>edit</Link> page.
               </Typography>
             </Alert>
             <Alert severity="warning" sx={{ mb: 2 }}>

@@ -4,18 +4,32 @@ import { AuthGuard } from "@/src/components/AuthGuard";
 import { apiFetch } from "@/src/components/AuthProvider";
 import DeleteActionButton from "@/src/components/DeleteActionButton/DeleteActionButton";
 import type { TokenGet, TokenPermissionGet } from "@/types";
-import { Box, Breadcrumbs, Grid, Skeleton, Stack, Table, TableBody, TableCell, TableHead, TableRow, Typography } from "@mui/material";
+import {
+  Box,
+  Breadcrumbs,
+  Grid,
+  Skeleton,
+  Stack,
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableRow,
+  Typography,
+} from "@mui/material";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense } from "react";
 import useSWR from "swr";
-import {RouteAutocomplete} from "@/src/components/RouteAutocomplete";
+import { RouteAutocomplete } from "@/src/components/RouteAutocomplete";
 
 function Page() {
   return (
     <AuthGuard message="You must be logged in to view token details.">
       <Box>
         <Breadcrumbs>
-          <Typography variant={"h4"} color="text.primary">Basic Info</Typography>
+          <Typography variant={"h4"} color="text.primary">
+            Basic Info
+          </Typography>
         </Breadcrumbs>
         <Suspense fallback={<Skeleton variant={"rectangular"} height={"300px"} />}>
           <TokenPage />
@@ -43,7 +57,7 @@ const tokenPermissionsFetcher = async (id: number | null): Promise<TokenPermissi
     throw new Error(`Failed to fetch permissions for token with id ${id}: ${response.statusText}`);
   }
   return response.json();
-}
+};
 
 const TokenPage = () => {
   const searchParams = useSearchParams();
@@ -54,9 +68,13 @@ const TokenPage = () => {
     suspense: true,
   });
 
-  const { data: permissions, mutate: mutatePermissions } = useSWR(id ? [`/tokens/${id}/permissions`] : null, () => tokenPermissionsFetcher(id), {
-    suspense: true,
-  });
+  const { data: permissions, mutate: mutatePermissions } = useSWR(
+    id ? [`/tokens/${id}/permissions`] : null,
+    () => tokenPermissionsFetcher(id),
+    {
+      suspense: true,
+    },
+  );
 
   if (!id) {
     return <Typography color="error">No token ID provided.</Typography>;
@@ -66,7 +84,7 @@ const TokenPage = () => {
 
   return (
     <Grid container>
-      <Grid size={{xs: 12, lg: 6}}>
+      <Grid size={{ xs: 12, lg: 6 }}>
         <Stack spacing={2}>
           <Box>
             <Typography variant="subtitle1" color="text.secondary">
@@ -105,7 +123,7 @@ const TokenPage = () => {
           </Box>
         </Stack>
       </Grid>
-      <Grid size={{xs: 12, lg: 6}}>
+      <Grid size={{ xs: 12, lg: 6 }}>
         <Typography variant="subtitle1" color="text.secondary">
           Permissions
         </Typography>
@@ -117,9 +135,9 @@ const TokenPage = () => {
               body: JSON.stringify({
                 method: r?.method,
                 route: r?.route,
-              })
+              }),
             });
-            mutatePermissions()
+            mutatePermissions();
           }}
         />
         <Table>
