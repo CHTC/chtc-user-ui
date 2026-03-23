@@ -134,9 +134,7 @@ const UserPage = ({
       <Box my={4}>
         <Suspense fallback={<Skeleton variant={"rectangular"} height={"400px"} />}>
           <Typography variant={"h4"} component="h3" sx={{ mb: 2, display: "flex", justifyContent: "space-between" }}>
-            <Link href="/groups" style={{ textDecoration: "none", color: "inherit" }}>
-              Projects
-            </Link>
+            Projects
           </Typography>
           <UserProjectTable userId={id} />
         </Suspense>
@@ -144,9 +142,7 @@ const UserPage = ({
       <Box my={4}>
         <Suspense fallback={<Skeleton variant={"rectangular"} height={"400px"} />}>
           <Typography variant={"h4"} component="h3" sx={{ mb: 2, display: "flex", justifyContent: "space-between" }}>
-            <Link href="/groups" style={{ textDecoration: "none", color: "inherit" }}>
-              Groups
-            </Link>
+            Groups
           </Typography>
           <UserGroupTable userId={id} />
         </Suspense>

@@ -12,10 +12,8 @@ export default function RootLayout({
         <Link href="/groups" style={{ textDecoration: "none", color: "inherit" }}>
           Groups
         </Link>
-        <Button startIcon={<Add />}>
-          <Link href={`/groups/create`} style={{ textDecoration: "none", color: "inherit" }}>
-            Add Group
-          </Link>
+        <Button startIcon={<Add />} href={`/groups/create`} >
+          Add Group
         </Button>
       </Typography>
       <Box>{children}</Box>

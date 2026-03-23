@@ -143,13 +143,9 @@ const ProjectPage = ({
       </Box>
       <Box my={4}>
         <Typography variant={"h4"} component="h3" sx={{ mb: 2, display: "flex", justifyContent: "space-between" }}>
-          <Link href="/groups" style={{ textDecoration: "none", color: "inherit" }}>
-            Notes
-          </Link>
-          <Button startIcon={<Add />}>
-            <Link href={`/projects/notes/create?project_id=${id}`} style={{ textDecoration: "none", color: "inherit" }}>
-              Add Note
-            </Link>
+          Notes
+          <Button startIcon={<Add />} href={`/projects/notes/create?project_id=${id}`} >
+            Add Note
           </Button>
         </Typography>
         <Suspense fallback={<Skeleton variant={"rectangular"} height={"400px"} />}>
