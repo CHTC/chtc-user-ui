@@ -19,6 +19,7 @@ import type {
   TokenPost,
   User,
   UserCreate,
+  UserForm,
   UserProjectCreate,
 } from "@/types";
 import React, { createContext, useCallback, useContext, useEffect, useState } from "react";
@@ -44,6 +45,7 @@ export type ApiClient = {
   createUser: (user: UserCreate) => Promise<User>;
   deleteUser: (userId: number) => Promise<void>;
   getUserProjects: (userId: number, params?: PaginationParams) => Promise<JoinedProjectView[]>;
+  getUserApplications: (params?: PaginationParams) => Promise<PaginatedResponse<UserForm[]>>;
 
   // Groups
   getGroups: (params?: PaginationParams) => Promise<PaginatedResponse<Group[]>>;
@@ -215,6 +217,14 @@ export function AuthClientProvider({ children }: { children: React.ReactNode }) 
       const response = await apiFetch(`/users/${userId}/projects${buildQuery(params)}`);
       if (!response.ok) throw new Error(`Failed to get user projects: ${response.statusText}`);
       return response.json();
+    }, []),
+
+    getUserApplications: useCallback(async (params?: PaginationParams): Promise<PaginatedResponse<UserForm[]>> => {
+      const response = await apiFetch(`/forms/user-applications${buildQuery(params)}`);
+      if (!response.ok) throw new Error(`Failed to get user applications: ${response.statusText}`);
+      const totalCount = parseInt(response.headers.get("X-Total-Count") || "0", 10);
+      const data = await response.json();
+      return { data, totalCount };
     }, []),
 
     // Groups

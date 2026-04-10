@@ -1,9 +1,8 @@
-// Types generated from OpenAPI spec in openapi (1).json
-// This file provides a consolidated set of interfaces/enums matching the backend API.
-
 export type PositionEnum = "SELECT" | "FACULTY" | "STAFF" | "POSTDOC" | "GRAD_STUDENT" | "UNDERGRADUATE" | "OTHER";
 
 export type RoleEnum = "MEMBER" | "PI";
+
+export type FormStatusEnum = "PENDING" | "APPROVED" | "DENIED";
 
 export interface TokenGet {
   id: number;
@@ -218,8 +217,34 @@ export interface UserProjectCreate {
   is_primary?: boolean | null;
 }
 
-export interface Relationship {
+export interface BaseForm {
   id: number;
+  status: FormStatusEnum;
+  created_by?: User | null;
+  created_at: string;
+  updated_by?: User | null;
+  updated_at: string;
+}
+
+export interface UserForm extends BaseForm {
+  pi_id?: number | null;
+  pi_name?: string | null;
+  pi_email?: string | null;
+  position: PositionEnum;
+}
+
+export interface UserFormPost {
+  pi_id?: number | null;
+  pi_name?: string | null;
+  pi_email?: string | null;
+  position: PositionEnum;
+}
+
+export interface UserFormPatch {
+  status: FormStatusEnum;
+  project_id: number;
+  project_position: PositionEnum;
+  submit_nodes: string[];
 }
 
 export interface CurrentUser {
