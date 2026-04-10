@@ -2,25 +2,21 @@
 
 import ProjectAutocomplete from "@/src/components/ProjectAutocomplete/ProjectAutocomplete";
 import SubmitNodeAutocomplete from "@/src/components/SubmitNodeAutocomplete/SubmitNodeAutocomplete";
-import UserAutocomplete from "@/src/components/UserAutocomplete/UserAutocomplete";
 import type { ApiError } from "@/src/components/Forms/UserForm/UserForm";
 import type {
   FormStatusEnum,
   PositionEnum,
   Project,
   SubmitNode,
-  User,
   UserForm,
   UserFormPatch,
   UserFormPost,
 } from "@/types";
-import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import {
   Alert,
   Box,
   Button,
   Chip,
-  Collapse,
   FormControl,
   InputLabel,
   MenuItem,
@@ -70,12 +66,8 @@ export function UserApplicationForm({
   error = null,
   submitSuccess = false,
 }: UserApplicationFormProps) {
-  const [selectedPi, setSelectedPi] = useState<User | null>(
-    initialValues?.pi_id ? ({ id: initialValues.pi_id } as User) : null,
-  );
   const [manualPi, setManualPi] = useState<ManualPiValues>(() => normalizeManualPi(initialValues));
   const [position, setPosition] = useState<PositionEnum | "">(initialValues?.position ?? "");
-  const [showManualPi, setShowManualPi] = useState(Boolean(initialValues?.pi_name || initialValues?.pi_email));
 
   const [status, setStatus] = useState<FormStatusEnum>(initialValues?.status ?? "PENDING");
   const [project, setProject] = useState<Project | null>(null);
@@ -83,17 +75,10 @@ export function UserApplicationForm({
   const [selectedSubmitNode, setSelectedSubmitNode] = useState<SubmitNode | null>(null);
   const [submitNodes, setSubmitNodes] = useState<SubmitNode[]>([]);
 
-  const usingAutocompletePi = selectedPi !== null;
-  const usingManualPi = showManualPi || manualPi.name.trim().length > 0 || manualPi.email.trim().length > 0;
-
   const validationMessage = useMemo(() => {
     if (mode === "create") {
-      if (usingManualPi && (!manualPi.name.trim() || !manualPi.email.trim())) {
+      if (!manualPi.name.trim() || !manualPi.email.trim()) {
         return "Enter both PI name and PI email before submitting.";
-      }
-
-      if (!usingAutocompletePi && !usingManualPi) {
-        return 'Select a PI or open "Can\'t find them?" to enter one manually.';
       }
 
       if (position === "") {
@@ -125,8 +110,6 @@ export function UserApplicationForm({
     projectPosition,
     status,
     submitNodes.length,
-    usingAutocompletePi,
-    usingManualPi,
   ]);
 
   const handleAddSubmitNode = () => {
@@ -147,9 +130,9 @@ export function UserApplicationForm({
 
     if (mode === "create") {
       await onSubmit({
-        pi_id: selectedPi?.id ?? null,
-        pi_name: usingManualPi ? manualPi.name.trim() : null,
-        pi_email: usingManualPi ? manualPi.email.trim() : null,
+        pi_id: null,
+        pi_name: manualPi.name.trim(),
+        pi_email: manualPi.email.trim(),
         position: position as PositionEnum,
       });
       return;
@@ -173,61 +156,22 @@ export function UserApplicationForm({
             ) : (
               <>
                 <Stack spacing={2}>
-                  <UserAutocomplete
-                    label="PI"
-                    value={selectedPi ?? undefined}
-                    onSelect={setSelectedPi}
-                    disabled={usingManualPi || isSubmitting}
+                  <TextField
+                    label="PI Name"
+                    value={manualPi.name}
+                    onChange={(event) => setManualPi((current) => ({ ...current, name: event.target.value }))}
+                    disabled={isSubmitting}
+                    required
                   />
 
-                  <Box>
-                    <Box sx={{ display: "flex", justifyContent: "flex-end" }}>
-                      <Button
-                        type="button"
-                        onClick={() => setShowManualPi((expanded) => !expanded)}
-                        disabled={usingAutocompletePi || isSubmitting}
-                        sx={{
-                          p: 0,
-                          minWidth: 0,
-                          textTransform: "none",
-                          color: "text.secondary",
-                          justifyContent: "flex-end",
-                        }}
-                      >
-                        <Stack direction="row" spacing={0.5} alignItems="center">
-                          <Typography variant="subtitle2">Can&apos;t find them?</Typography>
-                          <ExpandMoreIcon
-                            fontSize="small"
-                            sx={{
-                              transform: usingManualPi ? "rotate(180deg)" : "rotate(0deg)",
-                              transition: "transform 0.2s ease",
-                            }}
-                          />
-                        </Stack>
-                      </Button>
-                    </Box>
-
-                    <Collapse in={usingManualPi}>
-                      <Stack spacing={2} sx={{ mt: 2 }}>
-                        <TextField
-                          label="PI Name"
-                          value={manualPi.name}
-                          onChange={(event) => setManualPi((current) => ({ ...current, name: event.target.value }))}
-                          disabled={usingAutocompletePi || isSubmitting}
-                          required={usingManualPi}
-                        />
-
-                        <TextField
-                          label="PI Email"
-                          type="email"
-                          value={manualPi.email}
-                          onChange={(event) => setManualPi((current) => ({ ...current, email: event.target.value }))}
-                          disabled={usingAutocompletePi || isSubmitting}
-                          required={usingManualPi}
-                        />
-                      </Stack>
-                    </Collapse>
-                  </Box>
+                  <TextField
+                    label="PI Email"
+                    type="email"
+                    value={manualPi.email}
+                    onChange={(event) => setManualPi((current) => ({ ...current, email: event.target.value }))}
+                    disabled={isSubmitting}
+                    required
+                  />
                 </Stack>
 
                 <FormControl fullWidth>
@@ -263,8 +207,6 @@ export function UserApplicationForm({
               <Typography>
                 {initialValues?.pi_name ??
                   initialValues?.pi_email ??
-                  selectedPi?.name ??
-                  selectedPi?.email1 ??
                   `User ID ${initialValues?.pi_id ?? "-"}`}
               </Typography>
             </Stack>
