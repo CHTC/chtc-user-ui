@@ -22,7 +22,7 @@ import {
 } from "@mui/material";
 import { useMemo, useState } from "react";
 
-type MentorExpectation = "YES" | "NO" | "MAYBE" | "";
+type MentorExpectation = "YES" | "NO" | "MAYBE" | null;
 
 type MarketingAttributionOption =
   | "Word of mouth from inside your Research Group (PI, group member, etc.)"
@@ -54,22 +54,22 @@ type ComputingTypeOption =
   | "High Performance Computing (HPC)"
   | "Both HTC & HPC"
   | "Not sure"
-  | "";
+  | null;
 
 type GpuTypeOption =
   | "Not sure"
   | "No, my calculation does not need a GPU"
   | "Yes, my calculation needs a single GPU"
   | "Yes, my calculation needs multiple GPUs"
-  | "";
+  | null;
 
-type CpuCoresOption = "Not sure" | "< 8" | "8 - 20" | "20 - 40" | "> 40" | "";
+type CpuCoresOption = "Not sure" | "< 8" | "8 - 20" | "20 - 40" | "> 40" | null;
 
-type MemoryOption = "Not sure" | "< 32" | "32 - 80" | "80 - 160" | "> 160" | "";
+type MemoryOption = "Not sure" | "< 32" | "32 - 80" | "80 - 160" | "> 160" | null;
 
-type DiskSpaceOption = "Not sure" | "< 10" | "10 - 100" | "100 - 500" | "> 500" | "";
+type DiskSpaceOption = "Not sure" | "< 10" | "10 - 100" | "100 - 500" | "> 500" | null;
 
-type RuntimeOption = "Not sure" | "< 8" | "8 - 24" | "24 - 72" | "> 72" | "";
+type RuntimeOption = "Not sure" | "< 8" | "8 - 24" | "24 - 72" | "> 72" | null;
 
 export interface UserApplicationCreatePayload extends UserFormPost {
   mentor_name?: string | null;
@@ -78,12 +78,12 @@ export interface UserApplicationCreatePayload extends UserFormPost {
   how_chtc_can_help?: string | null;
   research_computing_area?: ResearchComputingAreaOption[];
   software_link?: string | null;
-  computing_type?: Exclude<ComputingTypeOption, ""> | null;
-  cpu_cores?: Exclude<CpuCoresOption, ""> | null;
-  memory_gb?: Exclude<MemoryOption, ""> | null;
-  disk_space_gb?: Exclude<DiskSpaceOption, ""> | null;
-  calculation_runtime_hours?: Exclude<RuntimeOption, ""> | null;
-  gpu_type?: Exclude<GpuTypeOption, ""> | null;
+  computing_type?: Exclude<ComputingTypeOption, null> | null;
+  cpu_cores?: Exclude<CpuCoresOption, null> | null;
+  memory_gb?: Exclude<MemoryOption, null> | null;
+  disk_space_gb?: Exclude<DiskSpaceOption, null> | null;
+  calculation_runtime_hours?: Exclude<RuntimeOption, null> | null;
+  gpu_type?: Exclude<GpuTypeOption, null> | null;
   calculation_quantity?: string | null;
   special_access?: string | null;
   extra_info?: string | null;
@@ -146,10 +146,10 @@ const priorSystemOptions: Array<{ value: PriorSystemOption; label: string }> = [
   },
 ];
 
-const cpuCoreOptions: CpuCoresOption[] = ["Not sure", "< 8", "8 - 20", "20 - 40", "> 40"];
-const memoryOptions: MemoryOption[] = ["Not sure", "< 32", "32 - 80", "80 - 160", "> 160"];
-const diskSpaceOptions: DiskSpaceOption[] = ["Not sure", "< 10", "10 - 100", "100 - 500", "> 500"];
-const runtimeOptions: RuntimeOption[] = ["Not sure", "< 8", "8 - 24", "24 - 72", "> 72"];
+const cpuCoreOptions: Array<Exclude<CpuCoresOption, null>> = ["Not sure", "< 8", "8 - 20", "20 - 40", "> 40"];
+const memoryOptions: Array<Exclude<MemoryOption, null>> = ["Not sure", "< 32", "32 - 80", "80 - 160", "> 160"];
+const diskSpaceOptions: Array<Exclude<DiskSpaceOption, null>> = ["Not sure", "< 10", "10 - 100", "100 - 500", "> 500"];
+const runtimeOptions: Array<Exclude<RuntimeOption, null>> = ["Not sure", "< 8", "8 - 24", "24 - 72", "> 72"];
 
 function toggleValue<T extends string>(values: T[], value: T) {
   return values.includes(value) ? values.filter((item) => item !== value) : [...values, value];
@@ -163,7 +163,7 @@ function ResourceEstimateField<T extends string>({
   disabled = false,
 }: {
   question: string;
-  value: T | "";
+  value: T | null;
   options: readonly T[];
   onChange: (value: T) => void;
   disabled?: boolean;
@@ -174,7 +174,7 @@ function ResourceEstimateField<T extends string>({
       <FormControl>
         <RadioGroup
           row
-          value={value}
+          value={value ?? ""}
           onChange={(event) => onChange(event.target.value as T)}
           sx={{
             display: "grid",
@@ -214,10 +214,10 @@ export function UserApplicationCreateForm({
   error = null,
   submitSuccess = false,
 }: UserApplicationCreateFormProps) {
-  const [position, setPosition] = useState<PositionEnum | "">(initialValues?.position ?? "");
+  const [position, setPosition] = useState<PositionEnum | null>(initialValues?.position ?? null);
   const [piName, setPiName] = useState(initialValues?.pi_name ?? "");
   const [piEmail, setPiEmail] = useState(initialValues?.pi_email ?? "");
-  const [mentorExpectation, setMentorExpectation] = useState<MentorExpectation>("");
+  const [mentorExpectation, setMentorExpectation] = useState<MentorExpectation>(null);
   const [mentorName, setMentorName] = useState("");
   const [mentorEmail, setMentorEmail] = useState("");
   const [marketingAttribution, setMarketingAttribution] = useState<MarketingAttributionOption[]>([]);
@@ -225,18 +225,18 @@ export function UserApplicationCreateForm({
   const [researchComputingArea, setResearchComputingArea] = useState<ResearchComputingAreaOption[]>([]);
   const [softwareLink, setSoftwareLink] = useState("");
   const [priorSystems, setPriorSystems] = useState<PriorSystemOption[]>([]);
-  const [computingType, setComputingType] = useState<ComputingTypeOption>("");
+  const [computingType, setComputingType] = useState<ComputingTypeOption>(null);
   const [cpuCores, setCpuCores] = useState<CpuCoresOption>("Not sure");
   const [memoryGb, setMemoryGb] = useState<MemoryOption>("Not sure");
   const [diskSpaceGb, setDiskSpaceGb] = useState<DiskSpaceOption>("Not sure");
   const [calculationRuntimeHours, setCalculationRuntimeHours] = useState<RuntimeOption>("Not sure");
-  const [gpuType, setGpuType] = useState<GpuTypeOption>("");
+  const [gpuType, setGpuType] = useState<GpuTypeOption>(null);
   const [calculationQuantity, setCalculationQuantity] = useState("");
   const [specialAccess, setSpecialAccess] = useState("");
   const [extraInfo, setExtraInfo] = useState("");
 
   const validationMessage = useMemo(() => {
-    if (position === "") {
+    if (position === null) {
       return "Please select the option that best describes your position.";
     }
 
@@ -244,7 +244,7 @@ export function UserApplicationCreateForm({
       return "Enter both your faculty sponsor/PI name and email before submitting.";
     }
 
-    if (computingType === "") {
+    if (computingType === null) {
       return "Choose the system that best fits your computing needs.";
     }
 
@@ -266,12 +266,12 @@ export function UserApplicationCreateForm({
       how_chtc_can_help: howChtcCanHelp.trim() || null,
       research_computing_area: researchComputingArea,
       software_link: softwareLink.trim() || null,
-      computing_type: computingType || null,
-      cpu_cores: cpuCores || null,
-      memory_gb: memoryGb || null,
-      disk_space_gb: diskSpaceGb || null,
-      calculation_runtime_hours: calculationRuntimeHours || null,
-      gpu_type: gpuType || null,
+      computing_type: computingType,
+      cpu_cores: cpuCores,
+      memory_gb: memoryGb,
+      disk_space_gb: diskSpaceGb,
+      calculation_runtime_hours: calculationRuntimeHours,
+      gpu_type: gpuType,
       calculation_quantity: calculationQuantity.trim() || null,
       special_access: specialAccess.trim() || null,
       extra_info: extraInfo.trim() || null,
@@ -293,8 +293,8 @@ export function UserApplicationCreateForm({
                 <Select
                   labelId="position-label"
                   label="Position"
-                  value={position}
-                  onChange={(event) => setPosition(event.target.value as PositionEnum | "")}
+                  value={position ?? ""}
+                  onChange={(event) => setPosition((event.target.value as PositionEnum) || null)}
                   disabled={isSubmitting}
                 >
                   <MenuItem value="">Select Position</MenuItem>
@@ -342,8 +342,8 @@ export function UserApplicationCreateForm({
               </Typography>
               <FormControl>
                 <RadioGroup
-                  value={mentorExpectation}
-                  onChange={(event) => setMentorExpectation(event.target.value as MentorExpectation)}
+                  value={mentorExpectation ?? ""}
+                  onChange={(event) => setMentorExpectation((event.target.value as Exclude<MentorExpectation, null>) || null)}
                 >
                   <FormControlLabel value="YES" control={<Radio />} label="Yes" disabled={isSubmitting} />
                   <FormControlLabel value="NO" control={<Radio />} label="No" disabled={isSubmitting} />
@@ -504,8 +504,8 @@ export function UserApplicationCreateForm({
               </Typography>
               <FormControl required>
                 <RadioGroup
-                  value={computingType}
-                  onChange={(event) => setComputingType(event.target.value as ComputingTypeOption)}
+                  value={computingType ?? ""}
+                  onChange={(event) => setComputingType((event.target.value as Exclude<ComputingTypeOption, null>) || null)}
                 >
                   <FormControlLabel
                     value="High Throughput Computing (HTC)"
@@ -567,7 +567,10 @@ export function UserApplicationCreateForm({
                   <Stack spacing={1.5}>
                     <Typography variant="body1">Does your calculation need GPU(s)?</Typography>
                     <FormControl>
-                      <RadioGroup value={gpuType} onChange={(event) => setGpuType(event.target.value as GpuTypeOption)}>
+                      <RadioGroup
+                        value={gpuType ?? ""}
+                        onChange={(event) => setGpuType((event.target.value as Exclude<GpuTypeOption, null>) || null)}
+                      >
                         <FormControlLabel
                           value="Not sure"
                           control={<Radio />}
