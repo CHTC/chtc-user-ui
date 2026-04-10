@@ -1,61 +1,68 @@
 "use client";
 
-import { useAuthClient } from "@/src/components/AuthProvider";
-import { Box, Button, CircularProgress, Stack, Typography } from "@mui/material";
-import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import GenericTableView from "@/src/components/GenericTableView/GenericTableView";
+import { createCellRenderer } from "@/src/utils/cellRenderers";
+import { Box, Link, Typography } from "@mui/material";
 
-type AuthStatus = "checking" | "guest" | "authenticated";
+const headers = ["id", "Created By", "Status", "PI", "Position", "Created At"];
+const cellRenderer = createCellRenderer({
+  editPath: "/forms/user-applications/edit",
+  timeColumns: ["Created At", "Updated At"],
+});
 
-function UserFormPage() {
-  const { client } = useAuthClient();
-  const router = useRouter();
-  const [authStatus, setAuthStatus] = useState<AuthStatus>("checking");
+function formatPosition(position: string) {
+  return position
+    .toLowerCase()
+    .split("_")
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(" ");
+}
 
-  useEffect(() => {
-    let cancelled = false;
-
-    const checkAuth = async () => {
-      try {
-        await client.getCurrentUser();
-        if (cancelled) return;
-        setAuthStatus("authenticated");
-        router.replace("/forms/user-applications/create");
-      } catch {
-        if (!cancelled) {
-          setAuthStatus("guest");
-        }
-      }
-    };
-
-    void checkAuth();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [client, router]);
-
-  if (authStatus === "checking" || authStatus === "authenticated") {
-    return (
-      <Box sx={{ p: 3 }}>
-        <Stack spacing={2} alignItems="flex-start">
-          <CircularProgress size={24} />
-          <Typography>{authStatus === "checking" ? "Checking login status..." : "Redirecting..."}</Typography>
-        </Stack>
-      </Box>
-    );
-  }
-
+function Page() {
   return (
-    <Box sx={{ p: 3 }}>
-      <Stack spacing={2} alignItems="flex-start">
-        <Typography variant="h4">User Form</Typography>
-        <Button href="/api/login?next=/forms/user-applications/create" variant="contained">
-          Login with NetID
-        </Button>
-      </Stack>
+    <Box>
+      <Typography variant={"h3"} component="h1" sx={{ mb: 2, display: "flex", justifyContent: "space-between" }}>
+        <Link href="/users" style={{ textDecoration: "none", color: "inherit" }}>
+          User Applications
+        </Link>
+      </Typography>
+      <GenericTableView
+        headers={headers}
+        cellRenderer={cellRenderer}
+        sortableColumns={{
+          Status: "status",
+          PI: "pi_name",
+          Position: "position",
+          "Created At": { column: "created_at", default: "desc" },
+        }}
+        query={async (client, opts, searchQuery) => {
+          const queryObj = searchQuery
+            ? {
+                or: `(pi_name.ilike.${searchQuery},pi_email.ilike.${searchQuery})`,
+              }
+            : undefined;
+
+          const result = await client.getUserApplications({
+            ...opts,
+            ...(queryObj && { query: queryObj }),
+          });
+
+          const data = result.data.map((application) => [
+            application.id,
+            application.created_by?.name ?? application.created_by?.email1 ?? "",
+            application.status,
+            application.pi_name ?? application.pi_email ?? application.pi_id ?? "",
+            formatPosition(application.position),
+            application.created_at,
+          ]);
+
+          return { data, totalCount: result.totalCount };
+        }}
+        queryLabel="Search by PI Name or Email"
+        unauthenticatedMessage="You must be logged in to view user applications."
+      />
     </Box>
   );
 }
 
-export default UserFormPage;
+export default Page;
