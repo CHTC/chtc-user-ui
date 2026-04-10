@@ -2,7 +2,7 @@
 
 import { AuthGuard } from "@/src/components/AuthGuard";
 import { apiFetch } from "@/src/components/AuthProvider";
-import UserApplicationForm from "@/src/components/Forms/UserApplicationForm/UserApplicationForm";
+import UserApplicationEditForm from "@/src/components/Forms/UserApplicationForm/UserApplicationEditForm";
 import type { ApiError } from "@/src/components/Forms/UserForm/UserForm";
 import type { UserForm, UserFormPatch } from "@/types";
 import { Box, Skeleton, Typography } from "@mui/material";
@@ -92,13 +92,7 @@ function UserApplicationFormSuspense({ id }: { id: number }) {
   };
 
   return (
-    <UserApplicationForm
-      mode="edit"
-      initialValues={data}
-      onSubmit={(payload) => handleSubmit(payload as UserFormPatch)}
-      isSubmitting={isSubmitting}
-      error={error}
-    />
+    <UserApplicationEditForm initialValues={data} onSubmit={handleSubmit} isSubmitting={isSubmitting} error={error} />
   );
 }
 

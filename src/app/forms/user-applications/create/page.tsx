@@ -1,8 +1,9 @@
 "use client";
 
 import { apiFetch, useAuthClient } from "@/src/components/AuthProvider";
-import UserApplicationForm from "@/src/components/Forms/UserApplicationForm/UserApplicationForm";
-import type { UserFormPost } from "@/types";
+import UserApplicationCreateForm, {
+  type UserApplicationCreatePayload,
+} from "@/src/components/Forms/UserApplicationForm/UserApplicationCreateForm";
 import { Alert, Box, Button, Stack, Typography } from "@mui/material";
 import { useState } from "react";
 
@@ -12,7 +13,7 @@ function CreateUserFormPage() {
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [submitSuccess, setSubmitSuccess] = useState(false);
 
-  const handleSubmit = async (payload: UserFormPost) => {
+  const handleSubmit = async (payload: UserApplicationCreatePayload) => {
     setSubmitError(null);
     setSubmitSuccess(false);
     setIsSubmitting(true);
@@ -59,20 +60,17 @@ function CreateUserFormPage() {
   }
 
   return (
-    <Box sx={{ p: 3, maxWidth: 640 }}>
+    <Box sx={{ p: 3, maxWidth: 800, mx: "auto" }}>
       <Stack spacing={3}>
         <Typography variant="h4">Account Request Form</Typography>
-
-        {/* <Typography variant="body1">Currently logged in as: ...</Typography> */}
 
         <Typography variant="body1">
           Thank you for applying for an account at the Center for High Throughput Computing (CHTC). To request an
           account, please fill out the information below.
         </Typography>
 
-        <UserApplicationForm
-          mode="create"
-          onSubmit={(payload) => handleSubmit(payload as UserFormPost)}
+        <UserApplicationCreateForm
+          onSubmit={handleSubmit}
           isSubmitting={isSubmitting}
           error={submitError}
           submitSuccess={submitSuccess}
