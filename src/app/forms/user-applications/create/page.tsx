@@ -51,7 +51,7 @@ function CreateUserFormPage() {
       <Box sx={{ p: 3 }}>
         <Stack spacing={2} alignItems="flex-start">
           <Alert severity="warning">You must be logged in to access this form.</Alert>
-          <Button href="/api/login?next=/forms/user-applications/create" variant="contained">
+          <Button href="/api/login?next=/forms/user-applications/create/" variant="contained">
             Login with NetID
           </Button>
         </Stack>

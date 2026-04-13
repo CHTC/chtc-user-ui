@@ -26,7 +26,7 @@ const UserProjectTable = ({ userId }: UserProjectTableProps) => {
           (groups || []).map((group) => (
             <TableRow key={group.id}>
               <TableCell>
-                {group.name} <EditLink href={`/groups/edit?id=${group.id}`} ariaLabel="Go to group" />
+                {group.name} <EditLink href={`/groups/edit/?id=${group.id}`} ariaLabel="Go to group" />
               </TableCell>
               <TableCell>{group.point_of_contact?.name ?? group.point_of_contact?.email1 ?? ""}</TableCell>
               <TableCell>{group.unix_gid}</TableCell>

@@ -9,10 +9,10 @@ export default function RootLayout({
   return (
     <>
       <Typography variant={"h3"} component="h1" sx={{ mb: 2, display: "flex", justifyContent: "space-between" }}>
-        <Link href="/groups" style={{ textDecoration: "none", color: "inherit" }}>
+        <Link href="/groups/" style={{ textDecoration: "none", color: "inherit" }}>
           Groups
         </Link>
-        <Button startIcon={<Add />} href={`/groups/create`} >
+        <Button startIcon={<Add />} href={`/groups/create/`} >
           Add Group
         </Button>
       </Typography>

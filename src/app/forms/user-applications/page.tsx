@@ -22,7 +22,7 @@ function Page() {
   return (
     <Box>
       <Typography variant={"h3"} component="h1" sx={{ mb: 2, display: "flex", justifyContent: "space-between" }}>
-        <Link href="/users" style={{ textDecoration: "none", color: "inherit" }}>
+        <Link href="/users/" style={{ textDecoration: "none", color: "inherit" }}>
           User Applications
         </Link>
       </Typography>

@@ -144,7 +144,7 @@ const ProjectPage = ({
       <Box my={4}>
         <Typography variant={"h4"} component="h3" sx={{ mb: 2, display: "flex", justifyContent: "space-between" }}>
           Notes
-          <Button startIcon={<Add />} href={`/projects/notes/create?project_id=${id}`} >
+          <Button startIcon={<Add />} href={`/projects/notes/create/?project_id=${id}`} >
             Add Note
           </Button>
         </Typography>

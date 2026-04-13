@@ -12,7 +12,7 @@ export default function RootLayout({
         <Link href="/groups" style={{ textDecoration: "none", color: "inherit" }}>
           Projects
         </Link>
-        <Button startIcon={<Add />} href={`/projects/create`}>
+        <Button startIcon={<Add />} href={`/projects/create/`}>
           Add Project
         </Button>
       </Typography>

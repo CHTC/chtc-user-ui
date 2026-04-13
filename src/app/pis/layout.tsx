@@ -8,7 +8,7 @@ export default function RootLayout({
   return (
     <>
       <Typography variant={"h3"} component="h1" sx={{ mb: 2, display: "flex", justifyContent: "space-between" }}>
-        <Link href="/groups" style={{ textDecoration: "none", color: "inherit" }}>
+        <Link href="/pis/" style={{ textDecoration: "none", color: "inherit" }}>
           PI Projects
         </Link>
       </Typography>

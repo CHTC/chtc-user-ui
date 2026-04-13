@@ -33,7 +33,7 @@ const UserProjectTable = ({ userId }: UserProjectTableProps) => {
             <TableRow key={project.project_id}>
               <TableCell>
                 {project.project_name}{" "}
-                <EditLink href={`/projects/edit?id=${project.project_id}`} ariaLabel="Go to project" />
+                <EditLink href={`/projects/edit/?id=${project.project_id}`} ariaLabel="Go to project" />
               </TableCell>
               <TableCell>{project.role}</TableCell>
               <TableCell>{project.is_primary ? "Yes" : "No"}</TableCell>

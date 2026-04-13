@@ -30,7 +30,7 @@ const GroupUserTable = ({ groupId }: GroupUserTableProps) => {
               (users || []).map((user) => (
                 <TableRow key={user.id}>
                   <TableCell>
-                    <EditLink href={`/users/edit?id=${user.id}`} ariaLabel="Go to user" />
+                    <EditLink href={`/users/edit/?id=${user.id}`} ariaLabel="Go to user" />
                   </TableCell>
                   <TableCell>{user.name}</TableCell>
                   <TableCell>{user.netid}</TableCell>
