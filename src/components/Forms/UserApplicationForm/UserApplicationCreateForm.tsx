@@ -260,8 +260,8 @@ export function UserApplicationCreateForm({
       pi_name: piName.trim(),
       pi_email: piEmail.trim(),
       position: position as PositionEnum,
-      mentor_name: mentorName.trim() ? mentorName.trim() : null,
-      mentor_email: mentorEmail.trim() ? mentorEmail.trim() : null,
+      mentor_name: mentorName.trim() || null,
+      mentor_email: mentorEmail.trim() || null,
       marketing_attribution: marketingAttribution,
       how_chtc_can_help: howChtcCanHelp.trim() || null,
       research_computing_area: researchComputingArea,
@@ -343,7 +343,9 @@ export function UserApplicationCreateForm({
               <FormControl>
                 <RadioGroup
                   value={mentorExpectation ?? ""}
-                  onChange={(event) => setMentorExpectation((event.target.value as Exclude<MentorExpectation, null>) || null)}
+                  onChange={(event) =>
+                    setMentorExpectation((event.target.value as Exclude<MentorExpectation, null>) || null)
+                  }
                 >
                   <FormControlLabel value="YES" control={<Radio />} label="Yes" disabled={isSubmitting} />
                   <FormControlLabel value="NO" control={<Radio />} label="No" disabled={isSubmitting} />
@@ -384,11 +386,7 @@ export function UserApplicationCreateForm({
                     control={
                       <Checkbox
                         checked={marketingAttribution.includes(option.value)}
-                        onChange={() =>
-                          setMarketingAttribution((current) =>
-                            toggleValue<MarketingAttributionOption>(current, option.value),
-                          )
-                        }
+                        onChange={() => setMarketingAttribution((current) => toggleValue(current, option.value))}
                         disabled={isSubmitting}
                       />
                     }
@@ -427,11 +425,7 @@ export function UserApplicationCreateForm({
                     control={
                       <Checkbox
                         checked={researchComputingArea.includes(option.value)}
-                        onChange={() =>
-                          setResearchComputingArea((current) =>
-                            toggleValue<ResearchComputingAreaOption>(current, option.value),
-                          )
-                        }
+                        onChange={() => setResearchComputingArea((current) => toggleValue(current, option.value))}
                         disabled={isSubmitting}
                       />
                     }
@@ -469,9 +463,7 @@ export function UserApplicationCreateForm({
                     control={
                       <Checkbox
                         checked={priorSystems.includes(option.value)}
-                        onChange={() =>
-                          setPriorSystems((current) => toggleValue<PriorSystemOption>(current, option.value))
-                        }
+                        onChange={() => setPriorSystems((current) => toggleValue(current, option.value))}
                         disabled={isSubmitting}
                       />
                     }
@@ -505,7 +497,9 @@ export function UserApplicationCreateForm({
               <FormControl required>
                 <RadioGroup
                   value={computingType ?? ""}
-                  onChange={(event) => setComputingType((event.target.value as Exclude<ComputingTypeOption, null>) || null)}
+                  onChange={(event) =>
+                    setComputingType((event.target.value as Exclude<ComputingTypeOption, null>) || null)
+                  }
                 >
                   <FormControlLabel
                     value="High Throughput Computing (HTC)"
