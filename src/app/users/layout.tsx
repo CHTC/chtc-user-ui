@@ -9,10 +9,10 @@ export default function RootLayout({
   return (
     <>
       <Typography variant={"h3"} component="h1" sx={{ mb: 2, display: "flex", justifyContent: "space-between" }}>
-        <Link href="/users" style={{ textDecoration: "none", color: "inherit" }}>
+        <Link href="/users/" style={{ textDecoration: "none", color: "inherit" }}>
           Users
         </Link>
-        <Button startIcon={<Add />} href={`/users/create`}>
+        <Button startIcon={<Add />} href={`/users/create/`}>
           Add User
         </Button>
       </Typography>
