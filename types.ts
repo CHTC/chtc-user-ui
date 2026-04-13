@@ -263,10 +263,6 @@ export interface UserFormPatch {
   submit_nodes: string[];
 }
 
-export interface CurrentUser {
-  is_admin: boolean;
-}
-
 export type SortDirection = "asc" | "desc";
 
 export interface PaginationParams {

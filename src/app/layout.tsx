@@ -1,9 +1,8 @@
 import type { Metadata } from "next";
 
-import Header from "@/src/components/Header";
+import AppShell from "@/src/components/AppShell";
 import Banner from "@chtc/web-components/UW/Banner";
-import { Folder, Group, People, School } from "@mui/icons-material";
-import { Box, Container } from "@mui/material";
+import { Box } from "@mui/material";
 import { AppRouterCacheProvider } from "@mui/material-nextjs/v15-appRouter";
 import { ThemeProvider } from "@mui/material/styles";
 import { Red_Hat_Display, Red_Hat_Text } from "next/font/google";
@@ -29,15 +28,6 @@ export const metadata: Metadata = {
   // description: "", // TODO
 };
 
-const pages = [
-  { label: "Users", path: "/users/", icon: <People /> },
-  { label: "Projects", path: "/projects/", icon: <Folder /> },
-  { label: "Groups", path: "/groups/", icon: <Group /> },
-  { label: "PIs", path: "/pis/", icon: <School /> },
-  { label: "Email", path: "/email/", icon: <People /> },
-  { label: "Forms", path: "/forms/user-applications/", icon: <People /> },
-];
-
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -50,10 +40,7 @@ export default function RootLayout({
           <ThemeProvider theme={theme}>
             <AuthClientProvider>
               <Banner />
-              <Header pages={pages} />
-              <Container maxWidth="lg">
-                <Box my={2}>{children}</Box>
-              </Container>
+              <AppShell>{children}</AppShell>
             </AuthClientProvider>
           </ThemeProvider>
         </AppRouterCacheProvider>

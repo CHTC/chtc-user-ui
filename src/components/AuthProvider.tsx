@@ -1,7 +1,6 @@
 "use client";
 
 import type {
-  CurrentUser,
   Group,
   GroupCreateUpdate,
   JoinedProjectView,
@@ -37,7 +36,7 @@ export type LoginResult =
 export type ApiClient = {
   // Authentication
   logout: () => Promise<{ message: string }>;
-  getCurrentUser: () => Promise<CurrentUser>;
+  getCurrentUser: () => Promise<User>;
 
   // Users
   getUsers: (params?: PaginationParams) => Promise<PaginatedResponse<User[]>>;
@@ -88,6 +87,7 @@ export type ApiClient = {
 
 type AuthContextValue = {
   client: ApiClient;
+  currentUser: User | null;
   isAuthenticated: boolean;
 };
 
@@ -156,6 +156,7 @@ function buildQuery(params?: PaginationParams): string {
 
 export function AuthClientProvider({ children }: { children: React.ReactNode }) {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
 
   // Check if user is authenticated on mount
   useEffect(() => {
@@ -163,6 +164,10 @@ export function AuthClientProvider({ children }: { children: React.ReactNode }) 
       try {
         const response = await apiFetch("/me");
         setIsAuthenticated(response.ok);
+        if (response.ok) {
+          const userData = await response.json();
+          setCurrentUser(userData);
+        }
       } catch {
         setIsAuthenticated(false);
       }
@@ -178,7 +183,7 @@ export function AuthClientProvider({ children }: { children: React.ReactNode }) 
       return response.json();
     }, []),
 
-    getCurrentUser: useCallback(async (): Promise<CurrentUser> => {
+    getCurrentUser: useCallback(async (): Promise<User> => {
       const response = await apiFetch("/me");
       if (!response.ok) throw new Error(`Failed to get current user: ${response.statusText}`);
       return response.json();
@@ -423,7 +428,7 @@ export function AuthClientProvider({ children }: { children: React.ReactNode }) 
     }, []),
   };
 
-  return <AuthClientContext.Provider value={{ client, isAuthenticated }}>{children}</AuthClientContext.Provider>;
+  return <AuthClientContext.Provider value={{ client, currentUser, isAuthenticated }}>{children}</AuthClientContext.Provider>;
 }
 
 /** Hook for consuming auth context. */
