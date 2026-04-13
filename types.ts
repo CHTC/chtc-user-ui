@@ -231,6 +231,7 @@ export interface UserForm extends BaseForm {
   pi_name?: string | null;
   pi_email?: string | null;
   position: PositionEnum;
+  content: Record<string, any>;
 }
 
 export interface UserFormPost {
@@ -238,6 +239,21 @@ export interface UserFormPost {
   pi_name?: string | null;
   pi_email?: string | null;
   position: PositionEnum;
+  mentor_name?: string | null;
+  mentor_email?: string | null;
+  marketing_attribution?: string | null;
+  how_chtc_can_help?: string | null;
+  research_computing_area?: string | null;
+  software_link?: string | null;
+  computing_type?: string | null;
+  cpu_cores?: string | null;
+  memory_gb?: string | null;
+  disk_space_gb?: string | null;
+  calculation_runtime_hours?: string | null;
+  gpu_type?: string | null;
+  calculation_quantity?: string | null;
+  special_access?: string | null;
+  extra_info?: string | null;
 }
 
 export interface UserFormPatch {

@@ -1,9 +1,8 @@
 "use client";
 
 import { apiFetch, useAuthClient } from "@/src/components/AuthProvider";
-import UserApplicationCreateForm, {
-  type UserApplicationCreatePayload,
-} from "@/src/components/Forms/UserApplicationForm/UserApplicationCreateForm";
+import UserApplicationCreateForm from "@/src/components/Forms/UserApplicationForm/UserApplicationCreateForm";
+import { UserFormPost } from "@/types";
 import { Alert, Box, Button, Stack, Typography } from "@mui/material";
 import { useState } from "react";
 
@@ -13,7 +12,7 @@ function CreateUserFormPage() {
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [submitSuccess, setSubmitSuccess] = useState(false);
 
-  const handleSubmit = async (payload: UserApplicationCreatePayload) => {
+  const handleSubmit = async (payload: UserFormPost) => {
     setSubmitError(null);
     setSubmitSuccess(false);
     setIsSubmitting(true);

@@ -71,27 +71,9 @@ type DiskSpaceOption = "Not sure" | "< 10" | "10 - 100" | "100 - 500" | "> 500" 
 
 type RuntimeOption = "Not sure" | "< 8" | "8 - 24" | "24 - 72" | "> 72" | null;
 
-export interface UserApplicationCreatePayload extends UserFormPost {
-  mentor_name?: string | null;
-  mentor_email?: string | null;
-  marketing_attribution?: MarketingAttributionOption[];
-  how_chtc_can_help?: string | null;
-  research_computing_area?: ResearchComputingAreaOption[];
-  software_link?: string | null;
-  computing_type?: Exclude<ComputingTypeOption, null> | null;
-  cpu_cores?: Exclude<CpuCoresOption, null> | null;
-  memory_gb?: Exclude<MemoryOption, null> | null;
-  disk_space_gb?: Exclude<DiskSpaceOption, null> | null;
-  calculation_runtime_hours?: Exclude<RuntimeOption, null> | null;
-  gpu_type?: Exclude<GpuTypeOption, null> | null;
-  calculation_quantity?: string | null;
-  special_access?: string | null;
-  extra_info?: string | null;
-}
-
 interface UserApplicationCreateFormProps {
   initialValues?: UserForm | null;
-  onSubmit: (payload: UserApplicationCreatePayload) => Promise<void> | void;
+  onSubmit: (payload: UserFormPost) => Promise<void> | void;
   isSubmitting?: boolean;
   error?: string | ApiError | null;
   submitSuccess?: boolean;
@@ -262,9 +244,9 @@ export function UserApplicationCreateForm({
       position: position as PositionEnum,
       mentor_name: mentorName.trim() || null,
       mentor_email: mentorEmail.trim() || null,
-      marketing_attribution: marketingAttribution,
+      marketing_attribution: marketingAttribution.join(", "),
       how_chtc_can_help: howChtcCanHelp.trim() || null,
-      research_computing_area: researchComputingArea,
+      research_computing_area: researchComputingArea.join(", "),
       software_link: softwareLink.trim() || null,
       computing_type: computingType,
       cpu_cores: cpuCores,

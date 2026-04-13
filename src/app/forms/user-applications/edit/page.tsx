@@ -42,7 +42,7 @@ function UserApplicationPage() {
   }
 
   return (
-    <Box sx={{ p: 3, maxWidth: 640 }}>
+    <Box sx={{ p: 3, width: "100%" }}>
       <Typography variant="h4" sx={{ mb: 3 }}>
         Edit User Application
       </Typography>
