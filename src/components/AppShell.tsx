@@ -16,15 +16,18 @@ const adminPages = [
 
 const userPages = [
   { label: "Account", path: "/users/me", icon: <People />},
-  { label: "Apply Now", path: "/forms/user-applications/create/", icon: <Add />},
+  { label: "Application", path: "/forms/user-applications/create/", icon: <Add />},
 ];
 
+
 export default function AppShell({ children }: { children: React.ReactNode }) {
-  const { currentUser } = useAuthClient();
+  const { currentUser, isAuthenticated } = useAuthClient();
+
+  const pages = currentUser?.is_admin ? adminPages : isAuthenticated ? userPages : [];
 
   return (
     <>
-      <Header pages={currentUser?.is_admin ? adminPages : userPages} />
+      <Header pages={pages} />
       <Container maxWidth="lg">
         <Box my={2}>{children}</Box>
       </Container>
