@@ -4,8 +4,8 @@ import { AuthGuard } from "@/src/components/AuthGuard";
 import {apiFetch, useAuthClient} from "@/src/components/AuthProvider";
 import { UserForm } from "@/src/components/Forms/UserForm/UserForm";
 import { ApiError } from "@/src/utils/formErrors";
-import {Box, Link, Paper, Skeleton, Typography} from "@mui/material";
-import AccessTimeOutlinedIcon from "@mui/icons-material/AccessTimeOutlined";
+import { Box, Skeleton, Typography } from "@mui/material";
+import PendingApplicationBanner from "@/src/app/users/_components/PendingApplicationBanner";
 import { Suspense, useState } from "react";
 
 import useSWR from "swr";
@@ -129,57 +129,9 @@ const UserPage = ({
     return <Skeleton height={400} />;
   }
 
-  const currentForms = (currentUser?.user_forms ?? []).sort(
-    (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-  )
-
-  console.log(currentForms);
-
-  const pendingApplication = currentForms.length >= 1 && currentForms[0].status === "PENDING"
-
   return (
     <>
-      {pendingApplication && (
-        <Paper
-          elevation={0}
-          sx={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 2,
-            p: 2.5,
-            mb: 3,
-            border: '1px solid',
-            borderColor: 'info.light',
-            borderRadius: 3,
-            bgcolor: 'info.50',
-          }}
-        >
-          <Box
-            sx={{
-              flexShrink: 0,
-              width: 40,
-              height: 40,
-              borderRadius: 2,
-              bgcolor: 'info.main',
-              color: 'info.contrastText',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}
-          >
-            <AccessTimeOutlinedIcon fontSize="small" />
-          </Box>
-          <Box>
-            <Typography variant="body2" sx={{ fontWeight: 700, mb: 0.25 }}>
-              Application pending
-            </Typography>
-            <Typography variant="body2" color="text.secondary">
-              We'll follow up within 2–3 business days. If you haven't heard back after 3 business days, contact us at{' '}
-              <Link href="mailto:chtc@cs.wisc.edu">chtc@cs.wisc.edu</Link>.
-            </Typography>
-          </Box>
-        </Paper>
-      )}
+      <PendingApplicationBanner />
       <Suspense fallback={<Skeleton variant={"rectangular"} height={"400px"} />}>
         <UserFormSuspense id={currentUser?.id} handleSubmit={handleSubmit} adminView={currentUser.is_admin || undefined} />
       </Suspense>
