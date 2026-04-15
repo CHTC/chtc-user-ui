@@ -131,6 +131,7 @@ export interface User {
   submit_nodes?: UserSubmitGet[];
   notes?: Note[];
   projects?: JoinedProjectView[];
+  user_forms?: UserForm[];
 }
 
 export interface UserCreate {

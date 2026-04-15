@@ -3,11 +3,12 @@
 import { apiFetch, useAuthClient } from "@/src/components/AuthProvider";
 import UserApplicationCreateForm from "@/src/components/Forms/UserApplicationForm/UserApplicationCreateForm";
 import { UserFormPost } from "@/types";
-import { Alert, Box, Button, Stack, Typography } from "@mui/material";
+import {Alert, Box, Button, Skeleton, Stack, Typography} from "@mui/material";
 import { useState } from "react";
+import LandingPage from "@/src/app/forms/user-applications/create/_components/LandingPage";
 
 function CreateUserFormPage() {
-  const { isAuthenticated } = useAuthClient();
+  const { isAuthenticated, currentUser, loading } = useAuthClient();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [submitSuccess, setSubmitSuccess] = useState(false);
@@ -45,36 +46,28 @@ function CreateUserFormPage() {
     }
   };
 
+  if (loading) {
+    return <Box>
+      <Skeleton variant={"rounded"} height={"800px"} sx={{ minHeight: "80vh" }} />
+    </Box>
+  }
+
   if (!isAuthenticated) {
-    return (
-      <Box sx={{ p: 3 }}>
-        <Stack spacing={2} alignItems="flex-start">
-          <Alert severity="warning">You must be logged in to access this form.</Alert>
-          <Button href="/api/login?next=/forms/user-applications/create/" variant="contained">
-            Login with NetID
-          </Button>
-        </Stack>
-      </Box>
-    );
+    return <LandingPage />;
+  }
+
+  if (currentUser?.active) {
+    return <Alert severity="info">Your account is already active. No need to submit another application.</Alert>;
   }
 
   return (
     <Box sx={{ p: 3, maxWidth: 800, mx: "auto" }}>
-      <Stack spacing={3}>
-        <Typography variant="h4">Account Request Form</Typography>
-
-        <Typography variant="body1">
-          Thank you for applying for an account at the Center for High Throughput Computing (CHTC). To request an
-          account, please fill out the information below.
-        </Typography>
-
-        <UserApplicationCreateForm
-          onSubmit={handleSubmit}
-          isSubmitting={isSubmitting}
-          error={submitError}
-          submitSuccess={submitSuccess}
-        />
-      </Stack>
+      <UserApplicationCreateForm
+        onSubmit={handleSubmit}
+        isSubmitting={isSubmitting}
+        error={submitError}
+        submitSuccess={submitSuccess}
+      />
     </Box>
   );
 }

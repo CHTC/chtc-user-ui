@@ -6,12 +6,11 @@ import { Table, TableBody, TableCell, TableHead, TableRow } from "@mui/material"
 
 interface UserProjectTableProps {
   userId: number;
+  adminView?: boolean;
 }
 
-const UserProjectTable = ({ userId }: UserProjectTableProps) => {
+const UserProjectTable = ({ userId, adminView=false }: UserProjectTableProps) => {
   const { data: projects, mutate } = useTableFetch<JoinedProjectView[]>(`/users/${userId}/projects`);
-
-  console.log("Fetched projects for user:", projects);
 
   return (
     <Table>
@@ -24,7 +23,9 @@ const UserProjectTable = ({ userId }: UserProjectTableProps) => {
           <TableCell>Status</TableCell>
           <TableCell>Last Contact</TableCell>
           <TableCell>Accounting Group</TableCell>
-          <TableCell>Action</TableCell>
+          {adminView && (
+            <TableCell>Action</TableCell>
+          )}
         </TableRow>
       </TableHead>
       <TableBody>
@@ -51,13 +52,15 @@ const UserProjectTable = ({ userId }: UserProjectTableProps) => {
                 {project.project_last_contact ? new Date(project.project_last_contact).toLocaleString() : ""}
               </TableCell>
               <TableCell>{project.project_accounting_group}</TableCell>
-              <TableCell>
-                <DeleteActionButton
-                  url={`/projects/${project.project_id}/users/${userId}`}
-                  onSuccess={mutate}
-                  ariaLabel="Delete User"
-                />
-              </TableCell>
+              {adminView && (
+                <TableCell>
+                  <DeleteActionButton
+                    url={`/projects/${project.project_id}/users/${userId}`}
+                    onSuccess={mutate}
+                    ariaLabel="Delete User"
+                  />
+                </TableCell>
+              )}
             </TableRow>
           ))}
       </TableBody>

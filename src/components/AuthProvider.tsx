@@ -86,8 +86,10 @@ export type ApiClient = {
 };
 
 type AuthContextValue = {
+  loading: boolean;
   client: ApiClient;
   currentUser: User | null;
+  update: () => void; // Function to trigger a refresh of the current user data
   isAuthenticated: boolean;
 };
 
@@ -155,23 +157,28 @@ function buildQuery(params?: PaginationParams): string {
 }
 
 export function AuthClientProvider({ children }: { children: React.ReactNode }) {
+
+  const [loading, setLoading] = useState(true);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [currentUser, setCurrentUser] = useState<User | null>(null);
 
+  const checkAuth = async () => {
+    setLoading(true);
+    try {
+      const response = await apiFetch("/me");
+      setIsAuthenticated(response.ok);
+      if (response.ok) {
+        const userData = await response.json();
+        setCurrentUser(userData);
+      }
+    } catch {
+      setIsAuthenticated(false);
+    }
+    setLoading(false);
+  };
+
   // Check if user is authenticated on mount
   useEffect(() => {
-    const checkAuth = async () => {
-      try {
-        const response = await apiFetch("/me");
-        setIsAuthenticated(response.ok);
-        if (response.ok) {
-          const userData = await response.json();
-          setCurrentUser(userData);
-        }
-      } catch {
-        setIsAuthenticated(false);
-      }
-    };
     checkAuth();
   }, []);
 
@@ -428,7 +435,7 @@ export function AuthClientProvider({ children }: { children: React.ReactNode }) 
     }, []),
   };
 
-  return <AuthClientContext.Provider value={{ client, currentUser, isAuthenticated }}>{children}</AuthClientContext.Provider>;
+  return <AuthClientContext.Provider value={{ loading, client, currentUser, isAuthenticated, update: checkAuth }}>{children}</AuthClientContext.Provider>;
 }
 
 /** Hook for consuming auth context. */

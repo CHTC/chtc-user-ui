@@ -1,5 +1,6 @@
 import { Add } from "@mui/icons-material";
 import { Box, Button, Link, Typography } from "@mui/material";
+import CreateUserButton from "./_components/CreateUserButton";
 
 export default function RootLayout({
   children,
@@ -12,9 +13,7 @@ export default function RootLayout({
         <Link href="/users/" style={{ textDecoration: "none", color: "inherit" }}>
           Users
         </Link>
-        <Button startIcon={<Add />} href={`/users/create/`}>
-          Add User
-        </Button>
+        <CreateUserButton />
       </Typography>
       <Box>{children}</Box>
     </>
