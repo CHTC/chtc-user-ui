@@ -73,6 +73,7 @@ const userFetcher = async (id: number | null) => {
 const UserFormSuspense = ({
   id,
   handleSubmit,
+  adminView = true
 }: {
   id: number | null;
   handleSubmit: (
@@ -82,6 +83,7 @@ const UserFormSuspense = ({
     setError: (error: string | ApiError | null) => void,
     setIsSubmitting: (isSubmitting: boolean) => void,
   ) => Promise<void>;
+  adminView?: boolean;
 }) => {
   const { data: user, mutate } = useSWR(id ? [`/users/${id}`] : null, () => userFetcher(id) as Promise<User>, {
     suspense: true,
@@ -103,6 +105,7 @@ const UserFormSuspense = ({
         }
         error={error}
         isSubmitting={isSubmitting}
+        adminView={adminView}
       />
     </Box>
   );
@@ -129,14 +132,14 @@ const UserPage = ({
   return (
     <>
       <Suspense fallback={<Skeleton variant={"rectangular"} height={"400px"} />}>
-        <UserFormSuspense id={id} handleSubmit={handleSubmit} />
+        <UserFormSuspense id={id} handleSubmit={handleSubmit} adminView={true} />
       </Suspense>
       <Box my={4}>
         <Suspense fallback={<Skeleton variant={"rectangular"} height={"400px"} />}>
           <Typography variant={"h4"} component="h3" sx={{ mb: 2, display: "flex", justifyContent: "space-between" }}>
             Projects
           </Typography>
-          <UserProjectTable userId={id} />
+          <UserProjectTable userId={id} adminView={true} />
         </Suspense>
       </Box>
       <Box my={4}>
@@ -144,7 +147,7 @@ const UserPage = ({
           <Typography variant={"h4"} component="h3" sx={{ mb: 2, display: "flex", justifyContent: "space-between" }}>
             Groups
           </Typography>
-          <UserGroupTable userId={id} />
+          <UserGroupTable userId={id} adminView={true} />
         </Suspense>
       </Box>
     </>
