@@ -3,7 +3,7 @@
 import { apiFetch, useAuthClient } from "@/src/components/AuthProvider";
 import UserApplicationCreateForm from "@/src/components/Forms/UserApplicationForm/UserApplicationCreateForm";
 import { UserFormPost } from "@/types";
-import {Alert, Box, Button, Skeleton, Stack, Typography} from "@mui/material";
+import {Alert, Box, Skeleton } from "@mui/material";
 import { useState } from "react";
 import LandingPage from "@/src/app/forms/user-applications/create/_components/LandingPage";
 

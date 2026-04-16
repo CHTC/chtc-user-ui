@@ -1,5 +1,4 @@
-import { Add } from "@mui/icons-material";
-import { Box, Button, Link, Typography } from "@mui/material";
+import { Box, Link, Typography } from "@mui/material";
 import CreateUserButton from "./_components/CreateUserButton";
 
 export default function RootLayout({

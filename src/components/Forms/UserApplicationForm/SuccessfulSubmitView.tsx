@@ -32,7 +32,7 @@ const steps = [
       <>
         Wait 2–3 business days for a follow-up from CHTC Facilitation Staff. Contact{' '}
         <MuiLink href="mailto:chtc@cs.wisc.edu">chtc@cs.wisc.edu</MuiLink>{' '}
-        if you don't hear back after 3 business days.
+        if you don&apos;t hear back after 3 business days.
       </>
     ),
   },
@@ -54,7 +54,7 @@ const steps = [
         <Typography variant="body2" sx={{ fontWeight: 700, mb: 0.5 }}>
           Existing Research Group
         </Typography>
-        We will create your account. We don't require a meeting, but highly recommend one if you are new to research computing!
+        We will create your account. We don&apos;t require a meeting, but highly recommend one if you are new to research computing!
       </>
     ),
   },
@@ -70,7 +70,7 @@ export default function SuccessfulSubmitView() {
           Application submitted!
         </Typography>
         <Typography variant="body1" color="text.secondary">
-          Here's a reminder of what happens next.
+          Here&apos;s a reminder of what happens next.
         </Typography>
       </Box>
 

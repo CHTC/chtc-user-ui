@@ -1,5 +1,4 @@
 import React from 'react';
-import Link from 'next/link';
 import {
   Box,
   Button,
@@ -31,7 +30,7 @@ const steps = [
       <>
         Wait 2–3 business days for a follow-up from CHTC Facilitation Staff. Contact us at{' '}
         <MuiLink href="mailto:chtc@cs.wisc.edu">chtc@cs.wisc.edu</MuiLink>{' '}
-        if you don't hear from us after 3 business days.
+        if you don&apos;t hear from us after 3 business days.
       </>
     ),
   },
@@ -49,7 +48,7 @@ const steps = [
     text: (
       <>
         <Typography variant="body2" sx={{ fontWeight: 700, mb: 0.5 }}>Existing Research Group</Typography>
-        We will create a new account. We don't require a meeting, but highly recommend meeting with us, especially if you are new to research computing!
+        We will create a new account. We don&apos;t require a meeting, but highly recommend meeting with us, especially if you are new to research computing!
       </>
     ),
   },
@@ -68,7 +67,7 @@ export default function LandingPage() {
           Before you apply
         </Typography>
         <Typography variant="body1" color="text.secondary">
-          Here's what to expect after submitting your account request.
+          Here&apos;s what to expect after submitting your account request.
         </Typography>
       </Box>
 

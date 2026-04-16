@@ -23,7 +23,6 @@ import {
 import { useMemo, useState } from "react";
 import SuccessfulSubmitView from "@/src/components/Forms/UserApplicationForm/SuccessfulSubmitView";
 import {useAuthClient} from "@/src/components/AuthProvider";
-import {isSupportedFormMethod} from "next/dist/client/form-shared";
 
 type MentorExpectation = "YES" | "NO" | "MAYBE" | null;
 

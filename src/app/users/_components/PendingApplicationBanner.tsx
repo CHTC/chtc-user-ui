@@ -52,7 +52,7 @@ export default function PendingApplicationBanner() {
           Application pending
         </Typography>
         <Typography variant="body2" color="text.secondary">
-          We'll follow up within 2–3 business days. If you haven't heard back after 3 business days, contact us at{" "}
+          We&apos;ll follow up within 2–3 business days. If you haven&apos;t heard back after 3 business days, contact us at{" "}
           <Link href="mailto:chtc@cs.wisc.edu">chtc@cs.wisc.edu</Link>.
         </Typography>
       </Box>

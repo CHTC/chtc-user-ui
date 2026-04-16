@@ -1,16 +1,16 @@
 "use client";
 
-import { AuthGuard } from "@/src/components/AuthGuard";
-import { apiFetch } from "@/src/components/AuthProvider";
-import { ProjectForm } from "@/src/components/Forms/ProjectForm/ProjectForm";
+import {AuthGuard} from "@/src/components/AuthGuard";
+import {apiFetch} from "@/src/components/AuthProvider";
+import {ProjectForm} from "@/src/components/Forms/ProjectForm/ProjectForm";
 import ProjectNoteTable from "@/src/components/ProjectNoteTable/ProjectNoteTable";
 import ProjectUserTable from "@/src/components/ProjectUserTable/ProjectUserTable";
-import { ApiError } from "@/src/utils/formErrors";
-import type { ProjectCreateUpdate } from "@/types";
-import { Add } from "@mui/icons-material";
-import { Box, Breadcrumbs, Button, Link, Skeleton, Typography } from "@mui/material";
-import { useSearchParams } from "next/navigation";
-import { Suspense, useState } from "react";
+import {ApiError} from "@/src/utils/formErrors";
+import type {ProjectCreateUpdate} from "@/types";
+import {Add} from "@mui/icons-material";
+import {Box, Breadcrumbs, Button, Skeleton, Typography} from "@mui/material";
+import {useSearchParams} from "next/navigation";
+import {Suspense, useState} from "react";
 import useSWR from "swr";
 
 function Page() {
