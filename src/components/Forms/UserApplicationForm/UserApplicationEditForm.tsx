@@ -5,7 +5,7 @@ import ProjectAutocomplete from "@/src/components/ProjectAutocomplete/ProjectAut
 import SubmitNodeAutocomplete from "@/src/components/SubmitNodeAutocomplete/SubmitNodeAutocomplete";
 import type { FormStatusEnum, PositionEnum, Project, SubmitNode, UserForm, UserFormPatch } from "@/types";
 import {
-  Alert,
+  Alert, AlertTitle,
   Box,
   Button,
   Chip,
@@ -19,6 +19,7 @@ import {
   Typography,
 } from "@mui/material";
 import { useMemo, useState } from "react";
+import {useAuthClient} from "@/src/components/AuthProvider";
 
 export interface UserApplicationEditFormProps {
   initialValues?: UserForm | null;
@@ -51,6 +52,8 @@ function ReviewField({ label, value }: { label: string; value: string | null }) 
   );
 }
 
+type Step = "initial" | "existing-check" | "form";
+
 export function UserApplicationEditForm({
   initialValues,
   onSubmit,
@@ -58,32 +61,50 @@ export function UserApplicationEditForm({
   error = null,
   submitSuccess = false,
 }: UserApplicationEditFormProps) {
-  const [status, setStatus] = useState<FormStatusEnum>(initialValues?.status ?? "PENDING");
+  const {currentUser} = useAuthClient();
+  const [step, setStep] = useState<Step>("initial");
   const [project, setProject] = useState<Project | null>(null);
-  const [projectPosition, setProjectPosition] = useState<PositionEnum | "">(initialValues?.position ?? "");
+  const [userPosition, setUserPosition] = useState<PositionEnum | "">(initialValues?.position ?? "");
   const [selectedSubmitNode, setSelectedSubmitNode] = useState<SubmitNode | null>(null);
   const [submitNodes, setSubmitNodes] = useState<SubmitNode[]>([]);
   const content = initialValues?.content;
   const piDisplay = initialValues?.pi_name ?? `User ID ${initialValues?.pi_id ?? "-"}`;
   const piEmail = initialValues?.pi_email ?? null;
 
+  const userWasPreviouslyActive = useMemo(() => {
+    return Boolean(
+      (currentUser?.groups?.length ?? 0) ||
+      (currentUser?.projects?.length ?? 0) ||
+      (currentUser?.submit_nodes?.length ?? 0)
+    );
+  }, [currentUser]);
+
   const validationMessage = useMemo(() => {
-    if (status === "APPROVED") {
-      if (!project) {
-        return "Select a project before approving.";
-      }
-
-      if (projectPosition === "") {
-        return "Choose a project position before approving.";
-      }
-
-      if (submitNodes.length === 0) {
-        return "Add at least one submit node before approving.";
-      }
-    }
-
+    if (!project) return "Select a project before approving.";
+    if (userPosition === "") return "Choose a project position before approving.";
+    if (submitNodes.length === 0) return "Add at least one submit node before approving.";
     return null;
-  }, [project, projectPosition, status, submitNodes.length]);
+  }, [project, userPosition, submitNodes.length]);
+
+  const handleDeny = async () => {
+    await onSubmit({ status: "DENIED" });
+  };
+
+  const handleApproveClick = () => {
+    if (userWasPreviouslyActive) {
+      setStep("existing-check");
+    } else {
+      setStep("form");
+    }
+  };
+
+  const handleKeepExisting = async () => {
+    await onSubmit({ status: "APPROVED", preserve_existing_data: true });
+  };
+
+  const handleStartFresh = () => {
+    setStep("form");
+  };
 
   const handleAddSubmitNode = () => {
     if (!selectedSubmitNode || submitNodes.some((node) => node.id === selectedSubmitNode.id)) {
@@ -102,23 +123,23 @@ export function UserApplicationEditForm({
     if (validationMessage) return;
 
     await onSubmit({
-      status,
+      status: "APPROVED",
       project_id: project?.id ?? 0,
-      project_position: projectPosition as PositionEnum,
-      submit_nodes: submitNodes.map((node) => node.name),
+      user_position: userPosition as PositionEnum,
+      submit_nodes: submitNodes.map((node) => ({ submit_node_id: node.id })),
     });
   };
 
+  const isPending = initialValues?.status === "PENDING";
+
   return (
-    <Box component="form" onSubmit={handleSubmit} sx={{ width: "100%" }}>
+    <Box sx={{ width: "100%" }}>
       <Grid container spacing={3} alignItems="flex-start">
+        {/* Application Details (always visible) */}
         <Grid size={{ xs: 12, lg: 6 }}>
           <Paper variant="outlined" sx={{ p: 3 }}>
             <Stack spacing={2}>
-              <Stack spacing={0.5}>
-                <Typography variant="h6">Application Details</Typography>
-              </Stack>
-
+              <Typography variant="h6">Application Details</Typography>
               <ReviewField
                 label="Submitted By"
                 value={initialValues?.created_by?.name ?? initialValues?.created_by?.email1 ?? "-"}
@@ -140,57 +161,25 @@ export function UserApplicationEditForm({
                     .join(" · ") || null
                 }
               />
-              <ReviewField
-                label="How They Heard About CHTC"
-                value={(content?.marketing_attribution as string | null | undefined) ?? null}
-              />
-              <ReviewField
-                label="How CHTC Can Help"
-                value={(content?.how_chtc_can_help as string | null | undefined) ?? null}
-              />
-              <ReviewField
-                label="Research Computing Areas"
-                value={(content?.research_computing_area as string | null | undefined) ?? null}
-              />
-              <ReviewField
-                label="Software / Program"
-                value={(content?.software_link as string | null | undefined) ?? null}
-              />
-              <ReviewField
-                label="Prior Systems"
-                value={(content?.prior_systems as string | null | undefined) ?? null}
-              />
-              <ReviewField
-                label="Computing Type"
-                value={(content?.computing_type as string | null | undefined) ?? null}
-              />
+              <ReviewField label="How They Heard About CHTC" value={(content?.marketing_attribution as string | null | undefined) ?? null} />
+              <ReviewField label="How CHTC Can Help" value={(content?.how_chtc_can_help as string | null | undefined) ?? null} />
+              <ReviewField label="Research Computing Areas" value={(content?.research_computing_area as string | null | undefined) ?? null} />
+              <ReviewField label="Software / Program" value={(content?.software_link as string | null | undefined) ?? null} />
+              <ReviewField label="Prior Systems" value={(content?.prior_systems as string | null | undefined) ?? null} />
+              <ReviewField label="Computing Type" value={(content?.computing_type as string | null | undefined) ?? null} />
               <ReviewField label="CPU Cores" value={(content?.cpu_cores as string | null | undefined) ?? null} />
               <ReviewField label="Memory (GB)" value={(content?.memory_gb as string | null | undefined) ?? null} />
-              <ReviewField
-                label="Disk Space (GB)"
-                value={(content?.disk_space_gb as string | null | undefined) ?? null}
-              />
-              <ReviewField
-                label="Runtime (Hours)"
-                value={(content?.calculation_runtime_hours as string | null | undefined) ?? null}
-              />
+              <ReviewField label="Disk Space (GB)" value={(content?.disk_space_gb as string | null | undefined) ?? null} />
+              <ReviewField label="Runtime (Hours)" value={(content?.calculation_runtime_hours as string | null | undefined) ?? null} />
               <ReviewField label="GPU Needs" value={(content?.gpu_type as string | null | undefined) ?? null} />
-              <ReviewField
-                label="Calculation Quantity"
-                value={(content?.calculation_quantity as string | null | undefined) ?? null}
-              />
-              <ReviewField
-                label="Special Access"
-                value={(content?.special_access as string | null | undefined) ?? null}
-              />
-              <ReviewField
-                label="Additional Information"
-                value={(content?.extra_info as string | null | undefined) ?? null}
-              />
+              <ReviewField label="Calculation Quantity" value={(content?.calculation_quantity as string | null | undefined) ?? null} />
+              <ReviewField label="Special Access" value={(content?.special_access as string | null | undefined) ?? null} />
+              <ReviewField label="Additional Information" value={(content?.extra_info as string | null | undefined) ?? null} />
             </Stack>
           </Paper>
         </Grid>
 
+        {/* Review Actions */}
         <Grid size={{ xs: 12, lg: 6 }}>
           <Paper variant="outlined" sx={{ p: 3, position: { lg: "sticky" }, top: { lg: 88 } }}>
             <Stack spacing={3}>
@@ -201,86 +190,154 @@ export function UserApplicationEditForm({
                 </Typography>
               </Stack>
 
-              <FormControl fullWidth>
-                <InputLabel id="status-label">Status</InputLabel>
-                <Select
-                  labelId="status-label"
-                  label="Status"
-                  value={status}
-                  onChange={(event) => setStatus(event.target.value as FormStatusEnum)}
-                  disabled={isSubmitting || initialValues?.status !== "PENDING"}
-                >
-                  <MenuItem value="PENDING">Pending</MenuItem>
-                  <MenuItem value="APPROVED">Approved</MenuItem>
-                  <MenuItem value="DENIED">Denied</MenuItem>
-                </Select>
-              </FormControl>
-
-              <ProjectAutocomplete
-                value={project ?? undefined}
-                onSelect={setProject}
-                required={status === "APPROVED"}
-                disabled={isSubmitting || status !== "APPROVED"}
-              />
-
-              <FormControl fullWidth>
-                <InputLabel id="project-position-label">Project Position</InputLabel>
-                <Select
-                  labelId="project-position-label"
-                  label="Project Position"
-                  value={projectPosition}
-                  onChange={(event) => setProjectPosition(event.target.value as PositionEnum | "")}
-                  disabled={isSubmitting || status !== "APPROVED"}
-                >
-                  <MenuItem value="">Select Position</MenuItem>
-                  <MenuItem value="FACULTY">Faculty</MenuItem>
-                  <MenuItem value="STAFF">Staff</MenuItem>
-                  <MenuItem value="POSTDOC">Postdoc</MenuItem>
-                  <MenuItem value="GRAD_STUDENT">Grad Student</MenuItem>
-                  <MenuItem value="UNDERGRADUATE">Undergraduate</MenuItem>
-                  <MenuItem value="OTHER">Other</MenuItem>
-                </Select>
-              </FormControl>
-
-              <Stack spacing={2}>
-                <SubmitNodeAutocomplete
-                  value={selectedSubmitNode ?? undefined}
-                  onSelect={setSelectedSubmitNode}
-                  disabled={isSubmitting || status !== "APPROVED"}
-                />
-                <Box>
+              {/* Step: initial — Approve / Deny */}
+              {step === "initial" && isPending && !submitSuccess && (
+                <Stack direction="row" spacing={2}>
                   <Button
-                    type="button"
-                    variant="outlined"
-                    onClick={handleAddSubmitNode}
-                    disabled={!selectedSubmitNode || isSubmitting || status !== "APPROVED"}
+                    variant="contained"
+                    color="success"
+                    onClick={handleApproveClick}
+                    disabled={isSubmitting}
                   >
-                    Add Submit Node
+                    Approve
                   </Button>
-                </Box>
-                <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
-                  {submitNodes.map((node) => (
-                    <Chip
-                      key={node.id}
-                      label={node.name}
-                      onDelete={
-                        isSubmitting || status !== "APPROVED" ? undefined : () => handleRemoveSubmitNode(node.id)
-                      }
-                    />
-                  ))}
+                  <Button
+                    variant="contained"
+                    color="error"
+                    onClick={handleDeny}
+                    disabled={isSubmitting}
+                  >
+                    {isSubmitting ? "Submitting..." : "Deny"}
+                  </Button>
                 </Stack>
-              </Stack>
+              )}
 
-              {validationMessage && !submitSuccess ? <Alert severity="info">{validationMessage}</Alert> : null}
-              {error ? (
-                <Alert severity="error">{typeof error === "string" ? error : "Failed to submit form."}</Alert>
-              ) : null}
+              {/* Step: existing-check — user has existing resources */}
+              {step === "existing-check" && !submitSuccess && (
+                <>
+                  <Button
+                    variant="text"
+                    size="small"
+                    sx={{ alignSelf: "flex-start" }}
+                    onClick={() => setStep("initial")}
+                    disabled={isSubmitting}
+                  >
+                    ← Back
+                  </Button>
+                  <Alert severity="warning">
+                    <AlertTitle>User Has Existing Authorization</AlertTitle>
+                    <Box>
+                      This user has existing authorizations in the form of groups, projects, etc. How would you like to proceed?
+                    </Box>
+                    <Stack direction="row" spacing={2} mt={2}>
+                      <Button
+                        variant="contained"
+                        onClick={handleKeepExisting}
+                        disabled={isSubmitting}
+                      >
+                        {isSubmitting ? "Submitting..." : "Approve and Keep Existing"}
+                      </Button>
+                      <Button
+                        variant="outlined"
+                        onClick={handleStartFresh}
+                        disabled={isSubmitting}
+                      >
+                        Approve and Start Fresh
+                      </Button>
+                    </Stack>
+                    <Box mt={2}>
+                      <Typography variant="body2">
+                        <b>Approve and Start Fresh</b> will remove ALL of the user&apos;s current projects, groups, and submit nodes.
+                      </Typography>
+                    </Box>
+                  </Alert>
+                </>
+              )}
 
-              {!submitSuccess ? (
-                <Button type="submit" variant="contained" disabled={Boolean(validationMessage) || isSubmitting}>
-                  {isSubmitting ? "Submitting..." : "Save"}
-                </Button>
-              ) : null}
+              {/* Step: form — full approval form */}
+              {step === "form" && !submitSuccess && (
+                <Box component="form" onSubmit={handleSubmit}>
+                  <Stack spacing={3}>
+                    <Button
+                      variant="text"
+                      size="small"
+                      sx={{ alignSelf: "flex-start" }}
+                      onClick={() => setStep(userWasPreviouslyActive ? "existing-check" : "initial")}
+                      disabled={isSubmitting}
+                    >
+                      ← Back
+                    </Button>
+                    <ProjectAutocomplete
+                      value={project ?? undefined}
+                      onSelect={setProject}
+                      required
+                      disabled={isSubmitting}
+                    />
+
+                    <FormControl fullWidth>
+                      <InputLabel id="project-position-label">Project Position</InputLabel>
+                      <Select
+                        labelId="project-position-label"
+                        label="Project Position"
+                        value={userPosition}
+                        onChange={(event) => setUserPosition(event.target.value as PositionEnum | "")}
+                        disabled={isSubmitting}
+                      >
+                        <MenuItem value="">Select Position</MenuItem>
+                        <MenuItem value="FACULTY">Faculty</MenuItem>
+                        <MenuItem value="STAFF">Staff</MenuItem>
+                        <MenuItem value="POSTDOC">Postdoc</MenuItem>
+                        <MenuItem value="GRAD_STUDENT">Grad Student</MenuItem>
+                        <MenuItem value="UNDERGRADUATE">Undergraduate</MenuItem>
+                        <MenuItem value="OTHER">Other</MenuItem>
+                      </Select>
+                    </FormControl>
+
+                    <Stack spacing={2}>
+                      <SubmitNodeAutocomplete
+                        value={selectedSubmitNode ?? undefined}
+                        onSelect={setSelectedSubmitNode}
+                        disabled={isSubmitting}
+                      />
+                      <Box>
+                        <Button
+                          type="button"
+                          variant="outlined"
+                          onClick={handleAddSubmitNode}
+                          disabled={!selectedSubmitNode || isSubmitting}
+                        >
+                          Add Submit Node
+                        </Button>
+                      </Box>
+                      <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
+                        {submitNodes.map((node) => (
+                          <Chip
+                            key={node.id}
+                            label={node.name}
+                            onDelete={isSubmitting ? undefined : () => handleRemoveSubmitNode(node.id)}
+                          />
+                        ))}
+                      </Stack>
+                    </Stack>
+
+                    {validationMessage && <Alert severity="info">{validationMessage}</Alert>}
+
+                    <Button
+                      type="submit"
+                      variant="contained"
+                      disabled={Boolean(validationMessage) || isSubmitting}
+                    >
+                      {isSubmitting ? "Submitting..." : "Approve"}
+                    </Button>
+                  </Stack>
+                </Box>
+              )}
+
+              {error && (
+                <Alert severity="error">
+                  {typeof error === "string" ? error : "Failed to submit form."}
+                </Alert>
+              )}
             </Stack>
           </Paper>
         </Grid>

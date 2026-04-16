@@ -1,12 +1,12 @@
 "use client";
 
 import { AuthGuard } from "@/src/components/AuthGuard";
-import { apiFetch } from "@/src/components/AuthProvider";
+import {apiFetch} from "@/src/components/AuthProvider";
 import UserApplicationEditForm from "@/src/components/Forms/UserApplicationForm/UserApplicationEditForm";
 import type { ApiError } from "@/src/components/Forms/UserForm/UserForm";
 import type { UserForm, UserFormPatch } from "@/types";
 import { Box, Skeleton, Typography } from "@mui/material";
-import { useSearchParams } from "next/navigation";
+import {useRouter, useSearchParams} from "next/navigation";
 import { Suspense, useState } from "react";
 import useSWR from "swr";
 
@@ -54,11 +54,13 @@ function UserApplicationPage() {
 }
 
 function UserApplicationFormSuspense({ id }: { id: number }) {
+
   const { data, mutate } = useSWR([`/forms/user-applications`, id], () => userApplicationFetcher(id), {
     suspense: true,
   });
   const [error, setError] = useState<string | ApiError | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const router = useRouter();
 
   if (!data) {
     return <Typography color="error">User application not found.</Typography>;
@@ -84,6 +86,8 @@ function UserApplicationFormSuspense({ id }: { id: number }) {
       }
 
       await mutate();
+      router.push("/forms/user-applications");
+
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : "Failed to update user application");
     } finally {

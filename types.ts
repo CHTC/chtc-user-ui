@@ -131,6 +131,7 @@ export interface User {
   submit_nodes?: UserSubmitGet[];
   notes?: Note[];
   projects?: JoinedProjectView[];
+  groups?: Group[];
   user_forms?: UserForm[];
 }
 
@@ -259,9 +260,10 @@ export interface UserFormPost {
 
 export interface UserFormPatch {
   status: FormStatusEnum;
-  project_id: number;
-  project_position: PositionEnum;
-  submit_nodes: string[];
+  preserve_existing_data?: boolean;
+  project_id?: number;
+  user_position?: PositionEnum;
+  submit_nodes?: UserSubmitNodeCreate[];
 }
 
 export type SortDirection = "asc" | "desc";
