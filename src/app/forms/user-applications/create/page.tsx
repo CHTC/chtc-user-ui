@@ -1,11 +1,11 @@
 "use client";
 
+import LandingPage from "@/src/app/forms/user-applications/create/_components/LandingPage";
 import { apiFetch, useAuthClient } from "@/src/components/AuthProvider";
 import UserApplicationCreateForm from "@/src/components/Forms/UserApplicationForm/UserApplicationCreateForm";
 import { UserFormPost } from "@/types";
-import {Alert, Box, Skeleton } from "@mui/material";
+import { Alert, Box, Skeleton } from "@mui/material";
 import { useState } from "react";
-import LandingPage from "@/src/app/forms/user-applications/create/_components/LandingPage";
 
 function CreateUserFormPage() {
   const { isAuthenticated, currentUser, loading } = useAuthClient();
@@ -47,9 +47,11 @@ function CreateUserFormPage() {
   };
 
   if (loading) {
-    return <Box>
-      <Skeleton variant={"rounded"} height={"800px"} sx={{ minHeight: "80vh" }} />
-    </Box>
+    return (
+      <Box>
+        <Skeleton variant={"rounded"} height={"800px"} sx={{ minHeight: "80vh" }} />
+      </Box>
+    );
   }
 
   if (!isAuthenticated) {
