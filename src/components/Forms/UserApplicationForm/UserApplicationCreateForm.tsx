@@ -2,6 +2,7 @@
 
 import SuccessfulSubmitView from "@/src/components/Forms/UserApplicationForm/SuccessfulSubmitView";
 import type { ApiError } from "@/src/components/Forms/UserForm/UserForm";
+import { useAuthClient } from "@/src/components/AuthProvider";
 import type { PositionEnum, UserForm, UserFormPost } from "@/types";
 import {
   Alert,
@@ -202,7 +203,11 @@ export function UserApplicationCreateForm({
   error = null,
   submitSuccess = false,
 }: UserApplicationCreateFormProps) {
+  const { currentUser } = useAuthClient();
+  const needsEmail = !currentUser?.email1;
+
   const [currentStep, setCurrentStep] = useState(0);
+  const [email, setEmail] = useState("");
   const [position, setPosition] = useState<PositionEnum | null>(initialValues?.position ?? null);
   const [piName, setPiName] = useState(initialValues?.pi_name ?? "");
   const [piEmail, setPiEmail] = useState(initialValues?.pi_email ?? "");
@@ -226,6 +231,13 @@ export function UserApplicationCreateForm({
   const hasMountedRef = useRef(false);
 
   const validationMessages = useMemo(() => {
+    if (needsEmail && !email.trim()) {
+      return {
+        page1: "Please enter your email address.",
+        submit: "Please enter your email address.",
+      };
+    }
+
     if (position === null) {
       return {
         page1: "Please select the option that best describes your position.",
@@ -255,7 +267,7 @@ export function UserApplicationCreateForm({
     }
 
     return null;
-  }, [computingType, howChtcCanHelp, piEmail, piName, position]);
+  }, [needsEmail, email, computingType, howChtcCanHelp, piEmail, piName, position]);
 
   const currentStepValidationMessage =
     currentStep === 0
@@ -306,6 +318,7 @@ export function UserApplicationCreateForm({
     if (submitValidationMessage) return;
 
     await onSubmit({
+      email: needsEmail ? email.trim() || null : undefined,
       pi_id: null,
       pi_name: piName.trim(),
       pi_email: piEmail.trim(),
@@ -355,6 +368,24 @@ export function UserApplicationCreateForm({
       case 0:
         return (
           <>
+            {needsEmail && (
+              <Stack spacing={1.5}>
+                <Typography variant="h6">Email Address</Typography>
+                <Typography variant="body2">
+                  We don&apos;t have an email address on file for your account. Please provide one so we can contact you
+                  about your application.
+                </Typography>
+                <TextField
+                  required
+                  label="Email"
+                  type="email"
+                  value={email}
+                  onChange={(event) => setEmail(event.target.value)}
+                  disabled={isSubmitting}
+                />
+              </Stack>
+            )}
+
             <Stack spacing={1.5}>
               <Typography variant="h6">1. Position</Typography>
               <Typography variant="body2">Please select the option that best describes your position.</Typography>
@@ -718,7 +749,7 @@ export function UserApplicationCreateForm({
     }
   };
 
-  if (submitSuccess) {
+  if (submitSuccess || currentUser?.user_forms?.sort((a, b) => b.id - a.id)?.[0]?.status === "PENDING") {
     return <SuccessfulSubmitView />;
   }
 

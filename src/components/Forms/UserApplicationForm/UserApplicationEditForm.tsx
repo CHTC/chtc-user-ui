@@ -3,7 +3,8 @@
 import type { ApiError } from "@/src/components/Forms/UserForm/UserForm";
 import ProjectAutocomplete from "@/src/components/ProjectAutocomplete/ProjectAutocomplete";
 import SubmitNodeAutocomplete from "@/src/components/SubmitNodeAutocomplete/SubmitNodeAutocomplete";
-import type { FormStatusEnum, PositionEnum, Project, SubmitNode, UserForm, UserFormPatch } from "@/types";
+import { apiFetch } from "@/src/components/AuthProvider";
+import type { FormStatusEnum, PositionEnum, Project, SubmitNode, User, UserForm, UserFormPatch } from "@/types";
 import {
   Alert, AlertTitle,
   Box,
@@ -16,10 +17,11 @@ import {
   Paper,
   Select,
   Stack,
+  TextField,
   Typography,
 } from "@mui/material";
 import { useMemo, useState } from "react";
-import {useAuthClient} from "@/src/components/AuthProvider";
+import useSWR from "swr";
 
 export interface UserApplicationEditFormProps {
   initialValues?: UserForm | null;
@@ -54,6 +56,15 @@ function ReviewField({ label, value }: { label: string; value: string | null }) 
 
 type Step = "initial" | "existing-check" | "form";
 
+const userFetcher = async (id: number | null) => {
+  if (!id) return null;
+  const response = await apiFetch(`/users/${id}`);
+  if (!response.ok) {
+    throw new Error(`Failed to fetch user with id ${id}: ${response.statusText}`);
+  }
+  return response.json();
+};
+
 export function UserApplicationEditForm({
   initialValues,
   onSubmit,
@@ -61,30 +72,36 @@ export function UserApplicationEditForm({
   error = null,
   submitSuccess = false,
 }: UserApplicationEditFormProps) {
-  const {currentUser} = useAuthClient();
   const [step, setStep] = useState<Step>("initial");
   const [project, setProject] = useState<Project | null>(null);
   const [userPosition, setUserPosition] = useState<PositionEnum | "">(initialValues?.position ?? "");
   const [selectedSubmitNode, setSelectedSubmitNode] = useState<SubmitNode | null>(null);
   const [submitNodes, setSubmitNodes] = useState<SubmitNode[]>([]);
+  const [email, setEmail] = useState<string>(initialValues?.email ?? "");
   const content = initialValues?.content;
   const piDisplay = initialValues?.pi_name ?? `User ID ${initialValues?.pi_id ?? "-"}`;
   const piEmail = initialValues?.pi_email ?? null;
 
+  const applicantId = initialValues?.created_by?.id ?? null;
+  const { data: applicant } = useSWR(applicantId ? [`/users/${applicantId}`] : null, () => userFetcher(applicantId) as Promise<User>);
+
+  const needsEmail = !applicant?.email1;
+
   const userWasPreviouslyActive = useMemo(() => {
     return Boolean(
-      (currentUser?.groups?.length ?? 0) ||
-      (currentUser?.projects?.length ?? 0) ||
-      (currentUser?.submit_nodes?.length ?? 0)
+      (applicant?.groups?.length ?? 0) ||
+      (applicant?.projects?.length ?? 0) ||
+      (applicant?.submit_nodes?.length ?? 0)
     );
-  }, [currentUser]);
+  }, [applicant]);
 
   const validationMessage = useMemo(() => {
+    if (needsEmail && !email.trim()) return "Enter the user's email address before approving.";
     if (!project) return "Select a project before approving.";
     if (userPosition === "") return "Choose a project position before approving.";
     if (submitNodes.length === 0) return "Add at least one submit node before approving.";
     return null;
-  }, [project, userPosition, submitNodes.length]);
+  }, [needsEmail, email, project, userPosition, submitNodes.length]);
 
   const handleDeny = async () => {
     await onSubmit({ status: "DENIED" });
@@ -124,6 +141,7 @@ export function UserApplicationEditForm({
 
     await onSubmit({
       status: "APPROVED",
+      email: needsEmail ? email.trim() || undefined : undefined,
       project_id: project?.id ?? 0,
       user_position: userPosition as PositionEnum,
       submit_nodes: submitNodes.map((node) => ({ submit_node_id: node.id })),
@@ -267,6 +285,17 @@ export function UserApplicationEditForm({
                     >
                       ← Back
                     </Button>
+                    {needsEmail && (
+                      <TextField
+                        required
+                        label="User Email"
+                        type="email"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        disabled={isSubmitting}
+                        helperText="This user has no email on record. Enter one to assign on approval."
+                      />
+                    )}
                     <ProjectAutocomplete
                       value={project ?? undefined}
                       onSelect={setProject}

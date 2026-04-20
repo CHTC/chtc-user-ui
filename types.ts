@@ -231,12 +231,14 @@ export interface BaseForm {
 export interface UserForm extends BaseForm {
   pi_id?: number | null;
   pi_name?: string | null;
+  email?: string | null;
   pi_email?: string | null;
   position: PositionEnum;
   content: Record<string, any>;
 }
 
 export interface UserFormPost {
+  email?: string | null;
   pi_id?: number | null;
   pi_name?: string | null;
   pi_email?: string | null;
@@ -261,6 +263,7 @@ export interface UserFormPost {
 export interface UserFormPatch {
   status: FormStatusEnum;
   preserve_existing_data?: boolean;
+  email?: string;
   project_id?: number;
   user_position?: PositionEnum;
   submit_nodes?: UserSubmitNodeCreate[];
