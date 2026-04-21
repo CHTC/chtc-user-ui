@@ -51,7 +51,7 @@ function Page() {
         <Breadcrumbs>
           <Typography color="text.primary">Create User</Typography>
         </Breadcrumbs>
-        <UserForm mode="create" onSubmit={handleSubmit} isSubmitting={isSubmitting} error={error} />
+        <UserForm mode="create" onSubmit={handleSubmit} isSubmitting={isSubmitting} error={error} adminView={true} />
       </Box>
     </AuthGuard>
   );
