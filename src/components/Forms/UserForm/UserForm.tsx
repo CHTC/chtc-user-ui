@@ -242,7 +242,7 @@ export const UserForm: React.FC<UserFormProps> = ({ mode, initialValues, onSubmi
               onChange={(e) => handleChange("email1", e.target.value)}
               required
               fullWidth
-              disabled={isSubmitting}
+              disabled={isSubmitting || !adminView}
             />
 
             <TextField
