@@ -48,7 +48,7 @@ const ProjectNoteTable = ({ projectId }: ProjectNoteTableProps) => {
                     ariaLabel="Delete Note"
                   />
                   <IconButton aria-label={"Edit Note"}>
-                    <Link href={`/projects/notes/edit?projectId=${projectId}&noteId=${note.id}`}>
+                    <Link href={`/projects/notes/edit/?projectId=${projectId}&noteId=${note.id}`}>
                       <Edit />
                     </Link>
                   </IconButton>

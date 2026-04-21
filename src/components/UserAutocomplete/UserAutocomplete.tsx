@@ -6,9 +6,10 @@ interface UserAutoCompleteProps {
   value?: Partial<User>;
   onSelect: (user: User | null) => void;
   defaultFilter?: Record<string, string>;
+  disabled?: boolean;
 }
 
-const UserAutocomplete = ({ label, value, onSelect, defaultFilter }: UserAutoCompleteProps) => {
+const UserAutocomplete = ({ label, value, onSelect, defaultFilter, disabled = false }: UserAutoCompleteProps) => {
   return (
     <GenericAutocomplete<User>
       endpoint="/users"
@@ -18,6 +19,7 @@ const UserAutocomplete = ({ label, value, onSelect, defaultFilter }: UserAutoCom
       defaultFilter={defaultFilter}
       getOptionLabel={(option) => option?.name || option.email1}
       searchField="name"
+      disabled={disabled}
     />
   );
 };

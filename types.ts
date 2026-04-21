@@ -1,9 +1,8 @@
-// Types generated from OpenAPI spec in openapi (1).json
-// This file provides a consolidated set of interfaces/enums matching the backend API.
-
 export type PositionEnum = "SELECT" | "FACULTY" | "STAFF" | "POSTDOC" | "GRAD_STUDENT" | "UNDERGRADUATE" | "OTHER";
 
 export type RoleEnum = "MEMBER" | "PI";
+
+export type FormStatusEnum = "PENDING" | "APPROVED" | "DENIED";
 
 export interface TokenGet {
   id: number;
@@ -132,6 +131,8 @@ export interface User {
   submit_nodes?: UserSubmitGet[];
   notes?: Note[];
   projects?: JoinedProjectView[];
+  groups?: Group[];
+  user_forms?: UserForm[];
 }
 
 export interface UserCreate {
@@ -218,12 +219,54 @@ export interface UserProjectCreate {
   is_primary?: boolean | null;
 }
 
-export interface Relationship {
+export interface BaseForm {
   id: number;
+  status: FormStatusEnum;
+  created_by?: User | null;
+  created_at: string;
+  updated_by?: User | null;
+  updated_at: string;
 }
 
-export interface CurrentUser {
-  is_admin: boolean;
+export interface UserForm extends BaseForm {
+  pi_id?: number | null;
+  pi_name?: string | null;
+  email?: string | null;
+  pi_email?: string | null;
+  position: PositionEnum;
+  content: Record<string, any>;
+}
+
+export interface UserFormPost {
+  email?: string | null;
+  pi_id?: number | null;
+  pi_name?: string | null;
+  pi_email?: string | null;
+  position: PositionEnum;
+  mentor_name?: string | null;
+  mentor_email?: string | null;
+  marketing_attribution?: string | null;
+  how_chtc_can_help?: string | null;
+  research_computing_area?: string | null;
+  software_link?: string | null;
+  computing_type?: string | null;
+  cpu_cores?: string | null;
+  memory_gb?: string | null;
+  disk_space_gb?: string | null;
+  calculation_runtime_hours?: string | null;
+  gpu_type?: string | null;
+  calculation_quantity?: string | null;
+  special_access?: string | null;
+  extra_info?: string | null;
+}
+
+export interface UserFormPatch {
+  status: FormStatusEnum;
+  preserve_existing_data?: boolean;
+  email?: string;
+  project_id?: number;
+  user_position?: PositionEnum;
+  submit_nodes?: UserSubmitNodeCreate[];
 }
 
 export type SortDirection = "asc" | "desc";

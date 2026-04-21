@@ -1,7 +1,6 @@
 "use client";
 
 import type {
-  CurrentUser,
   Group,
   GroupCreateUpdate,
   JoinedProjectView,
@@ -19,6 +18,7 @@ import type {
   TokenPost,
   User,
   UserCreate,
+  UserForm,
   UserProjectCreate,
 } from "@/types";
 import React, { createContext, useCallback, useContext, useEffect, useState } from "react";
@@ -36,7 +36,7 @@ export type LoginResult =
 export type ApiClient = {
   // Authentication
   logout: () => Promise<{ message: string }>;
-  getCurrentUser: () => Promise<CurrentUser>;
+  getCurrentUser: () => Promise<User>;
 
   // Users
   getUsers: (params?: PaginationParams) => Promise<PaginatedResponse<User[]>>;
@@ -44,6 +44,7 @@ export type ApiClient = {
   createUser: (user: UserCreate) => Promise<User>;
   deleteUser: (userId: number) => Promise<void>;
   getUserProjects: (userId: number, params?: PaginationParams) => Promise<JoinedProjectView[]>;
+  getUserApplications: (params?: PaginationParams) => Promise<PaginatedResponse<UserForm[]>>;
 
   // Groups
   getGroups: (params?: PaginationParams) => Promise<PaginatedResponse<Group[]>>;
@@ -85,7 +86,10 @@ export type ApiClient = {
 };
 
 type AuthContextValue = {
+  loading: boolean;
   client: ApiClient;
+  currentUser: User | null;
+  update: () => void; // Function to trigger a refresh of the current user data
   isAuthenticated: boolean;
 };
 
@@ -153,18 +157,28 @@ function buildQuery(params?: PaginationParams): string {
 }
 
 export function AuthClientProvider({ children }: { children: React.ReactNode }) {
+
+  const [loading, setLoading] = useState(true);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
+
+  const checkAuth = async () => {
+    setLoading(true);
+    try {
+      const response = await apiFetch("/me");
+      setIsAuthenticated(response.ok);
+      if (response.ok) {
+        const userData = await response.json();
+        setCurrentUser(userData);
+      }
+    } catch {
+      setIsAuthenticated(false);
+    }
+    setLoading(false);
+  };
 
   // Check if user is authenticated on mount
   useEffect(() => {
-    const checkAuth = async () => {
-      try {
-        const response = await apiFetch("/me");
-        setIsAuthenticated(response.ok);
-      } catch {
-        setIsAuthenticated(false);
-      }
-    };
     checkAuth();
   }, []);
 
@@ -176,7 +190,7 @@ export function AuthClientProvider({ children }: { children: React.ReactNode }) 
       return response.json();
     }, []),
 
-    getCurrentUser: useCallback(async (): Promise<CurrentUser> => {
+    getCurrentUser: useCallback(async (): Promise<User> => {
       const response = await apiFetch("/me");
       if (!response.ok) throw new Error(`Failed to get current user: ${response.statusText}`);
       return response.json();
@@ -215,6 +229,14 @@ export function AuthClientProvider({ children }: { children: React.ReactNode }) 
       const response = await apiFetch(`/users/${userId}/projects${buildQuery(params)}`);
       if (!response.ok) throw new Error(`Failed to get user projects: ${response.statusText}`);
       return response.json();
+    }, []),
+
+    getUserApplications: useCallback(async (params?: PaginationParams): Promise<PaginatedResponse<UserForm[]>> => {
+      const response = await apiFetch(`/forms/user-applications${buildQuery(params)}`);
+      if (!response.ok) throw new Error(`Failed to get user applications: ${response.statusText}`);
+      const totalCount = parseInt(response.headers.get("X-Total-Count") || "0", 10);
+      const data = await response.json();
+      return { data, totalCount };
     }, []),
 
     // Groups
@@ -413,7 +435,7 @@ export function AuthClientProvider({ children }: { children: React.ReactNode }) 
     }, []),
   };
 
-  return <AuthClientContext.Provider value={{ client, isAuthenticated }}>{children}</AuthClientContext.Provider>;
+  return <AuthClientContext.Provider value={{ loading, client, currentUser, isAuthenticated, update: checkAuth }}>{children}</AuthClientContext.Provider>;
 }
 
 /** Hook for consuming auth context. */

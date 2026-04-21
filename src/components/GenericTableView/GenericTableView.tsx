@@ -13,8 +13,7 @@ import {
   MenuItem,
   Select,
   Skeleton,
-  TextField,
-  Typography,
+  TextField
 } from "@mui/material";
 import { ReactElement, useCallback, useEffect, useRef, useState } from "react";
 import { ApiClient, useAuthClient } from "../AuthProvider";

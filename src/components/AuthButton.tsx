@@ -18,14 +18,23 @@ export function AuthButton() {
           Logout
         </Button>
       ) : (
-        <Button
-          href={"/api/login"}
-          variant={"outlined"}
-          // @ts-expect-error Colors must be broken because this works just fine and is more extensible than hardcoding a color
-          color={"primary.contrastText"}
-        >
-          Login
-        </Button>
+        <>
+          <Button
+            href={"/forms/user-applications/create"}
+            variant={"contained"}
+            color={"secondary"}
+          >
+            Apply for Account
+          </Button>
+          <Button
+            href={"/api/login"}
+            variant={"text"}
+            // @ts-expect-error Colors must be broken because this works just fine and is more extensible than hardcoding a color
+            color={"primary.contrastText"}
+          >
+            Login
+          </Button>
+        </>
       )}
     </>
   );

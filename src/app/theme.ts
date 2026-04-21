@@ -1,5 +1,6 @@
 "use client";
 
+import { chtcTheme } from "@chtc/web-components";
 import { createTheme, responsiveFontSizes } from "@mui/material";
 import { Red_Hat_Display, Red_Hat_Text } from "next/font/google";
 import Link from "next/link";
@@ -10,6 +11,7 @@ const rht = Red_Hat_Text({ subsets: ["latin"] });
 
 const theme = responsiveFontSizes(
   createTheme({
+    ...chtcTheme,
     palette: {
       primary: {
         main: "#B61F24",

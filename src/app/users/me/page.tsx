@@ -1,11 +1,11 @@
 "use client";
 
 import { AuthGuard } from "@/src/components/AuthGuard";
-import { apiFetch } from "@/src/components/AuthProvider";
+import {apiFetch, useAuthClient} from "@/src/components/AuthProvider";
 import { UserForm } from "@/src/components/Forms/UserForm/UserForm";
 import { ApiError } from "@/src/utils/formErrors";
 import { Box, Skeleton, Typography } from "@mui/material";
-import { useSearchParams } from "next/navigation";
+import PendingApplicationBanner from "@/src/app/users/_components/PendingApplicationBanner";
 import { Suspense, useState } from "react";
 
 import useSWR from "swr";
@@ -73,7 +73,7 @@ const userFetcher = async (id: number | null) => {
 const UserFormSuspense = ({
   id,
   handleSubmit,
-  adminView = true
+  adminView = false
 }: {
   id: number | null;
   handleSubmit: (
@@ -122,24 +122,25 @@ const UserPage = ({
     setIsSubmitting: (isSubmitting: boolean) => void,
   ) => Promise<void>;
 }) => {
-  const searchParams = useSearchParams();
-  const id = Number.parseInt(searchParams.get("id") || "") || null;
 
-  if (!id) {
-    return <Typography color="error">No user ID provided.</Typography>;
+  const { currentUser } = useAuthClient();
+
+  if (!currentUser) {
+    return <Skeleton height={400} />;
   }
 
   return (
     <>
+      <PendingApplicationBanner />
       <Suspense fallback={<Skeleton variant={"rectangular"} height={"400px"} />}>
-        <UserFormSuspense id={id} handleSubmit={handleSubmit} adminView={true} />
+        <UserFormSuspense id={currentUser?.id} handleSubmit={handleSubmit} adminView={currentUser.is_admin || undefined} />
       </Suspense>
       <Box my={4}>
         <Suspense fallback={<Skeleton variant={"rectangular"} height={"400px"} />}>
           <Typography variant={"h4"} component="h3" sx={{ mb: 2, display: "flex", justifyContent: "space-between" }}>
             Projects
           </Typography>
-          <UserProjectTable userId={id} adminView={true} />
+          <UserProjectTable userId={currentUser?.id} adminView={currentUser.is_admin || undefined} />
         </Suspense>
       </Box>
       <Box my={4}>
@@ -147,7 +148,7 @@ const UserPage = ({
           <Typography variant={"h4"} component="h3" sx={{ mb: 2, display: "flex", justifyContent: "space-between" }}>
             Groups
           </Typography>
-          <UserGroupTable userId={id} adminView={true} />
+          <UserGroupTable userId={currentUser?.id} adminView={currentUser.is_admin || undefined} />
         </Suspense>
       </Box>
     </>

@@ -61,6 +61,7 @@ export interface UserFormProps {
   onSubmit: (payload: UserCreate | Partial<UserUpdate>) => Promise<void> | void;
   isSubmitting?: boolean;
   error?: string | ApiError | null;
+  adminView?: boolean; // whether to show admin-only fields in submit node table
 }
 
 function normalizeInitialValues(initial?: Partial<UserCreate & UserUpdate>): UserFormValues {
@@ -114,7 +115,7 @@ const FIELD_NAME_MAP: Record<string, string> = {
   submit_nodes: "Submit Nodes",
 };
 
-export const UserForm: React.FC<UserFormProps> = ({ mode, initialValues, onSubmit, isSubmitting = false, error }) => {
+export const UserForm: React.FC<UserFormProps> = ({ mode, initialValues, onSubmit, isSubmitting = false, error, adminView }) => {
   const [values, setValues] = useState<UserFormValues>(() => normalizeInitialValues(initialValues));
   const [selectedSubmitNodeId, setSelectedSubmitNodeId] = useState<number | "">("");
 
@@ -241,7 +242,7 @@ export const UserForm: React.FC<UserFormProps> = ({ mode, initialValues, onSubmi
               onChange={(e) => handleChange("email1", e.target.value)}
               required
               fullWidth
-              disabled={isSubmitting}
+              disabled={isSubmitting || !adminView}
             />
 
             <TextField
@@ -258,7 +259,7 @@ export const UserForm: React.FC<UserFormProps> = ({ mode, initialValues, onSubmi
               value={values.netid}
               onChange={(e) => handleChange("netid", e.target.value)}
               fullWidth
-              disabled={isSubmitting}
+              disabled={isSubmitting || !adminView}
             />
 
             <TextField
@@ -282,7 +283,7 @@ export const UserForm: React.FC<UserFormProps> = ({ mode, initialValues, onSubmi
               value={values.unix_uid}
               onChange={(e) => handleChange("unix_uid", e.target.value)}
               fullWidth
-              disabled={isSubmitting}
+              disabled={isSubmitting || !adminView}
               helperText="Optional numeric UNIX user ID"
             />
 
@@ -293,7 +294,7 @@ export const UserForm: React.FC<UserFormProps> = ({ mode, initialValues, onSubmi
                 label="Position"
                 value={values.position}
                 onChange={(e) => handleChange("position", e.target.value as PositionEnum | "")}
-                disabled={isSubmitting}
+                disabled={isSubmitting || !adminView}
               >
                 <MenuItem value="">Select Position</MenuItem>
                 <MenuItem value="FACULTY">Faculty</MenuItem>
@@ -305,7 +306,7 @@ export const UserForm: React.FC<UserFormProps> = ({ mode, initialValues, onSubmi
               </Select>
             </FormControl>
 
-            {mode === "create" && (
+            {mode === "create" && adminView && (
               <ProjectAutocomplete
                 onSelect={(project: Project | null) => {
                   handleChange("primary_project_id", String(project?.id ?? ""));
@@ -315,7 +316,7 @@ export const UserForm: React.FC<UserFormProps> = ({ mode, initialValues, onSubmi
               />
             )}
 
-            {mode === "create" && (
+            {mode === "create" && adminView && (
               <FormControl fullWidth>
                 <InputLabel id="primary-project-role-label">Primary Project Role</InputLabel>
                 <Select
@@ -339,7 +340,7 @@ export const UserForm: React.FC<UserFormProps> = ({ mode, initialValues, onSubmi
                   <Checkbox
                     checked={values.is_admin}
                     onChange={(e) => handleChange("is_admin", e.target.checked)}
-                    disabled={isSubmitting}
+                    disabled={isSubmitting || !adminView}
                   />
                 }
                 label="Is Admin"
@@ -350,7 +351,7 @@ export const UserForm: React.FC<UserFormProps> = ({ mode, initialValues, onSubmi
                   <Checkbox
                     checked={values.active}
                     onChange={(e) => handleChange("active", e.target.checked)}
-                    disabled={isSubmitting}
+                    disabled={isSubmitting || !adminView}
                   />
                 }
                 label="Active (must have NetID)"
@@ -369,44 +370,45 @@ export const UserForm: React.FC<UserFormProps> = ({ mode, initialValues, onSubmi
           <Stack spacing={2}>
             <Typography variant="h4">Submit Nodes</Typography>
 
-            <Stack direction="row" spacing={2} alignItems="center">
-              <FormControl sx={{ flexGrow: 1 }}>
-                <InputLabel id="submit-node-label">Select Submit Node</InputLabel>
-                <Select
-                  labelId="submit-node-label"
-                  label="Select Submit Node"
-                  value={selectedSubmitNodeId}
-                  onChange={(e) => setSelectedSubmitNodeId(e.target.value as number)}
-                  disabled={isSubmitting}
-                >
-                  <MenuItem value="">
-                    <em>None</em>
-                  </MenuItem>
-                  {submitNodes?.map((node) => (
-                    <MenuItem key={node.id} value={node.id}>
-                      {node.name}
+            {adminView && (
+              <Stack direction="row" spacing={2} alignItems="center">
+                <FormControl sx={{ flexGrow: 1 }}>
+                  <InputLabel id="submit-node-label">Select Submit Node</InputLabel>
+                  <Select
+                    labelId="submit-node-label"
+                    label="Select Submit Node"
+                    value={selectedSubmitNodeId}
+                    onChange={(e) => setSelectedSubmitNodeId(e.target.value as number)}
+                    disabled={isSubmitting}
+                  >
+                    <MenuItem value="">
+                      <em>None</em>
                     </MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
-              <Button
-                variant="contained"
-                color="primary"
-                onClick={handleAddSubmitNode}
-                disabled={!selectedSubmitNodeId || isNodeAssigned || isSubmitting}
-              >
-                Add
-              </Button>
-              <Button
-                variant="contained"
-                color="error"
-                onClick={handleRemoveSubmitNode}
-                disabled={!selectedSubmitNodeId || !isNodeAssigned || isSubmitting}
-              >
-                Remove
-              </Button>
-            </Stack>
-
+                    {submitNodes?.map((node) => (
+                      <MenuItem key={node.id} value={node.id}>
+                        {node.name}
+                      </MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+                <Button
+                  variant="contained"
+                  color="primary"
+                  onClick={handleAddSubmitNode}
+                  disabled={!selectedSubmitNodeId || isNodeAssigned || isSubmitting}
+                >
+                  Add
+                </Button>
+                <Button
+                  variant="contained"
+                  color="error"
+                  onClick={handleRemoveSubmitNode}
+                  disabled={!selectedSubmitNodeId || !isNodeAssigned || isSubmitting}
+                >
+                  Remove
+                </Button>
+              </Stack>
+            )}
             <Table>
               <TableHead>
                 <TableRow>

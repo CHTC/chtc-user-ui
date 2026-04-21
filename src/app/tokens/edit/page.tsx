@@ -17,7 +17,7 @@ import {
   TableRow,
   Typography,
 } from "@mui/material";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { Suspense } from "react";
 import useSWR from "swr";
 import { RouteAutocomplete } from "@/src/components/RouteAutocomplete";
@@ -60,8 +60,8 @@ const tokenPermissionsFetcher = async (id: number | null): Promise<TokenPermissi
 };
 
 const TokenPage = () => {
+
   const searchParams = useSearchParams();
-  const router = useRouter();
   const id = Number.parseInt(searchParams.get("id") || "") || null;
 
   const { data: token, mutate: mutateToken } = useSWR(id ? [`/tokens/${id}`] : null, () => tokenFetcher(id), {

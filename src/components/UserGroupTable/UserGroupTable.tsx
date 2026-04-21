@@ -6,9 +6,10 @@ import { Table, TableBody, TableCell, TableHead, TableRow } from "@mui/material"
 
 interface UserProjectTableProps {
   userId: number;
+  adminView?: boolean;
 }
 
-const UserProjectTable = ({ userId }: UserProjectTableProps) => {
+const UserProjectTable = ({ userId, adminView = false }: UserProjectTableProps) => {
   const { data: groups, mutate } = useTableFetch<Group[]>(`/users/${userId}/groups`);
 
   return (
@@ -18,7 +19,9 @@ const UserProjectTable = ({ userId }: UserProjectTableProps) => {
           <TableCell>Name</TableCell>
           <TableCell>Point Of Contact</TableCell>
           <TableCell>Unix GID</TableCell>
-          <TableCell>Action</TableCell>
+          {adminView && (
+            <TableCell>Action</TableCell>
+          )}
         </TableRow>
       </TableHead>
       <TableBody>
@@ -26,17 +29,20 @@ const UserProjectTable = ({ userId }: UserProjectTableProps) => {
           (groups || []).map((group) => (
             <TableRow key={group.id}>
               <TableCell>
-                {group.name} <EditLink href={`/groups/edit?id=${group.id}`} ariaLabel="Go to group" />
+                {group.name}
+                {adminView && (<EditLink href={`/groups/edit/?id=${group.id}`} ariaLabel="Go to group" /> )}
               </TableCell>
               <TableCell>{group.point_of_contact?.name ?? group.point_of_contact?.email1 ?? ""}</TableCell>
               <TableCell>{group.unix_gid}</TableCell>
-              <TableCell>
-                <DeleteActionButton
-                  url={`/groups/${group.id}/users/${userId}`}
-                  onSuccess={mutate}
-                  ariaLabel="Delete Group"
-                />
-              </TableCell>
+              {adminView && (
+                <TableCell>
+                  <DeleteActionButton
+                    url={`/groups/${group.id}/users/${userId}`}
+                    onSuccess={mutate}
+                    ariaLabel="Delete Group"
+                  />
+                </TableCell>
+              )}
             </TableRow>
           ))}
       </TableBody>
