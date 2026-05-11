@@ -2,7 +2,7 @@ import { Metadata } from "next";
 import View from "./view";
 
 export const metadata: Metadata = {
-  title: 'Create Note',
+  title: 'Create Project Note',
 };
 
 function Page() {
