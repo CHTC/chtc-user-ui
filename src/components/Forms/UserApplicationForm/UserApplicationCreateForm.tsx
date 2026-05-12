@@ -195,6 +195,10 @@ function ResourceEstimateField<T extends string>({
   );
 }
 
+function isValidEmail(value: string) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
+}
+
 export function UserApplicationCreateForm({
   initialValues,
   onSubmit,
@@ -211,6 +215,7 @@ export function UserApplicationCreateForm({
   const [position, setPosition] = useState<PositionEnum | null>(initialValues?.position ?? null);
   const [piName, setPiName] = useState(initialValues?.pi_name ?? "");
   const [piEmail, setPiEmail] = useState(initialValues?.pi_email ?? "");
+  const [piEmailTouched, setPiEmailTouched] = useState(false);
   const [mentorExpectation, setMentorExpectation] = useState<MentorExpectation>(null);
   const [mentorName, setMentorName] = useState("");
   const [mentorEmail, setMentorEmail] = useState("");
@@ -249,6 +254,13 @@ export function UserApplicationCreateForm({
       return {
         page1: "Enter both your faculty sponsor/PI name and email before continuing.",
         submit: "Enter both your faculty sponsor/PI name and email before submitting.",
+      };
+    }
+
+    if (!isValidEmail(piEmail.trim())) {
+      return {
+        page1: "Enter a valid PI email address before continuing.",
+        submit: "Enter a valid PI email address before submitting.",
       };
     }
 
@@ -429,8 +441,15 @@ export function UserApplicationCreateForm({
                 type="email"
                 value={piEmail}
                 onChange={(event) => setPiEmail(event.target.value)}
+                onBlur={() => setPiEmailTouched(true)}
                 disabled={isSubmitting}
                 required
+                error={piEmailTouched && piEmail.trim().length > 0 && !isValidEmail(piEmail.trim())}
+                helperText={
+                  piEmailTouched && piEmail.trim().length > 0 && !isValidEmail(piEmail.trim())
+                    ? "Please enter a valid email address."
+                    : undefined
+                }
               />
             </Stack>
 
