@@ -243,6 +243,7 @@ export interface UserFormPost {
   pi_name?: string | null;
   pi_email?: string | null;
   position: PositionEnum;
+  department?: string | null;
   mentor_name?: string | null;
   mentor_email?: string | null;
   marketing_attribution?: string | null;

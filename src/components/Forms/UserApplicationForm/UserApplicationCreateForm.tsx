@@ -6,6 +6,7 @@ import { useAuthClient } from "@/src/components/AuthProvider";
 import type { PositionEnum, UserForm, UserFormPost } from "@/types";
 import {
   Alert,
+  Autocomplete,
   Box,
   Button,
   Checkbox,
@@ -23,6 +24,7 @@ import {
   Typography,
 } from "@mui/material";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { DEPARTMENTS } from "@/src/components/Forms/UserApplicationForm/enum";
 
 type MentorExpectation = "YES" | "NO" | "MAYBE" | null;
 
@@ -213,6 +215,7 @@ export function UserApplicationCreateForm({
   const [currentStep, setCurrentStep] = useState(0);
   const [email, setEmail] = useState("");
   const [position, setPosition] = useState<PositionEnum | null>(initialValues?.position ?? null);
+  const [department, setDepartment] = useState<string | null>(null);
   const [piName, setPiName] = useState(initialValues?.pi_name ?? "");
   const [piEmail, setPiEmail] = useState(initialValues?.pi_email ?? "");
   const [piEmailTouched, setPiEmailTouched] = useState(false);
@@ -305,6 +308,7 @@ export function UserApplicationCreateForm({
     calculationRuntimeHours,
     computingType,
     cpuCores,
+    department,
     diskSpaceGb,
     extraInfo,
     gpuType,
@@ -335,6 +339,7 @@ export function UserApplicationCreateForm({
       pi_name: piName.trim(),
       pi_email: piEmail.trim(),
       position: position as PositionEnum,
+      department: department ?? null,
       mentor_name: mentorName.trim() || null,
       mentor_email: mentorEmail.trim() || null,
       marketing_attribution: marketingAttribution.join(", "),
@@ -421,7 +426,22 @@ export function UserApplicationCreateForm({
             </Stack>
 
             <Stack spacing={1.5}>
-              <Typography variant="h6">2. UW-Madison Faculty Sponsor/Principal Investigator (PI) *</Typography>
+              <Typography variant="h6">2. Department</Typography>
+              <Typography variant="body2">Please select the department you are affiliated with.</Typography>
+              <Autocomplete
+                options={Object.keys(DEPARTMENTS)}
+                getOptionLabel={(key) => DEPARTMENTS[key as keyof typeof DEPARTMENTS]}
+                value={department}
+                onChange={(_event, newValue) => setDepartment(newValue)}
+                disabled={isSubmitting}
+                renderInput={(params) => (
+                  <TextField {...params} label="Department" />
+                )}
+              />
+            </Stack>
+
+            <Stack spacing={1.5}>
+              <Typography variant="h6">3. UW-Madison Faculty Sponsor/Principal Investigator (PI) *</Typography>
               <Typography variant="body2">
                 CHTC accounts are associated with a research group led by a PI, typically a faculty member.
               </Typography>
@@ -454,7 +474,7 @@ export function UserApplicationCreateForm({
             </Stack>
 
             <Stack spacing={1.5}>
-              <Typography variant="h6">3. Mentorship Expectations</Typography>
+              <Typography variant="h6">4. Mentorship Expectations</Typography>
               <Typography variant="body2">Do you expect someone to mentor you on how to use CHTC resources?</Typography>
               <Typography variant="body2">
                 This can be anyone in your group or another collaborator who already uses CHTC and is planning to help
@@ -476,7 +496,7 @@ export function UserApplicationCreateForm({
 
             {mentorExpectation === "YES" || mentorExpectation === "MAYBE" ? (
               <Stack spacing={1.5}>
-                <Typography variant="h6">4. About Your Mentor</Typography>
+                <Typography variant="h6">5. About Your Mentor</Typography>
                 <Typography variant="body2">
                   This person will receive an email notification that you have requested a CHTC account.
                 </Typography>
@@ -497,7 +517,7 @@ export function UserApplicationCreateForm({
             ) : null}
 
             <Stack spacing={1.5}>
-              <Typography variant="h6">5. How Did You Hear About CHTC?</Typography>
+              <Typography variant="h6">6. How Did You Hear About CHTC?</Typography>
               <Typography variant="body2">Check all that apply.</Typography>
               <FormGroup>
                 {marketingAttributionOptions.map((option) => (
@@ -521,7 +541,7 @@ export function UserApplicationCreateForm({
         return (
           <>
             <Stack spacing={1.5}>
-              <Typography variant="h6">6. Research Summary</Typography>
+              <Typography variant="h6">7. Research Summary</Typography>
               <Typography variant="body2">
                 Briefly describe your research to help us answer the question, &quot;How can CHTC help your
                 research?&quot;
@@ -538,7 +558,7 @@ export function UserApplicationCreateForm({
             </Stack>
 
             <Stack spacing={1.5}>
-              <Typography variant="h6">7. Research Computing Areas</Typography>
+              <Typography variant="h6">8. Research Computing Areas</Typography>
               <Typography variant="body2">
                 Which of the following could be used to describe your research computing? Check all that apply.
               </Typography>
@@ -560,7 +580,7 @@ export function UserApplicationCreateForm({
             </Stack>
 
             <Stack spacing={1.5}>
-              <Typography variant="h6">8. Software Plans</Typography>
+              <Typography variant="h6">9. Software Plans</Typography>
               <Typography variant="body2">
                 What is the primary software, program, or package that you plan on using? If possible, provide a link to
                 the program&apos;s website.
@@ -576,7 +596,7 @@ export function UserApplicationCreateForm({
             </Stack>
 
             <Stack spacing={1.5}>
-              <Typography variant="h6">9. Prior Computing Systems</Typography>
+              <Typography variant="h6">10. Prior Computing Systems</Typography>
               <Typography variant="body2">
                 Which of the following systems have you used for similar computing work? Check all that apply.
               </Typography>
@@ -601,7 +621,7 @@ export function UserApplicationCreateForm({
       case 2:
         return (
           <Stack spacing={1.5}>
-            <Typography variant="h6">10. Resource Estimates</Typography>
+            <Typography variant="h6">11. Resource Estimates</Typography>
             <Typography variant="body2">
               CHTC operates both a High Performance Computing (HPC) system and a High Throughput Computing (HTC) system.
             </Typography>
@@ -732,7 +752,7 @@ export function UserApplicationCreateForm({
         return (
           <>
             <Stack spacing={1.5}>
-              <Typography variant="h6">11. Special Access</Typography>
+              <Typography variant="h6">12. Special Access</Typography>
               <Typography variant="body2">
                 Are there any specific partitions, group folders, or similar resources that you need to be added to? If
                 yes, please describe.
@@ -748,7 +768,7 @@ export function UserApplicationCreateForm({
             </Stack>
 
             <Stack spacing={1.5}>
-              <Typography variant="h6">12. Additional Information</Typography>
+              <Typography variant="h6">13. Additional Information</Typography>
               <Typography variant="body2">
                 Please provide any additional information that would aid us in creating your account.
               </Typography>
