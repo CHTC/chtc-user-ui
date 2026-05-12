@@ -13,6 +13,7 @@ import useSWR from "swr";
 import UserGroupTable from "@/src/components/UserGroupTable/UserGroupTable";
 import UserProjectTable from "@/src/components/UserProjectTable/UserProjectTable";
 import { User, UserCreate, UserUpdate } from "@/types";
+import usePageTitle from "@/src/utils/usePageTitle";
 
 function View() {
   const handleSubmit = async (
@@ -94,6 +95,8 @@ const UserFormSuspense = ({
   if (!id) {
     return <p>No user ID provided.</p>;
   }
+
+  usePageTitle("User: " + user.name)
 
   return (
     <Box>

@@ -5,6 +5,7 @@ import { apiFetch } from "@/src/components/AuthProvider";
 import { GroupForm } from "@/src/components/Forms/GroupForm/GroupForm";
 import GroupUserTable from "@/src/components/GroupUserTable/GroupUserTable";
 import { ApiError } from "@/src/utils/formErrors";
+import usePageTitle from "@/src/utils/usePageTitle";
 import type { GroupCreateUpdate } from "@/types";
 import { Box, Breadcrumbs, Skeleton, Typography } from "@mui/material";
 import { useSearchParams } from "next/navigation";
@@ -92,6 +93,8 @@ const GroupFormSuspense = ({
   if (!id) {
     return <p>No group ID provided.</p>;
   }
+
+  usePageTitle("Group: " + group.name)
 
   return (
     <GroupForm

@@ -21,6 +21,7 @@ import { useSearchParams } from "next/navigation";
 import { Suspense } from "react";
 import useSWR from "swr";
 import { RouteAutocomplete } from "@/src/components/RouteAutocomplete";
+import usePageTitle from "@/src/utils/usePageTitle";
 
 function View() {
   return (
@@ -82,6 +83,8 @@ const TokenPage = () => {
 
   const tokenData = token as TokenGet;
 
+  usePageTitle("Token: " + tokenData.description)
+  
   return (
     <Grid container>
       <Grid size={{ xs: 12, lg: 6 }}>

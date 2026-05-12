@@ -6,6 +6,7 @@ import {ProjectForm} from "@/src/components/Forms/ProjectForm/ProjectForm";
 import ProjectNoteTable from "@/src/components/ProjectNoteTable/ProjectNoteTable";
 import ProjectUserTable from "@/src/components/ProjectUserTable/ProjectUserTable";
 import {ApiError} from "@/src/utils/formErrors";
+import usePageTitle from "@/src/utils/usePageTitle";
 import type {ProjectCreateUpdate} from "@/types";
 import {Add} from "@mui/icons-material";
 import {Box, Breadcrumbs, Button, Skeleton, Typography} from "@mui/material";
@@ -96,6 +97,8 @@ const ProjectFormSuspense = ({
   if (!id) {
     return <p>No project ID provided.</p>;
   }
+
+  usePageTitle("Project: " + project.name)
 
   return (
     <ProjectForm
