@@ -4,6 +4,7 @@ import { AuthGuard } from "@/src/components/AuthGuard";
 import {apiFetch} from "@/src/components/AuthProvider";
 import UserApplicationEditForm from "@/src/components/Forms/UserApplicationForm/UserApplicationEditForm";
 import type { ApiError } from "@/src/components/Forms/UserForm/UserForm";
+import usePageTitle from "@/src/utils/usePageTitle";
 import type { UserForm, UserFormPatch } from "@/types";
 import { Box, Skeleton, Typography } from "@mui/material";
 import {useRouter, useSearchParams} from "next/navigation";
@@ -65,6 +66,9 @@ function UserApplicationFormSuspense({ id }: { id: number }) {
   if (!data) {
     return <Typography color="error">User application not found.</Typography>;
   }
+
+  // assumes created by field is field, not always true in dev, but always true in prod
+  usePageTitle("User Application: " + data.created_by?.name)
 
   const handleSubmit = async (payload: UserFormPatch) => {
     setError(null);
