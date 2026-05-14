@@ -15,7 +15,6 @@ export interface ProjectFormValues {
   staff1: User | null;
   staff2: User | null;
   status: string;
-  access: string;
   url: string;
   date: string;
   ticket: string; // stringified ticket number
@@ -46,7 +45,6 @@ function normalizeInitialValues(initial?: Partial<Project>): ProjectFormValues {
     staff1: initial?.staff1 ?? null,
     staff2: initial?.staff2 ?? null,
     status: initial?.status ?? "",
-    access: initial?.access ?? "",
     url: initial?.url ?? "",
     date: initial?.date ?? "",
     ticket: initial?.ticket !== undefined && initial?.ticket !== null ? String(initial.ticket) : "",
@@ -62,7 +60,6 @@ const FIELD_NAME_MAP: Record<string, string> = {
   staff1: "Staff 1",
   staff2: "Staff 2",
   status: "Status",
-  access: "Access",
   url: "URL",
   date: "Date",
   ticket: "Ticket",
@@ -88,7 +85,6 @@ export const ProjectForm: React.FC<ProjectFormProps> = ({
       staff1: values.staff1?.id ?? null,
       staff2: values.staff2?.id ?? null,
       status: values.status || null,
-      access: values.access || null,
       url: values.url || null,
       date: values.date || null,
       ticket: values.ticket ? Number(values.ticket) : null,
@@ -143,14 +139,6 @@ export const ProjectForm: React.FC<ProjectFormProps> = ({
           label="Status"
           value={values.status}
           onChange={(e) => handleChange("status", e.target.value)}
-          fullWidth
-          disabled={isSubmitting}
-        />
-
-        <TextField
-          label="Access"
-          value={values.access}
-          onChange={(e) => handleChange("access", e.target.value)}
           fullWidth
           disabled={isSubmitting}
         />
