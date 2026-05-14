@@ -5,7 +5,7 @@ import UserAutocomplete from "@/src/components/UserAutocomplete/UserAutocomplete
 import { ApiError } from "@/src/utils/formErrors";
 import { useFormState } from "@/src/utils/useFormState";
 import { FormMode, Project, ProjectCreateUpdate, User } from "@/types";
-import { Box, Button, Stack, TextField } from "@mui/material";
+import { Box, Button, FormControl, InputLabel, MenuItem, Select, Stack, TextField } from "@mui/material";
 import React from "react";
 
 export interface ProjectFormValues {
@@ -135,13 +135,20 @@ export const ProjectForm: React.FC<ProjectFormProps> = ({
           }}
         />
 
-        <TextField
-          label="Status"
-          value={values.status}
-          onChange={(e) => handleChange("status", e.target.value)}
-          fullWidth
-          disabled={isSubmitting}
-        />
+        <FormControl fullWidth>
+          <InputLabel id="status-select">Status</InputLabel>
+          <Select
+            labelId="status-select"
+            id="status-select"
+            value={values.status}
+            label="Status"
+            onChange={(e) => handleChange("status", e.target.value)}
+            disabled={isSubmitting}
+          >
+            <MenuItem value={"Active"}>Active</MenuItem>
+            <MenuItem value={"Inactive"}>Inactive</MenuItem>
+          </Select>
+        </FormControl>
 
         <TextField
           label="URL"
