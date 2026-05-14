@@ -2,7 +2,8 @@ import DeleteActionButton from "@/src/components/DeleteActionButton/DeleteAction
 import EditLink from "@/src/components/EditLink/EditLink";
 import { useTableFetch } from "@/src/utils/useTableFetch";
 import { Group } from "@/types";
-import { Table, TableBody, TableCell, TableHead, TableRow } from "@mui/material";
+import { Box, Table, TableBody, TableCell, TableHead, TableRow, Typography } from "@mui/material";
+import { EmptyTableMessage } from "../EmptyTableMessage/EmptyTableMessage";
 
 interface UserProjectTableProps {
   userId: number;
@@ -25,7 +26,7 @@ const UserProjectTable = ({ userId, adminView = false }: UserProjectTableProps) 
         </TableRow>
       </TableHead>
       <TableBody>
-        {groups &&
+        {groups && groups.length > 0 ?
           (groups || []).map((group) => (
             <TableRow key={group.id}>
               <TableCell>
@@ -44,7 +45,7 @@ const UserProjectTable = ({ userId, adminView = false }: UserProjectTableProps) 
                 </TableCell>
               )}
             </TableRow>
-          ))}
+          )) : <EmptyTableMessage message="No groups" />}
       </TableBody>
     </Table>
   );

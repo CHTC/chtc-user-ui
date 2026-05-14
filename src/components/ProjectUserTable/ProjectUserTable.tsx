@@ -24,6 +24,7 @@ import {
   Typography,
 } from "@mui/material";
 import { useState } from "react";
+import EmptyTableMessage from "../EmptyTableMessage/EmptyTableMessage";
 
 interface ProjectUserTableProps {
   projectId: number;
@@ -126,7 +127,7 @@ const ProjectUserTable = ({ projectId }: ProjectUserTableProps) => {
           </TableRow>
         </TableHead>
         <TableBody>
-          {users &&
+          {users && users.length > 0 ?
             (users || []).map((user) => (
               <TableRow key={user.id}>
                 <TableCell>
@@ -146,7 +147,7 @@ const ProjectUserTable = ({ projectId }: ProjectUserTableProps) => {
                   />
                 </TableCell>
               </TableRow>
-            ))}
+            )) : <EmptyTableMessage message="No users" />}
         </TableBody>
       </Table>
     </Box>

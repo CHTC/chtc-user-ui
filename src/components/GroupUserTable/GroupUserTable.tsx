@@ -5,6 +5,7 @@ import UserAutocomplete from "@/src/components/UserAutocomplete/UserAutocomplete
 import { useTableFetch } from "@/src/utils/useTableFetch";
 import { User } from "@/types";
 import { Grid, Stack, Table, TableBody, TableCell, TableHead, TableRow, Typography } from "@mui/material";
+import EmptyTableMessage from "../EmptyTableMessage/EmptyTableMessage";
 
 interface GroupUserTableProps {
   groupId: number;
@@ -26,7 +27,7 @@ const GroupUserTable = ({ groupId }: GroupUserTableProps) => {
             </TableRow>
           </TableHead>
           <TableBody>
-            {users &&
+            {users && users.length > 0 ?
               (users || []).map((user) => (
                 <TableRow key={user.id}>
                   <TableCell>
@@ -42,7 +43,7 @@ const GroupUserTable = ({ groupId }: GroupUserTableProps) => {
                     />
                   </TableCell>
                 </TableRow>
-              ))}
+              )) : <EmptyTableMessage message="No users" />}
           </TableBody>
         </Table>
       </Grid>

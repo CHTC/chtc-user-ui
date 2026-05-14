@@ -4,6 +4,7 @@ import { Note } from "@/types";
 import { Edit } from "@mui/icons-material";
 import { Box, IconButton, Table, TableBody, TableCell, TableHead, TableRow, Tooltip } from "@mui/material";
 import Link from "next/link";
+import EmptyTableMessage from "../EmptyTableMessage/EmptyTableMessage";
 
 interface ProjectNoteTableProps {
   projectId: number;
@@ -25,7 +26,7 @@ const ProjectNoteTable = ({ projectId }: ProjectNoteTableProps) => {
         </TableRow>
       </TableHead>
       <TableBody>
-        {notes &&
+        {notes && notes.length > 0 ?
           (notes || []).map((note) => (
             <TableRow key={note.id}>
               <TableCell>{note.author?.name}</TableCell>
@@ -55,7 +56,7 @@ const ProjectNoteTable = ({ projectId }: ProjectNoteTableProps) => {
                 </Box>
               </TableCell>
             </TableRow>
-          ))}
+          )) : <EmptyTableMessage message="No notes" />}
       </TableBody>
     </Table>
   );
