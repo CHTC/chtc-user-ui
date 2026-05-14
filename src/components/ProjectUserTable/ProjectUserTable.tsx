@@ -115,12 +115,10 @@ const ProjectUserTable = ({ projectId }: ProjectUserTableProps) => {
       <Table>
         <TableHead>
           <TableRow>
-            <TableCell>Username</TableCell>
             <TableCell>Name</TableCell>
             <TableCell>Role</TableCell>
             <TableCell>Tickets Assigned</TableCell>
             <TableCell>Email</TableCell>
-            <TableCell>Phone</TableCell>
             <TableCell>NetID</TableCell>
             <TableCell>Action</TableCell>
           </TableRow>
@@ -129,14 +127,10 @@ const ProjectUserTable = ({ projectId }: ProjectUserTableProps) => {
           {users &&
             (users || []).map((user) => (
               <TableRow key={user.id}>
-                <TableCell>
-                  <EditLink href={`/users/edit/?id=${user.id}`} ariaLabel="Go to user" />
-                </TableCell>
-                <TableCell>{user.name}</TableCell>
+                <TableCell><EditLink href={`/users/edit/?id=${user.id}`} ariaLabel="Go to user" />{" "}{user.name}</TableCell>
                 <TableCell>{user.role}</TableCell>
                 <TableCell>{user.last_note_ticket}</TableCell>
                 <TableCell>{user.email1}</TableCell>
-                <TableCell>{user.phone1}</TableCell>
                 <TableCell>{user.netid}</TableCell>
                 <TableCell>
                   <DeleteActionButton
