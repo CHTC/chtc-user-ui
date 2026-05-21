@@ -17,8 +17,8 @@ const UserAutocomplete = ({ label, value, onSelect, defaultFilter, disabled = fa
       value={value}
       onSelect={onSelect}
       defaultFilter={defaultFilter}
-      getOptionLabel={(option) => option?.name || option.email1}
-      searchFields={["name"]}
+      getOptionLabel={(option) => option?.name ? option.netid ? `${option.name} (${option.netid})` : option.name : option.email1}
+      searchFields={["name", "netid"]}
       disabled={disabled}
     />
   );
