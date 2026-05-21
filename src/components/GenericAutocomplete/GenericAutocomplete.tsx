@@ -16,8 +16,8 @@ export interface GenericAutocompleteProps<T extends { id: number }> {
   defaultFilter?: Record<string, string>;
   /** Function to extract display label from item */
   getOptionLabel: (option: T) => string;
-  /** Field name to use for search filtering */
-  searchField: string;
+  /** Field names to use for search filtering */
+  searchFields: string[];
   /** Whether the field is required */
   required?: boolean;
   /** Whether the autocomplete should be disabled */
@@ -35,7 +35,7 @@ export function GenericAutocomplete<T extends { id: number }>({
   onSelect,
   defaultFilter,
   getOptionLabel,
-  searchField,
+  searchFields,
   required = false,
   disabled = false,
 }: GenericAutocompleteProps<T>) {
@@ -46,7 +46,7 @@ export function GenericAutocomplete<T extends { id: number }>({
     [endpoint, debouncedInput, JSON.stringify(defaultFilter)],
     async (): Promise<T[]> => {
       const params = new URLSearchParams({ page_size: "100" });
-      if (debouncedInput) params.append(searchField, `ilike.${debouncedInput}`);
+      if (debouncedInput) params.append("or", `(${(searchFields.map((s) => `${s}.ilike.${debouncedInput}`).join(","))})`);
       if (defaultFilter) {
         for (const [k, v] of Object.entries(defaultFilter)) params.append(k, v);
       }

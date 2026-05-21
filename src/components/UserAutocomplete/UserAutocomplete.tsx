@@ -18,7 +18,7 @@ const UserAutocomplete = ({ label, value, onSelect, defaultFilter, disabled = fa
       onSelect={onSelect}
       defaultFilter={defaultFilter}
       getOptionLabel={(option) => option?.name || option.email1}
-      searchField="name"
+      searchFields={["name"]}
       disabled={disabled}
     />
   );
