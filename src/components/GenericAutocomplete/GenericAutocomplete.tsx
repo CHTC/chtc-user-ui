@@ -1,86 +1,96 @@
 import { apiFetch } from "@/src/components/AuthProvider";
 import useDebounce from "@/src/utils/useDebounce";
 import { Autocomplete, TextField } from "@mui/material";
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import useSWR from "swr";
 
-export interface GenericAutocompleteProps<T extends { id: number }> {
+interface BaseProps {
   endpoint: string;
-  /** Label for the autocomplete field */
   label: string;
-  /** Currently selected value (partial match supported) */
-  value?: Partial<T>;
-  /** Callback when selection changes */
-  onSelect: (item: T | null) => void;
-  /** Additional filters to apply to API request */
   defaultFilter?: Record<string, string>;
-  /** Function to extract display label from item */
-  getOptionLabel: (option: T) => string;
-  /** Field names to use for search filtering */
   searchFields: string[];
-  /** Whether the field is required */
   required?: boolean;
-  /** Whether the autocomplete should be disabled */
   disabled?: boolean;
 }
 
-/**
- * Generic autocomplete component that consolidates UserAutocomplete, ProjectAutocomplete, etc.
- * Handles debounced search, value matching, and SWR data fetching
- */
-export function GenericAutocomplete<T extends { id: number }>({
-  endpoint,
-  label,
-  value,
-  onSelect,
-  defaultFilter,
-  getOptionLabel,
-  searchFields,
-  required = false,
-  disabled = false,
-}: GenericAutocompleteProps<T>) {
+export type GenericAutocompleteProps<T extends { id: number }> =
+  | (BaseProps & {
+      multiple?: false;
+      value?: Partial<T> | null;
+      onSelect: (item: T | null) => void;
+      getOptionLabel: (option: T) => string;
+    })
+  | (BaseProps & {
+      multiple: true;
+      value?: Partial<T>[] | null;
+      onSelect: (item: T[]) => void;
+      getOptionLabel: (option: T) => string;
+    });
+
+export function GenericAutocomplete<T extends { id: number }>(props: GenericAutocompleteProps<T>) {  
   const [searchInput, setSearchInput] = useState("");
   const debouncedInput = useDebounce(searchInput, 300);
 
-  const { data: items = [], isValidating } = useSWR(
-    [endpoint, debouncedInput, JSON.stringify(defaultFilter)],
-    async (): Promise<T[]> => {
-      const params = new URLSearchParams({ page_size: "100" });
-      if (debouncedInput) params.append("or", `(${(searchFields.map((s) => `${s}.ilike.${debouncedInput}`).join(","))})`);
-      if (defaultFilter) {
-        for (const [k, v] of Object.entries(defaultFilter)) params.append(k, v);
+  const { data, isValidating } = useSWR<T[]>(
+    [props.endpoint, debouncedInput, JSON.stringify(props.defaultFilter)],
+    async () => {
+      const params = new URLSearchParams({ page_size: "100", ...props.defaultFilter });
+      if (debouncedInput) {
+        params.append("or", `(${props.searchFields.map((s) => `${s}.ilike.${debouncedInput}`).join(",")})`);
       }
-      const response = await apiFetch(`${endpoint}?${params}`);
-      return response.json();
+      return (await apiFetch(`${props.endpoint}?${params}`)).json();
     },
-    // Keep previous data so that loading new options doesn't clear the field or dropdown
-    { keepPreviousData: true },
+    { keepPreviousData: true }
   );
 
-  // Prefer a fully-fetched match but also fallback to the provided value for display if it doesn't match any fetched item
-  const activeItem: T | null = value ? (items.find((item) => item.id === value.id) ?? (value as T)) : null;
+  const items = useMemo(() => data ?? [], [data]);
+
+  const activeValue = useMemo(() => {
+    // We still keep `as T` here because the parent is passing `Partial<T>`, and MUI demands `T`.
+    const match = (v: Partial<T>): T => (items.find((i) => i.id === v?.id) || v) as T;
+
+    // TypeScript now natively knows props.value is an Array if props.multiple is true! No casts!
+    if (props.multiple) {
+      return props.value ? props.value.map(match) : [];
+    } else {
+      return props.value ? match(props.value) : null;
+    }
+  }, [props, items]);
 
   return (
     <Autocomplete
-      disabled={disabled}
-      value={activeItem}
+      multiple={props.multiple}
+      disabled={props.disabled}
+      value={activeValue}
       options={items}
       loading={isValidating}
-      // Custom filtering to emulate ilike
-      filterOptions={(options, state) =>
-        options.filter((option) => getOptionLabel(option).toLowerCase().includes(state.inputValue.toLowerCase()))
+      inputValue={props.multiple ? searchInput : undefined}
+      filterOptions={(opts, state) =>
+        opts.filter((opt) =>
+          props.getOptionLabel(opt).toLowerCase().includes(state.inputValue.toLowerCase())
+        )
       }
-      getOptionKey={(option) => option.id}
-      getOptionLabel={getOptionLabel}
-      isOptionEqualToValue={(option, val) => option.id === val.id}
-      onInputChange={(_event, newValue, reason) => {
-        if (reason === "input") setSearchInput(newValue);
-        if (reason === "clear" || reason === "reset" || reason === "blur") setSearchInput("");
+      getOptionKey={(opt) => opt.id}
+      getOptionLabel={props.getOptionLabel}
+      isOptionEqualToValue={(opt, val) => opt.id === val.id}
+      onInputChange={(_, val, reason) => {
+        if (reason === "input") setSearchInput(val);
+        else if (["clear", "blur"].includes(reason) || (!props.multiple && reason === "reset")) {
+          setSearchInput("");
+        }
       }}
-      onChange={(_event, newValue) => {
-        onSelect(newValue);
+      onChange={(_, newValue) => {
+        // By casting ONCE inside the wrapper, we protect all consumer components from casting.
+        if (props.multiple) {
+          setSearchInput("");
+          props.onSelect(newValue as T[]);
+        } else {
+          props.onSelect(newValue as T | null);
+        }
       }}
-      renderInput={(params) => <TextField {...params} label={label} variant="outlined" required={required} />}
+      renderInput={(params) => (
+        <TextField {...params} label={props.label} variant="outlined" required={props.required} />
+      )}
     />
   );
 }
