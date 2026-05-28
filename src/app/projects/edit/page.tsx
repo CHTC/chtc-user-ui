@@ -1,5 +1,6 @@
 "use client";
 
+import { useAlert } from "@/src/components/AlertProvider";
 import {AuthGuard} from "@/src/components/AuthGuard";
 import {apiFetch} from "@/src/components/AuthProvider";
 import {ProjectForm} from "@/src/components/Forms/ProjectForm/ProjectForm";
@@ -14,6 +15,8 @@ import {Suspense, useState} from "react";
 import useSWR from "swr";
 
 function Page() {
+  const { showAlert } = useAlert()
+
   const handleSubmit = async (
     id: number,
     payload: ProjectCreateUpdate,
@@ -42,6 +45,8 @@ function Page() {
       }
 
       update();
+
+      showAlert("UPDATE_PROJECT_SUCCESS")
     } catch (e: unknown) {
       const message = e instanceof Error ? e.message : "Failed to update project";
       setError(message);

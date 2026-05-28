@@ -1,5 +1,6 @@
 "use client";
 
+import { useAlert } from "@/src/components/AlertProvider";
 import { apiFetch, useAuthClient } from "@/src/components/AuthProvider";
 import { NoteForm } from "@/src/components/Forms/NoteForm/NoteForm";
 import type { NoteCreate } from "@/types";
@@ -10,6 +11,7 @@ import useSWR from "swr";
 
 function Page() {
   const { isAuthenticated } = useAuthClient();
+  const { showAlert } = useAlert();
 
   const handleSubmit = async (
     note_id: number | null,
@@ -23,6 +25,7 @@ function Page() {
         body: JSON.stringify(payload),
       });
       update();
+      showAlert("UPDATE_NOTE_SUCCESS")
     } catch (error) {
       // TODO: error handling here
       console.error("Failed to update note:", error);

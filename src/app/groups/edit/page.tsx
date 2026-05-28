@@ -1,5 +1,6 @@
 "use client";
 
+import { useAlert } from "@/src/components/AlertProvider";
 import { AuthGuard } from "@/src/components/AuthGuard";
 import { apiFetch } from "@/src/components/AuthProvider";
 import { GroupForm } from "@/src/components/Forms/GroupForm/GroupForm";
@@ -12,6 +13,9 @@ import { Suspense, useState } from "react";
 import useSWR from "swr";
 
 function Page() {
+  const { showAlert } = useAlert()
+
+
   const handleSubmit = async (
     id: number,
     payload: GroupCreateUpdate,
@@ -40,6 +44,8 @@ function Page() {
       }
 
       update();
+
+      showAlert("UPDATE_GROUP_SUCCESS")
     } catch (e: unknown) {
       const message = e instanceof Error ? e.message : "Failed to update group";
       setError(message);

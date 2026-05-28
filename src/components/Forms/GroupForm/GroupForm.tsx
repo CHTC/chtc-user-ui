@@ -53,12 +53,9 @@ const FIELD_NAME_MAP: Record<string, string> = {
 
 export const GroupForm: React.FC<GroupFormProps> = ({ mode, initialValues, onSubmit, isSubmitting = false, error }) => {
   const { values, handleChange } = useFormState<GroupFormValues>(() => normalizeInitialValues(initialValues));
-  const { showAlert } = useAlert()
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
-    showAlert('TEST')
 
     const payload: GroupCreateUpdate = {
       name: values.name.trim(),

@@ -12,11 +12,10 @@ export const AlertMessages = {
   TEST: { message: () => 'Hello, World!', severity: 'success' },
 
   // USERS
-  CREATE_USER_SUCCESS: { message: (name) => `Successfully created user ${name}`, severity: 'success' },
-  CREATE_USER_FAILURE: { message: (name) => `Failed to create user ${name}`, severity: 'error' },
-  UPDATE_USER_SUCESS: { message: (name) => `Successfully updated user ${name}`, severity: 'success' },
-  UPDATE_USER_FAILURE: { message: (name) => `Failed to update user ${name}`, severity: 'error' },
-
+  UPDATE_USER_SUCCESS: { message: () => `Successfully updated user`, severity: 'success' },
+  UPDATE_PROJECT_SUCCESS: { message: () => `Successfully updated project`, severity: 'success' },
+  UPDATE_NOTE_SUCCESS: { message: () => `Successfully updated note`, severity: 'success' },
+  UPDATE_GROUP_SUCCESS: { message: () => `Successfully updated group`, severity: 'success' },
 
 } satisfies Record<string, AlertPreset>;
 

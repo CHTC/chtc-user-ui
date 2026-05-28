@@ -13,8 +13,11 @@ import useSWR from "swr";
 import UserGroupTable from "@/src/components/UserGroupTable/UserGroupTable";
 import UserProjectTable from "@/src/components/UserProjectTable/UserProjectTable";
 import { User, UserCreate, UserUpdate } from "@/types";
+import { useAlert } from "@/src/components/AlertProvider";
 
 function Page() {
+  const { showAlert } = useAlert();
+
   const handleSubmit = async (
     id: number,
     payload: UserCreate | Partial<UserUpdate>,
@@ -43,6 +46,8 @@ function Page() {
       }
 
       update();
+
+      showAlert("UPDATE_USER_SUCCESS")
     } catch (e: unknown) {
       const message = e instanceof Error ? e.message : "Failed to update user";
       setError(message);
