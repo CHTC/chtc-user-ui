@@ -1,17 +1,19 @@
 import { apiFetch } from "@/src/components/AuthProvider";
 import DeleteActionButton from "@/src/components/DeleteActionButton/DeleteActionButton";
 import EditLink from "@/src/components/EditLink/EditLink";
+import ManagedBySelect from "@/src/components/ManagedBySelect/ManagedBySelect";
 import UserAutocomplete from "@/src/components/UserAutocomplete/UserAutocomplete";
 import { useTableFetch } from "@/src/utils/useTableFetch";
-import { User } from "@/types";
+import { GroupUserView, User } from "@/types";
 import { Grid, Stack, Table, TableBody, TableCell, TableHead, TableRow, Typography } from "@mui/material";
+
 
 interface GroupUserTableProps {
   groupId: number;
 }
 
 const GroupUserTable = ({ groupId }: GroupUserTableProps) => {
-  const { data: users, mutate } = useTableFetch<User[]>(`/groups/${groupId}/users`);
+  const { data: users, mutate } = useTableFetch<GroupUserView[]>(`/groups/${groupId}/users`);
 
   return (
     <Grid container spacing={3}>
@@ -22,21 +24,29 @@ const GroupUserTable = ({ groupId }: GroupUserTableProps) => {
               <TableCell></TableCell>
               <TableCell>Name</TableCell>
               <TableCell>NetID</TableCell>
+              <TableCell>Managed By</TableCell>
               <TableCell>Action</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
             {users &&
               (users || []).map((user) => (
-                <TableRow key={user.id}>
+                <TableRow key={user.user_id}>
                   <TableCell>
-                    <EditLink href={`/users/edit/?id=${user.id}`} ariaLabel="Go to user" />
+                    <EditLink href={`/users/edit/?id=${user.user_id}`} ariaLabel="Go to user" />
                   </TableCell>
                   <TableCell>{user.name}</TableCell>
                   <TableCell>{user.netid}</TableCell>
                   <TableCell>
+                    <ManagedBySelect
+                      value={user.managed_by ?? "APPLICATION"}
+                      patchUrl={`/groups/${groupId}/users/${user.user_id}`}
+                      onSuccess={mutate}
+                    />
+                  </TableCell>
+                  <TableCell>
                     <DeleteActionButton
-                      url={`/groups/${groupId}/users/${user.id}`}
+                      url={`/groups/${groupId}/users/${user.user_id}`}
                       onSuccess={mutate}
                       ariaLabel="Remove User"
                     />
@@ -55,7 +65,7 @@ const GroupUserTable = ({ groupId }: GroupUserTableProps) => {
               if (!user) return;
               await apiFetch(`/groups/${groupId}/users`, {
                 method: "POST",
-                body: JSON.stringify({ id: user.id }),
+                body: JSON.stringify({ user_id: user.id }),
               });
               mutate();
             }}
