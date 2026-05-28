@@ -15,7 +15,7 @@ function Page() {
         Name: "name",
         Email: "email1",
         NetID: "netid",
-        "Last Modified": { column: "date", default: "desc" },
+        "Last Modified": { column: "updated_at", default: "desc" },
       }}
       query={async (client, opts, searchQuery) => {
         const queryObj = searchQuery ? { or: `(name.ilike.${searchQuery},netid.ilike.${searchQuery})` } : undefined;
@@ -30,7 +30,7 @@ function Page() {
           user.email1 ?? "",
           user.phone1 ?? "",
           user.netid ?? "",
-          user.date ?? "",
+          user.updated_at ?? "",
         ]);
 
         return { data, totalCount: result.totalCount };
