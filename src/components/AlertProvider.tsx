@@ -11,7 +11,6 @@ export type AlertPreset = {
 export const AlertMessages = {
   TEST: { message: () => 'Hello, World!', severity: 'success' },
 
-  // USERS
   UPDATE_USER_SUCCESS: { message: () => `Successfully updated user`, severity: 'success' },
   UPDATE_PROJECT_SUCCESS: { message: () => `Successfully updated project`, severity: 'success' },
   UPDATE_NOTE_SUCCESS: { message: () => `Successfully updated note`, severity: 'success' },
