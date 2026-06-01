@@ -6,6 +6,8 @@ export type FormStatusEnum = "PENDING" | "APPROVED" | "DENIED";
 
 export type EntityManagerEnum = "APPLICATION" | "MANIFEST" | "MORGRIDGE_ACTIVE_DIRECTORY";
 
+export type GroupTypeEnum = "SUBMIT_NODE"
+
 export interface TokenGet {
   id: number;
   created_by: number;
@@ -65,16 +67,20 @@ export interface UserSubmitGet {
 export interface Group {
   id: number;
   name: string;
+  description: string | null;
   point_of_contact: User | null;
   unix_gid: number | null;
   has_groupdir: boolean | null;
+  type: GroupTypeEnum | null;
 }
 
 export interface GroupCreateUpdate {
   name: string;
+  description?: string | null;
   point_of_contact?: number | null;
   unix_gid?: number | null;
   has_groupdir?: boolean | null;
+  type?: GroupTypeEnum | null;
 }
 
 export interface Project {
@@ -241,9 +247,11 @@ export interface UserGroupView {
   created_at: string | null;
   updated_at: string | null;
   name: string;
+  description: string | null;
   point_of_contact: User | null;
   unix_gid: number | null;
   has_groupdir: boolean;
+  type: GroupTypeEnum | null;
 }
 
 // Returned by GET /groups/{group_id}/users
