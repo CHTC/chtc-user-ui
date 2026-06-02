@@ -365,8 +365,8 @@ export const UserForm: React.FC<UserFormProps> = ({ mode, initialValues, onSubmi
             </Box>
           </Stack>
         </Grid>
-
-        <Grid size={{ xs: 12, md: 6 }}>
+ 
+        {/*<Grid size={{ xs: 12, md: 6 }}>
           <Stack spacing={2}>
             <Typography variant="h4">Submit Nodes</Typography>
 
@@ -466,7 +466,7 @@ export const UserForm: React.FC<UserFormProps> = ({ mode, initialValues, onSubmi
               </TableBody>
             </Table>
           </Stack>
-        </Grid>
+        </Grid> */}
       </Grid>
     </Box>
   );
