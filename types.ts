@@ -317,7 +317,7 @@ export interface UserFormPatch {
   email?: string;
   project_id?: number;
   user_position?: PositionEnum;
-  submit_nodes?: UserSubmitNodeCreate[];
+  submit_node_group_ids?: number[];
 }
 
 export type SortDirection = "asc" | "desc";
