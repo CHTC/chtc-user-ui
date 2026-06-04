@@ -4,7 +4,7 @@ import { AuthGuard } from "@/src/components/AuthGuard";
 import { apiFetch } from "@/src/components/AuthProvider";
 import ProjectAutocomplete from "@/src/components/ProjectAutocomplete/ProjectAutocomplete";
 import SubmitNodeAutocomplete from "@/src/components/SubmitNodeAutocomplete/SubmitNodeAutocomplete";
-import type { JoinedProjectView, Project, SubmitNode, User } from "@/types";
+import type { Group, JoinedProjectView, Project, SubmitNode, User } from "@/types";
 import CheckIcon from "@mui/icons-material/Check";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import PlayArrowIcon from "@mui/icons-material/PlayArrow";
@@ -83,7 +83,7 @@ async function fetchEmails(filters: CommittedFilters): Promise<string[]> {
     if (!res.ok) throw new Error(await res.text());
 
     const data: User[] = await res.json();
-    const users = data.filter((u) => u.submit_nodes?.some((sn) => sn.submit_node_id === submitNodeId));
+    const users = data.filter((u) => u.groups?.some((g) => g.group_id === submitNodeId));
     return toEmails(users);
   }
 
@@ -101,7 +101,7 @@ function Page() {
   const [status, setStatus] = useState<StatusFilter>("all");
   const [role, setRole] = useState<RoleFilter>("any");
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
-  const [selectedSubmitNode, setSelectedSubmitNode] = useState<SubmitNode | null>(null);
+  const [selectedSubmitNode, setSelectedSubmitNode] = useState<Group | null>(null);
   const [committedFilters, setCommittedFilters] = useState<CommittedFilters | null>(null);
   const [copied, setCopied] = useState(false);
 
