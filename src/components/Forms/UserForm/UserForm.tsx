@@ -1,11 +1,12 @@
 "use client";
 
-import { apiFetch } from "@/src/components/AuthProvider";
+// TODO: Remove this — submit nodes replaced by SUBMIT_NODE groups (only used by the removed /submit_nodes fetch)
+// import { apiFetch } from "@/src/components/AuthProvider";
 import FormErrorAlert from "@/src/components/FormErrorAlert/FormErrorAlert";
 import ProjectAutocomplete from "@/src/components/ProjectAutocomplete/ProjectAutocomplete";
 import { ApiError } from "@/src/utils/formErrors";
 import type { PositionEnum, RoleEnum, UserCreate, UserUpdate } from "@/types";
-import { Project, SubmitNode, UserSubmitGet, UserSubmitNodeCreate } from "@/types";
+import { Project } from "@/types"; // TODO: Remove this — removed SubmitNode, UserSubmitGet, UserSubmitNodeCreate (submit nodes → SUBMIT_NODE groups)
 import {
   Box,
   Button,
@@ -26,7 +27,8 @@ import {
   Typography,
 } from "@mui/material";
 import React, { useState } from "react";
-import useSWR from "swr";
+// TODO: Remove this — submit nodes replaced by SUBMIT_NODE groups (only used by the removed /submit_nodes fetch)
+// import useSWR from "swr";
 
 export type UserFormMode = "create" | "edit";
 
@@ -46,7 +48,8 @@ export interface UserFormValues {
   position: PositionEnum | "";
   primary_project_id: string; // string in form, converted to number
   primary_project_role: RoleEnum | "";
-  submit_nodes: number[]; // store selected submit_node IDs for easier diffing
+  // TODO: Remove this — submit nodes replaced by SUBMIT_NODE groups
+  // submit_nodes: number[]; // store selected submit_node IDs for easier diffing
 }
 
 export interface UserFormProps {
@@ -81,7 +84,8 @@ function normalizeInitialValues(initial?: Partial<UserCreate & UserUpdate>): Use
         ? String(initial.primary_project_id)
         : "",
     primary_project_role: initial?.primary_project_role ?? "",
-    submit_nodes: (initial?.submit_nodes as UserSubmitNodeCreate[] | undefined)?.map((x) => x.submit_node_id) ?? [],
+    // TODO: Remove this — submit nodes replaced by SUBMIT_NODE groups
+    // submit_nodes: (initial?.submit_nodes as UserSubmitNodeCreate[] | undefined)?.map((x) => x.submit_node_id) ?? [],
   };
 }
 
@@ -91,14 +95,15 @@ const normalizeComparable = (value: unknown) => {
   return value === "" ? null : value;
 };
 
-const arraysEqual = (a: number[] | undefined, b: number[] | undefined) => {
-  if (!a && !b) return true;
-  if (!a || !b) return false;
-  if (a.length !== b.length) return false;
-  const sortedA = [...a].sort();
-  const sortedB = [...b].sort();
-  return sortedA.every((val, idx) => val === sortedB[idx]);
-};
+// TODO: Remove this — submit nodes replaced by SUBMIT_NODE groups (only used for the submit_nodes diff)
+// const arraysEqual = (a: number[] | undefined, b: number[] | undefined) => {
+//   if (!a && !b) return true;
+//   if (!a || !b) return false;
+//   if (a.length !== b.length) return false;
+//   const sortedA = [...a].sort();
+//   const sortedB = [...b].sort();
+//   return sortedA.every((val, idx) => val === sortedB[idx]);
+// };
 
 // Field name mappings for error display
 const FIELD_NAME_MAP: Record<string, string> = {
@@ -112,43 +117,46 @@ const FIELD_NAME_MAP: Record<string, string> = {
   position: "Position",
   primary_project_id: "Primary Project",
   primary_project_role: "Primary Project Role",
-  submit_nodes: "Submit Nodes",
+  // TODO: Remove this — submit nodes replaced by SUBMIT_NODE groups
+  // submit_nodes: "Submit Nodes",
 };
 
 export const UserForm: React.FC<UserFormProps> = ({ mode, initialValues, onSubmit, isSubmitting = false, error, adminView }) => {
   const [values, setValues] = useState<UserFormValues>(() => normalizeInitialValues(initialValues));
-  const [selectedSubmitNodeId, setSelectedSubmitNodeId] = useState<number | "">("");
+  // TODO: Remove this — submit nodes replaced by SUBMIT_NODE groups
+  // const [selectedSubmitNodeId, setSelectedSubmitNodeId] = useState<number | "">("");
 
   // Check if selected node is already assigned
-  const userSubmitNodeIds =
-    mode === "edit"
-      ? ((initialValues?.submit_nodes as UserSubmitGet[] | undefined)?.map((n) => n.submit_node_id) ?? [])
-      : values.submit_nodes;
-  const isNodeAssigned = selectedSubmitNodeId ? userSubmitNodeIds.includes(selectedSubmitNodeId as number) : false;
+  // const userSubmitNodeIds =
+  //   mode === "edit"
+  //     ? ((initialValues?.submit_nodes as UserSubmitGet[] | undefined)?.map((n) => n.submit_node_id) ?? [])
+  //     : values.submit_nodes;
+  // const isNodeAssigned = selectedSubmitNodeId ? userSubmitNodeIds.includes(selectedSubmitNodeId as number) : false;
 
   const handleChange = (field: keyof UserFormValues, value: string | boolean | number[]) => {
     setValues((prev) => ({ ...prev, [field]: value }));
   };
 
-  const handleAddSubmitNode = () => {
-    if (!selectedSubmitNodeId) return;
-
-    // Add to local state - changes will be saved when form is submitted
-    handleChange("submit_nodes", [...values.submit_nodes, selectedSubmitNodeId as number]);
-    setSelectedSubmitNodeId("");
-  };
-
-  const handleRemoveSubmitNode = () => {
-    if (!selectedSubmitNodeId) return;
-
-    // Remove from local state - changes will be saved when form is submitted
-    const nodeId = selectedSubmitNodeId as number;
-    handleChange(
-      "submit_nodes",
-      values.submit_nodes.filter((id) => id !== nodeId),
-    );
-    setSelectedSubmitNodeId("");
-  };
+  // TODO: Remove this — submit nodes replaced by SUBMIT_NODE groups
+  // const handleAddSubmitNode = () => {
+  //   if (!selectedSubmitNodeId) return;
+  //
+  //   // Add to local state - changes will be saved when form is submitted
+  //   handleChange("submit_nodes", [...values.submit_nodes, selectedSubmitNodeId as number]);
+  //   setSelectedSubmitNodeId("");
+  // };
+  //
+  // const handleRemoveSubmitNode = () => {
+  //   if (!selectedSubmitNodeId) return;
+  //
+  //   // Remove from local state - changes will be saved when form is submitted
+  //   const nodeId = selectedSubmitNodeId as number;
+  //   handleChange(
+  //     "submit_nodes",
+  //     values.submit_nodes.filter((id) => id !== nodeId),
+  //   );
+  //   setSelectedSubmitNodeId("");
+  // };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -167,9 +175,10 @@ export const UserForm: React.FC<UserFormProps> = ({ mode, initialValues, onSubmi
         position: values.position || null,
         primary_project_id: Number(values.primary_project_id),
         primary_project_role: values.primary_project_role as RoleEnum,
-        ...(values.submit_nodes?.length
-          ? { submit_nodes: values.submit_nodes.map((id) => ({ submit_node_id: id })) }
-          : {}),
+        // TODO: Remove this — submit nodes replaced by SUBMIT_NODE groups
+        // ...(values.submit_nodes?.length
+        //   ? { submit_nodes: values.submit_nodes.map((id) => ({ submit_node_id: id })) }
+        //   : {}),
       };
 
       await onSubmit(payload);
@@ -204,20 +213,22 @@ export const UserForm: React.FC<UserFormProps> = ({ mode, initialValues, onSubmi
     );
     maybeSet("position", (values.position || null) as UserUpdate["position"], initial.position);
 
+    // TODO: Remove this — submit nodes replaced by SUBMIT_NODE groups
     // Handle submit_nodes diff for edit: compare ID arrays, and only set if changed
-    const initialSubmitNodeIds =
-      (initial.submit_nodes as UserSubmitNodeCreate[] | undefined)?.map((x) => x.submit_node_id) ?? [];
-    if (!arraysEqual(values.submit_nodes, initialSubmitNodeIds)) {
-      updatePayload.submit_nodes = values.submit_nodes.map((id) => ({ submit_node_id: id }));
-    }
+    // const initialSubmitNodeIds =
+    //   (initial.submit_nodes as UserSubmitNodeCreate[] | undefined)?.map((x) => x.submit_node_id) ?? [];
+    // if (!arraysEqual(values.submit_nodes, initialSubmitNodeIds)) {
+    //   updatePayload.submit_nodes = values.submit_nodes.map((id) => ({ submit_node_id: id }));
+    // }
 
     await onSubmit(updatePayload);
   };
 
-  const { data: submitNodes } = useSWR<SubmitNode[]>("/submit_nodes", async () => {
-    const response = await apiFetch("/submit_nodes");
-    return response.json();
-  });
+  // TODO: Remove this — submit nodes replaced by SUBMIT_NODE groups; /submit_nodes endpoint removed
+  // const { data: submitNodes } = useSWR<SubmitNode[]>("/submit_nodes", async () => {
+  //   const response = await apiFetch("/submit_nodes");
+  //   return response.json();
+  // });
 
   return (
     <Box component="form" onSubmit={handleSubmit}>

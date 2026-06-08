@@ -12,7 +12,8 @@ import type {
   Project,
   ProjectCreateUpdate,
   RouteGet,
-  SubmitNode,
+  // TODO: Remove this — submit nodes replaced by SUBMIT_NODE groups
+  // SubmitNode,
   TokenGet,
   TokenGetFull,
   TokenPost,
@@ -72,8 +73,9 @@ export type ApiClient = {
   // PI Projects
   getPiProjects: (params?: PaginationParams) => Promise<PaginatedResponse<PiProjectView[]>>;
 
+  // TODO: Remove this — submit nodes replaced by SUBMIT_NODE groups; /submit_nodes endpoint removed
   // Submit Nodes
-  getSubmitNodes: (params?: PaginationParams) => Promise<PaginatedResponse<SubmitNode[]>>;
+  // getSubmitNodes: (params?: PaginationParams) => Promise<PaginatedResponse<SubmitNode[]>>;
 
   // Tokens
   getTokens: (params?: PaginationParams) => Promise<PaginatedResponse<TokenGet[]>>;
@@ -387,14 +389,15 @@ export function AuthClientProvider({ children }: { children: React.ReactNode }) 
       return { data, totalCount };
     }, []),
 
+    // TODO: Remove this — submit nodes replaced by SUBMIT_NODE groups; /submit_nodes endpoint removed
     // Submit Nodes
-    getSubmitNodes: useCallback(async (params?: PaginationParams): Promise<PaginatedResponse<SubmitNode[]>> => {
-      const response = await apiFetch(`/submit_nodes${buildQuery(params)}`);
-      if (!response.ok) throw new Error(`Failed to get submit nodes: ${response.statusText}`);
-      const totalCount = parseInt(response.headers.get("X-Total-Count") || "0", 10);
-      const data = await response.json();
-      return { data, totalCount };
-    }, []),
+    // getSubmitNodes: useCallback(async (params?: PaginationParams): Promise<PaginatedResponse<SubmitNode[]>> => {
+    //   const response = await apiFetch(`/submit_nodes${buildQuery(params)}`);
+    //   if (!response.ok) throw new Error(`Failed to get submit nodes: ${response.statusText}`);
+    //   const totalCount = parseInt(response.headers.get("X-Total-Count") || "0", 10);
+    //   const data = await response.json();
+    //   return { data, totalCount };
+    // }, []),
 
     // Tokens
     getTokens: useCallback(async (params?: PaginationParams): Promise<PaginatedResponse<TokenGet[]>> => {

@@ -4,7 +4,7 @@ import type { ApiError } from "@/src/components/Forms/UserForm/UserForm";
 import ProjectAutocomplete from "@/src/components/ProjectAutocomplete/ProjectAutocomplete";
 import SubmitNodeAutocomplete from "@/src/components/SubmitNodeAutocomplete/SubmitNodeAutocomplete";
 import { apiFetch } from "@/src/components/AuthProvider";
-import type { FormStatusEnum, Group, PositionEnum, Project, SubmitNode, User, UserForm, UserFormPatch } from "@/types";
+import type { FormStatusEnum, Group, PositionEnum, Project, User, UserForm, UserFormPatch } from "@/types"; // TODO: Remove this — removed SubmitNode (submit nodes → SUBMIT_NODE groups)
 import {
   Alert, AlertTitle,
   Box,

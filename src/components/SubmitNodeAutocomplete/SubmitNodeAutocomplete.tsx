@@ -1,5 +1,5 @@
 import { GenericAutocomplete } from "@/src/components/GenericAutocomplete/GenericAutocomplete";
-import type { Group, SubmitNode } from "@/types";
+import type { Group } from "@/types"; // TODO: Remove this — removed SubmitNode (submit nodes → SUBMIT_NODE groups)
 
 // interface SubmitNodeAutocompleteProps {
 //   value?: Partial<SubmitNode>;
