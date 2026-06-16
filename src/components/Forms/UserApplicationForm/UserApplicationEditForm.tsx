@@ -4,7 +4,7 @@ import type { ApiError } from "@/src/components/Forms/UserForm/UserForm";
 import ProjectAutocomplete from "@/src/components/ProjectAutocomplete/ProjectAutocomplete";
 import SubmitNodeAutocomplete from "@/src/components/SubmitNodeAutocomplete/SubmitNodeAutocomplete";
 import { apiFetch } from "@/src/components/AuthProvider";
-import type { FormStatusEnum, Group, PositionEnum, Project, User, UserForm, UserFormPatch } from "@/types"; // TODO: Remove this — removed SubmitNode (submit nodes → SUBMIT_NODE groups)
+import type { FormStatusEnum, Group, PositionEnum, Project, User, UserForm, UserFormPatch } from "@/types";
 import {
   Alert, AlertTitle,
   Box,
@@ -91,7 +91,6 @@ export function UserApplicationEditForm({
     return Boolean(
       (applicant?.groups?.length ?? 0) ||
       (applicant?.projects?.length ?? 0)
-      // (applicant?.submit_nodes?.length ?? 0)
     );
   }, [applicant]);
 

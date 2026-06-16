@@ -4,7 +4,7 @@ import { AuthGuard } from "@/src/components/AuthGuard";
 import { apiFetch } from "@/src/components/AuthProvider";
 import ProjectAutocomplete from "@/src/components/ProjectAutocomplete/ProjectAutocomplete";
 import SubmitNodeAutocomplete from "@/src/components/SubmitNodeAutocomplete/SubmitNodeAutocomplete";
-import type { Group, JoinedProjectView, Project, User } from "@/types"; // TODO: Remove this — removed SubmitNode (submit nodes → SUBMIT_NODE groups)
+import type { Group, JoinedProjectView, Project, User } from "@/types";
 import CheckIcon from "@mui/icons-material/Check";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import PlayArrowIcon from "@mui/icons-material/PlayArrow";

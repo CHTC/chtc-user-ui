@@ -42,29 +42,6 @@ export interface RouteGet {
   route: string;
 }
 
-// TODO: Remove this — submit nodes replaced by SUBMIT_NODE groups
-// export interface SubmitNode {
-//   id: number;
-//   name: string;
-// }
-
-// export interface UserSubmitNodeCreate {
-//   submit_node_id: number;
-// }
-
-// export interface UserSubmitGet {
-//   id: number;
-//   submit_node_id: number;
-//   submit_node_name: string;
-//   user_id: number;
-//   disk_quota: number | null;
-//   hpc_diskquota: number | null;
-//   hpc_inodequota: number | null;
-//   hpc_joblimit: number | null;
-//   hpc_corelimit: number | null;
-//   hpc_fairshare: number | null;
-// }
-
 export interface Group {
   id: number;
   name: string;
@@ -140,8 +117,6 @@ export interface User {
   position: string;
   created_at: string;
   updated_at: string;
-  // TODO: Remove this — submit nodes replaced by SUBMIT_NODE groups
-  // submit_nodes?: UserSubmitGet[];
   notes?: Note[];
   projects?: JoinedProjectView[];
   groups?: UserGroupView[];
@@ -164,8 +139,6 @@ export interface UserCreate {
   password?: string | null;
   primary_project_id: number;
   primary_project_role: RoleEnum;
-  // TODO: Remove this — submit nodes replaced by SUBMIT_NODE groups
-  // submit_nodes?: UserSubmitNodeCreate[] | null;
 }
 
 export interface UserUpdate {
@@ -182,8 +155,6 @@ export interface UserUpdate {
   unix_uid?: number | null;
   position?: PositionEnum | null;
   password?: string | null;
-  // TODO: Remove this — submit nodes replaced by SUBMIT_NODE groups
-  // submit_nodes?: UserSubmitNodeCreate[] | null;
 }
 
 export interface Note {
