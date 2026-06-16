@@ -6,6 +6,8 @@ export type FormStatusEnum = "PENDING" | "APPROVED" | "DENIED";
 
 export type EntityManagerEnum = "APPLICATION" | "MANIFEST" | "MORGRIDGE_ACTIVE_DIRECTORY";
 
+export type GroupTypeEnum = "SUBMIT_NODE"
+
 export interface TokenGet {
   id: number;
   created_by: number;
@@ -40,41 +42,23 @@ export interface RouteGet {
   route: string;
 }
 
-export interface SubmitNode {
-  id: number;
-  name: string;
-}
-
-export interface UserSubmitNodeCreate {
-  submit_node_id: number;
-}
-
-export interface UserSubmitGet {
-  id: number;
-  submit_node_id: number;
-  submit_node_name: string;
-  user_id: number;
-  disk_quota: number | null;
-  hpc_diskquota: number | null;
-  hpc_inodequota: number | null;
-  hpc_joblimit: number | null;
-  hpc_corelimit: number | null;
-  hpc_fairshare: number | null;
-}
-
 export interface Group {
   id: number;
   name: string;
+  description: string | null;
   point_of_contact: User | null;
   unix_gid: number | null;
   has_groupdir: boolean | null;
+  type: GroupTypeEnum | null;
 }
 
 export interface GroupCreateUpdate {
   name: string;
+  description?: string | null;
   point_of_contact?: number | null;
   unix_gid?: number | null;
   has_groupdir?: boolean | null;
+  type?: GroupTypeEnum | null;
 }
 
 export interface Project {
@@ -133,7 +117,6 @@ export interface User {
   position: string;
   created_at: string;
   updated_at: string;
-  submit_nodes?: UserSubmitGet[];
   notes?: Note[];
   projects?: JoinedProjectView[];
   groups?: UserGroupView[];
@@ -156,7 +139,6 @@ export interface UserCreate {
   password?: string | null;
   primary_project_id: number;
   primary_project_role: RoleEnum;
-  submit_nodes?: UserSubmitNodeCreate[] | null;
 }
 
 export interface UserUpdate {
@@ -173,7 +155,6 @@ export interface UserUpdate {
   unix_uid?: number | null;
   position?: PositionEnum | null;
   password?: string | null;
-  submit_nodes?: UserSubmitNodeCreate[] | null;
 }
 
 export interface Note {
@@ -241,9 +222,11 @@ export interface UserGroupView {
   created_at: string | null;
   updated_at: string | null;
   name: string;
+  description: string | null;
   point_of_contact: User | null;
   unix_gid: number | null;
   has_groupdir: boolean;
+  type: GroupTypeEnum | null;
 }
 
 // Returned by GET /groups/{group_id}/users
@@ -309,7 +292,7 @@ export interface UserFormPatch {
   email?: string;
   project_id?: number;
   user_position?: PositionEnum;
-  submit_nodes?: UserSubmitNodeCreate[];
+  submit_node_group_ids?: number[];
 }
 
 export type SortDirection = "asc" | "desc";

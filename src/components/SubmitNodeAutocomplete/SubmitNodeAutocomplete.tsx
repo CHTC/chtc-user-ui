@@ -1,22 +1,23 @@
 import { GenericAutocomplete } from "@/src/components/GenericAutocomplete/GenericAutocomplete";
-import type { SubmitNode } from "@/types";
+import type { Group } from "@/types";
 
 interface SubmitNodeAutocompleteProps {
-  value?: Partial<SubmitNode>;
-  onSelect: (submitNode: SubmitNode | null) => void;
-  defaultFilter?: Record<string, string>;
+  value?: Partial<Group>;
+  onSelect: (submitNode: Group | null) => void;
   required?: boolean;
   disabled?: boolean;
 }
 
-const SubmitNodeAutocomplete = ({ value, onSelect, defaultFilter, required, disabled }: SubmitNodeAutocompleteProps) => {
+const SubmitNodeAutocomplete = ({ value, onSelect, required, disabled }: SubmitNodeAutocompleteProps) => {
   return (
-    <GenericAutocomplete<SubmitNode>
-      endpoint="/submit_nodes"
+    <GenericAutocomplete<Group>
+      endpoint="/groups"
       label="Select Submit Node"
       value={value}
       onSelect={onSelect}
-      defaultFilter={defaultFilter}
+      defaultFilter={{
+        "type": "eq.SUBMIT_NODE"
+      }}
       getOptionLabel={(option) => option.name}
       searchField="name"
       required={required}

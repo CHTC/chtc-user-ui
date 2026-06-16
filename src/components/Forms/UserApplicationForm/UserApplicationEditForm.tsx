@@ -4,7 +4,7 @@ import type { ApiError } from "@/src/components/Forms/UserForm/UserForm";
 import ProjectAutocomplete from "@/src/components/ProjectAutocomplete/ProjectAutocomplete";
 import SubmitNodeAutocomplete from "@/src/components/SubmitNodeAutocomplete/SubmitNodeAutocomplete";
 import { apiFetch } from "@/src/components/AuthProvider";
-import type { FormStatusEnum, PositionEnum, Project, SubmitNode, User, UserForm, UserFormPatch } from "@/types";
+import type { FormStatusEnum, Group, PositionEnum, Project, User, UserForm, UserFormPatch } from "@/types";
 import {
   Alert, AlertTitle,
   Box,
@@ -75,8 +75,8 @@ export function UserApplicationEditForm({
   const [step, setStep] = useState<Step>("initial");
   const [project, setProject] = useState<Project | null>(null);
   const [userPosition, setUserPosition] = useState<PositionEnum | "">(initialValues?.position ?? "");
-  const [selectedSubmitNode, setSelectedSubmitNode] = useState<SubmitNode | null>(null);
-  const [submitNodes, setSubmitNodes] = useState<SubmitNode[]>([]);
+  const [selectedSubmitNodeGroup, setSelectedSubmitNodeGroup] = useState<Group | null>(null);
+  const [submitNodeGroups, setSubmitNodeGroups] = useState<Group[]>([]);
   const [email, setEmail] = useState<string>(initialValues?.email ?? "");
   const content = initialValues?.content;
   const piDisplay = initialValues?.pi_name ?? `User ID ${initialValues?.pi_id ?? "-"}`;
@@ -90,8 +90,7 @@ export function UserApplicationEditForm({
   const userWasPreviouslyActive = useMemo(() => {
     return Boolean(
       (applicant?.groups?.length ?? 0) ||
-      (applicant?.projects?.length ?? 0) ||
-      (applicant?.submit_nodes?.length ?? 0)
+      (applicant?.projects?.length ?? 0)
     );
   }, [applicant]);
 
@@ -99,9 +98,9 @@ export function UserApplicationEditForm({
     if (needsEmail && !email.trim()) return "Enter the user's email address before approving.";
     if (!project) return "Select a project before approving.";
     if (userPosition === "") return "Choose a project position before approving.";
-    if (submitNodes.length === 0) return "Add at least one submit node before approving.";
+    if (submitNodeGroups.length === 0) return "Add at least one submit node before approving.";
     return null;
-  }, [needsEmail, email, project, userPosition, submitNodes.length]);
+  }, [needsEmail, email, project, userPosition, submitNodeGroups.length]);
 
   const handleDeny = async () => {
     await onSubmit({ status: "DENIED" });
@@ -124,15 +123,15 @@ export function UserApplicationEditForm({
   };
 
   const handleAddSubmitNode = () => {
-    if (!selectedSubmitNode || submitNodes.some((node) => node.id === selectedSubmitNode.id)) {
+    if (!selectedSubmitNodeGroup || submitNodeGroups.some((node) => node.id === selectedSubmitNodeGroup.id)) {
       return;
     }
-    setSubmitNodes((current) => [...current, selectedSubmitNode]);
-    setSelectedSubmitNode(null);
+    setSubmitNodeGroups((current) => [...current, selectedSubmitNodeGroup]);
+    setSelectedSubmitNodeGroup(null);
   };
 
   const handleRemoveSubmitNode = (id: number) => {
-    setSubmitNodes((current) => current.filter((node) => node.id !== id));
+    setSubmitNodeGroups((current) => current.filter((node) => node.id !== id));
   };
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
@@ -144,7 +143,7 @@ export function UserApplicationEditForm({
       email: needsEmail ? email.trim() || undefined : undefined,
       project_id: project?.id ?? 0,
       user_position: userPosition as PositionEnum,
-      submit_nodes: submitNodes.map((node) => ({ submit_node_id: node.id })),
+      submit_node_group_ids: submitNodeGroups.map((group) => (group.id)),
     });
   };
 
@@ -325,8 +324,8 @@ export function UserApplicationEditForm({
 
                     <Stack spacing={2}>
                       <SubmitNodeAutocomplete
-                        value={selectedSubmitNode ?? undefined}
-                        onSelect={setSelectedSubmitNode}
+                        value={selectedSubmitNodeGroup ?? undefined}
+                        onSelect={setSelectedSubmitNodeGroup}
                         disabled={isSubmitting}
                       />
                       <Box>
@@ -334,13 +333,13 @@ export function UserApplicationEditForm({
                           type="button"
                           variant="outlined"
                           onClick={handleAddSubmitNode}
-                          disabled={!selectedSubmitNode || isSubmitting}
+                          disabled={!selectedSubmitNodeGroup || isSubmitting}
                         >
                           Add Submit Node
                         </Button>
                       </Box>
                       <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
-                        {submitNodes.map((node) => (
+                        {submitNodeGroups.map((node) => (
                           <Chip
                             key={node.id}
                             label={node.name}

@@ -18,6 +18,7 @@ const UserProjectTable = ({ userId, adminView = false }: UserProjectTableProps) 
       <TableHead>
         <TableRow>
           <TableCell>Name</TableCell>
+          <TableCell>Type</TableCell>
           <TableCell>Point Of Contact</TableCell>
           <TableCell>Unix GID</TableCell>
           <TableCell>Managed By</TableCell>
@@ -34,6 +35,7 @@ const UserProjectTable = ({ userId, adminView = false }: UserProjectTableProps) 
                 {group.name}
                 {adminView && (<EditLink href={`/groups/edit/?id=${group.group_id}`} ariaLabel="Go to group" /> )}
               </TableCell>
+              <TableCell>{group.type ?? ""}</TableCell>
               <TableCell>{group.point_of_contact?.name ?? group.point_of_contact?.email1 ?? ""}</TableCell>
               <TableCell>{group.unix_gid}</TableCell>
               <TableCell>

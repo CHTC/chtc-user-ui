@@ -1,11 +1,10 @@
 "use client";
 
-import { apiFetch } from "@/src/components/AuthProvider";
 import FormErrorAlert from "@/src/components/FormErrorAlert/FormErrorAlert";
 import ProjectAutocomplete from "@/src/components/ProjectAutocomplete/ProjectAutocomplete";
 import { ApiError } from "@/src/utils/formErrors";
 import type { PositionEnum, RoleEnum, UserCreate, UserUpdate } from "@/types";
-import { Project, SubmitNode, UserSubmitGet, UserSubmitNodeCreate } from "@/types";
+import { Project } from "@/types";
 import {
   Box,
   Button,
@@ -17,16 +16,10 @@ import {
   MenuItem,
   Select,
   Stack,
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableRow,
   TextField,
   Typography,
 } from "@mui/material";
 import React, { useState } from "react";
-import useSWR from "swr";
 
 export type UserFormMode = "create" | "edit";
 
@@ -46,7 +39,6 @@ export interface UserFormValues {
   position: PositionEnum | "";
   primary_project_id: string; // string in form, converted to number
   primary_project_role: RoleEnum | "";
-  submit_nodes: number[]; // store selected submit_node IDs for easier diffing
 }
 
 export interface UserFormProps {
@@ -61,7 +53,7 @@ export interface UserFormProps {
   onSubmit: (payload: UserCreate | Partial<UserUpdate>) => Promise<void> | void;
   isSubmitting?: boolean;
   error?: string | ApiError | null;
-  adminView?: boolean; // whether to show admin-only fields in submit node table
+  adminView?: boolean; // whether to show admin-only fields
 }
 
 function normalizeInitialValues(initial?: Partial<UserCreate & UserUpdate>): UserFormValues {
@@ -81,7 +73,6 @@ function normalizeInitialValues(initial?: Partial<UserCreate & UserUpdate>): Use
         ? String(initial.primary_project_id)
         : "",
     primary_project_role: initial?.primary_project_role ?? "",
-    submit_nodes: (initial?.submit_nodes as UserSubmitNodeCreate[] | undefined)?.map((x) => x.submit_node_id) ?? [],
   };
 }
 
@@ -89,15 +80,6 @@ function normalizeInitialValues(initial?: Partial<UserCreate & UserUpdate>): Use
 const normalizeComparable = (value: unknown) => {
   if (value === undefined) return undefined;
   return value === "" ? null : value;
-};
-
-const arraysEqual = (a: number[] | undefined, b: number[] | undefined) => {
-  if (!a && !b) return true;
-  if (!a || !b) return false;
-  if (a.length !== b.length) return false;
-  const sortedA = [...a].sort();
-  const sortedB = [...b].sort();
-  return sortedA.every((val, idx) => val === sortedB[idx]);
 };
 
 // Field name mappings for error display
@@ -112,42 +94,13 @@ const FIELD_NAME_MAP: Record<string, string> = {
   position: "Position",
   primary_project_id: "Primary Project",
   primary_project_role: "Primary Project Role",
-  submit_nodes: "Submit Nodes",
 };
 
 export const UserForm: React.FC<UserFormProps> = ({ mode, initialValues, onSubmit, isSubmitting = false, error, adminView }) => {
   const [values, setValues] = useState<UserFormValues>(() => normalizeInitialValues(initialValues));
-  const [selectedSubmitNodeId, setSelectedSubmitNodeId] = useState<number | "">("");
 
-  // Check if selected node is already assigned
-  const userSubmitNodeIds =
-    mode === "edit"
-      ? ((initialValues?.submit_nodes as UserSubmitGet[] | undefined)?.map((n) => n.submit_node_id) ?? [])
-      : values.submit_nodes;
-  const isNodeAssigned = selectedSubmitNodeId ? userSubmitNodeIds.includes(selectedSubmitNodeId as number) : false;
-
-  const handleChange = (field: keyof UserFormValues, value: string | boolean | number[]) => {
+  const handleChange = (field: keyof UserFormValues, value: string | boolean) => {
     setValues((prev) => ({ ...prev, [field]: value }));
-  };
-
-  const handleAddSubmitNode = () => {
-    if (!selectedSubmitNodeId) return;
-
-    // Add to local state - changes will be saved when form is submitted
-    handleChange("submit_nodes", [...values.submit_nodes, selectedSubmitNodeId as number]);
-    setSelectedSubmitNodeId("");
-  };
-
-  const handleRemoveSubmitNode = () => {
-    if (!selectedSubmitNodeId) return;
-
-    // Remove from local state - changes will be saved when form is submitted
-    const nodeId = selectedSubmitNodeId as number;
-    handleChange(
-      "submit_nodes",
-      values.submit_nodes.filter((id) => id !== nodeId),
-    );
-    setSelectedSubmitNodeId("");
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -167,9 +120,6 @@ export const UserForm: React.FC<UserFormProps> = ({ mode, initialValues, onSubmi
         position: values.position || null,
         primary_project_id: Number(values.primary_project_id),
         primary_project_role: values.primary_project_role as RoleEnum,
-        ...(values.submit_nodes?.length
-          ? { submit_nodes: values.submit_nodes.map((id) => ({ submit_node_id: id })) }
-          : {}),
       };
 
       await onSubmit(payload);
@@ -204,20 +154,8 @@ export const UserForm: React.FC<UserFormProps> = ({ mode, initialValues, onSubmi
     );
     maybeSet("position", (values.position || null) as UserUpdate["position"], initial.position);
 
-    // Handle submit_nodes diff for edit: compare ID arrays, and only set if changed
-    const initialSubmitNodeIds =
-      (initial.submit_nodes as UserSubmitNodeCreate[] | undefined)?.map((x) => x.submit_node_id) ?? [];
-    if (!arraysEqual(values.submit_nodes, initialSubmitNodeIds)) {
-      updatePayload.submit_nodes = values.submit_nodes.map((id) => ({ submit_node_id: id }));
-    }
-
     await onSubmit(updatePayload);
   };
-
-  const { data: submitNodes } = useSWR<SubmitNode[]>("/submit_nodes", async () => {
-    const response = await apiFetch("/submit_nodes");
-    return response.json();
-  });
 
   return (
     <Box component="form" onSubmit={handleSubmit}>
@@ -365,111 +303,7 @@ export const UserForm: React.FC<UserFormProps> = ({ mode, initialValues, onSubmi
             </Box>
           </Stack>
         </Grid>
-
-        <Grid size={{ xs: 12, md: 6 }}>
-          <Stack spacing={2}>
-            <Typography variant="h4">Submit Nodes</Typography>
-
-            {adminView && (
-              <Stack direction="row" spacing={2} alignItems="center">
-                <FormControl sx={{ flexGrow: 1 }}>
-                  <InputLabel id="submit-node-label">Select Submit Node</InputLabel>
-                  <Select
-                    labelId="submit-node-label"
-                    label="Select Submit Node"
-                    value={selectedSubmitNodeId}
-                    onChange={(e) => setSelectedSubmitNodeId(e.target.value as number)}
-                    disabled={isSubmitting}
-                  >
-                    <MenuItem value="">
-                      <em>None</em>
-                    </MenuItem>
-                    {submitNodes?.map((node) => (
-                      <MenuItem key={node.id} value={node.id}>
-                        {node.name}
-                      </MenuItem>
-                    ))}
-                  </Select>
-                </FormControl>
-                <Button
-                  variant="contained"
-                  color="primary"
-                  onClick={handleAddSubmitNode}
-                  disabled={!selectedSubmitNodeId || isNodeAssigned || isSubmitting}
-                >
-                  Add
-                </Button>
-                <Button
-                  variant="contained"
-                  color="error"
-                  onClick={handleRemoveSubmitNode}
-                  disabled={!selectedSubmitNodeId || !isNodeAssigned || isSubmitting}
-                >
-                  Remove
-                </Button>
-              </Stack>
-            )}
-            <Table>
-              <TableHead>
-                <TableRow>
-                  <TableCell>Name</TableCell>
-                  {mode === "edit" && (
-                    <>
-                      <TableCell>Disk Quota</TableCell>
-                      <TableCell>HPC Disk</TableCell>
-                      <TableCell>HPC Inode</TableCell>
-                      <TableCell>Job Limit</TableCell>
-                      <TableCell>Core Limit</TableCell>
-                      <TableCell>Fairshare</TableCell>
-                    </>
-                  )}
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {values.submit_nodes.length > 0 ? (
-                  values.submit_nodes.map((nodeId) => {
-                    const node = submitNodes?.find((n) => n.id === nodeId);
-                    if (!node) return null;
-
-                    if (mode === "edit") {
-                      // For edit mode, try to get quota info from initialValues
-                      const initialNode = (initialValues?.submit_nodes as UserSubmitGet[] | undefined)?.find(
-                        (n) => n.submit_node_id === nodeId,
-                      );
-                      return (
-                        <TableRow key={nodeId}>
-                          <TableCell>{node.name}</TableCell>
-                          <TableCell>{initialNode?.disk_quota ?? ""}</TableCell>
-                          <TableCell>{initialNode?.hpc_diskquota ?? ""}</TableCell>
-                          <TableCell>{initialNode?.hpc_inodequota ?? ""}</TableCell>
-                          <TableCell>{initialNode?.hpc_joblimit ?? ""}</TableCell>
-                          <TableCell>{initialNode?.hpc_corelimit ?? ""}</TableCell>
-                          <TableCell>{initialNode?.hpc_fairshare ?? ""}</TableCell>
-                        </TableRow>
-                      );
-                    } else {
-                      // For create mode, just show the name
-                      return (
-                        <TableRow key={nodeId}>
-                          <TableCell>{node.name}</TableCell>
-                        </TableRow>
-                      );
-                    }
-                  })
-                ) : (
-                  <TableRow>
-                    <TableCell colSpan={mode === "edit" ? 7 : 1} align="center">
-                      No submit nodes selected
-                    </TableCell>
-                  </TableRow>
-                )}
-              </TableBody>
-            </Table>
-          </Stack>
-        </Grid>
       </Grid>
     </Box>
   );
 };
-
-export default UserForm;
