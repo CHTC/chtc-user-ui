@@ -1,5 +1,6 @@
 import { GenericAutocomplete } from "@/src/components/GenericAutocomplete/GenericAutocomplete";
 import type { FieldsOfScience } from "@/types";
+import { Link } from "@mui/material";
 
 interface FieldOfScienceAutocompleteProps {
   value?: Partial<FieldsOfScience>;
@@ -27,6 +28,19 @@ const FieldOfScienceAutocomplete = ({
       getOptionId={(option) => option.fos_id}
       getOptionLabel={(option) => (option.sed_cip_title ? `${option.fos_id}: ${option.sed_cip_title}` : option.fos_id)}
       searchFields={["fos_id", "sed_cip_title"]}
+      helperText={
+        <>
+          Uses the NSF{" "}
+          <Link
+            href="https://ncses.nsf.gov/pubs/nsf24300/assets/technical-notes/nsf24300-technical-notes.pdf"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            SED-CIP field of science codes
+          </Link>
+          .
+        </>
+      }
       required={required}
       disabled={disabled}
     />
