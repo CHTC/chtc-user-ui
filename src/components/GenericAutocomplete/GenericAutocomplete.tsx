@@ -4,30 +4,32 @@ import { Autocomplete, TextField } from "@mui/material";
 import { useState, useMemo } from "react";
 import useSWR from "swr";
 
-interface BaseProps {
+interface BaseProps<T> {
   endpoint: string;
   label: string;
   defaultFilter?: Record<string, string>;
   searchFields: string[];
+  getOptionId?: (option: T) => string | number;
   required?: boolean;
   disabled?: boolean;
 }
 
-export type GenericAutocompleteProps<T extends { id: number }> =
-  | (BaseProps & {
+export type GenericAutocompleteProps<T> =
+  | (BaseProps<T> & {
       multiple?: false;
       value?: Partial<T> | null;
       onSelect: (item: T | null) => void;
       getOptionLabel: (option: T) => string;
     })
-  | (BaseProps & {
+  | (BaseProps<T> & {
       multiple: true;
       value?: Partial<T>[] | null;
       onSelect: (item: T[]) => void;
       getOptionLabel: (option: T) => string;
     });
 
-export function GenericAutocomplete<T extends { id: number }>(props: GenericAutocompleteProps<T>) {  
+export function GenericAutocomplete<T>(props: GenericAutocompleteProps<T>) {
+  const getOptionId = props.getOptionId ?? ((option: T) => (option as unknown as { id: number | string }).id);
   const [searchInput, setSearchInput] = useState("");
   const debouncedInput = useDebounce(searchInput, 300);
 
@@ -40,14 +42,14 @@ export function GenericAutocomplete<T extends { id: number }>(props: GenericAuto
       }
       return (await apiFetch(`${props.endpoint}?${params}`)).json();
     },
-    { keepPreviousData: true }
+    { keepPreviousData: true },
   );
 
   const items = useMemo(() => data ?? [], [data]);
 
   const activeValue = useMemo(() => {
     // We still keep `as T` here because the parent is passing `Partial<T>`, and MUI demands `T`.
-    const match = (v: Partial<T>): T => (items.find((i) => i.id === v?.id) || v) as T;
+    const match = (v: Partial<T>): T => (items.find((i) => getOptionId(i) === getOptionId(v as T)) || v) as T;
 
     // TypeScript now natively knows props.value is an Array if props.multiple is true! No casts!
     if (props.multiple) {
@@ -66,13 +68,11 @@ export function GenericAutocomplete<T extends { id: number }>(props: GenericAuto
       loading={isValidating}
       inputValue={props.multiple ? searchInput : undefined}
       filterOptions={(opts, state) =>
-        opts.filter((opt) =>
-          props.getOptionLabel(opt).toLowerCase().includes(state.inputValue.toLowerCase())
-        )
+        opts.filter((opt) => props.getOptionLabel(opt).toLowerCase().includes(state.inputValue.toLowerCase()))
       }
-      getOptionKey={(opt) => opt.id}
+      getOptionKey={(opt) => getOptionId(opt)}
       getOptionLabel={props.getOptionLabel}
-      isOptionEqualToValue={(opt, val) => opt.id === val.id}
+      isOptionEqualToValue={(opt, val) => getOptionId(opt) === getOptionId(val)}
       onInputChange={(_, val, reason) => {
         if (reason === "input") setSearchInput(val);
         else if (["clear", "blur"].includes(reason) || (!props.multiple && reason === "reset")) {
