@@ -1,7 +1,7 @@
 import { apiFetch } from "@/src/components/AuthProvider";
 import useDebounce from "@/src/utils/useDebounce";
 import { Autocomplete, TextField } from "@mui/material";
-import { useState, useMemo } from "react";
+import { type ReactNode, useState, useMemo } from "react";
 import useSWR from "swr";
 
 interface BaseProps<T> {
@@ -10,6 +10,7 @@ interface BaseProps<T> {
   defaultFilter?: Record<string, string>;
   searchFields: string[];
   getOptionId?: (option: T) => string | number;
+  helperText?: ReactNode;
   required?: boolean;
   disabled?: boolean;
 }
@@ -89,7 +90,13 @@ export function GenericAutocomplete<T>(props: GenericAutocompleteProps<T>) {
         }
       }}
       renderInput={(params) => (
-        <TextField {...params} label={props.label} variant="outlined" required={props.required} />
+        <TextField
+          {...params}
+          label={props.label}
+          variant="outlined"
+          required={props.required}
+          helperText={props.helperText}
+        />
       )}
     />
   );
