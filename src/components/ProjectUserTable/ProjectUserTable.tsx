@@ -2,6 +2,7 @@ import { apiFetch } from "@/src/components/AuthProvider";
 import DeleteActionButton from "@/src/components/DeleteActionButton/DeleteActionButton";
 import EditLink from "@/src/components/EditLink/EditLink";
 import UserAutocomplete from "@/src/components/UserAutocomplete/UserAutocomplete";
+import ManagedBySelect from "@/src/components/ManagedBySelect/ManagedBySelect";
 import { useTableFetch } from "@/src/utils/useTableFetch";
 import { JoinedProjectView, RoleEnum, User } from "@/types";
 import { ArrowDropDown, ArrowDropUp } from "@mui/icons-material";
@@ -31,7 +32,7 @@ interface ProjectUserTableProps {
 }
 
 const ProjectUserTable = ({ projectId }: ProjectUserTableProps) => {
-  const { data: users, mutate } = useTableFetch<JoinedProjectView[]>(`/projects/${projectId}/users`);
+  const { data: users, mutate } = useTableFetch<JoinedProjectView[]>(`/projects/${projectId}/users?netid=order_by.asc`);
 
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [role, setRole] = useState<RoleEnum | "">("");
@@ -123,6 +124,7 @@ const ProjectUserTable = ({ projectId }: ProjectUserTableProps) => {
             <TableCell>Email</TableCell>
             <TableCell>Phone</TableCell>
             <TableCell>NetID</TableCell>
+            <TableCell>Managed By</TableCell>
             <TableCell>Action</TableCell>
           </TableRow>
         </TableHead>
@@ -139,6 +141,13 @@ const ProjectUserTable = ({ projectId }: ProjectUserTableProps) => {
                 <TableCell>{user.email1}</TableCell>
                 <TableCell>{user.phone1}</TableCell>
                 <TableCell>{user.netid}</TableCell>
+                <TableCell>
+                  <ManagedBySelect
+                    value={user.managed_by}
+                    patchUrl={`/projects/${projectId}/users/${user.id}`}
+                    onSuccess={mutate}
+                  />
+                </TableCell>
                 <TableCell>
                   <DeleteActionButton
                     url={`/projects/${projectId}/users/${user.id}`}
