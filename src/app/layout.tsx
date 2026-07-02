@@ -26,7 +26,10 @@ const rht = Red_Hat_Text({
 });
 
 export const metadata: Metadata = {
-  title: "CHTC User App",
+  title: {
+    default: "CHTC User App",
+    template: "%s | CHTC User App"
+  }
   // description: "", // TODO
 };
 

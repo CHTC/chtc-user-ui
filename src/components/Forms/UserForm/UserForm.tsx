@@ -338,23 +338,23 @@ export const UserForm: React.FC<UserFormProps> = ({ mode, initialValues, onSubmi
               <FormControlLabel
                 control={
                   <Checkbox
-                    checked={values.is_admin}
-                    onChange={(e) => handleChange("is_admin", e.target.checked)}
-                    disabled={isSubmitting || !adminView}
-                  />
-                }
-                label="Is Admin"
-              />
-
-              <FormControlLabel
-                control={
-                  <Checkbox
                     checked={values.active}
                     onChange={(e) => handleChange("active", e.target.checked)}
                     disabled={isSubmitting || !adminView}
                   />
                 }
                 label="Active (must have NetID)"
+              />
+
+              <FormControlLabel
+                control={
+                  <Checkbox
+                    checked={values.is_admin}
+                    onChange={(e) => handleChange("is_admin", e.target.checked)}
+                    disabled={isSubmitting || !adminView}
+                  />
+                }
+                label="Is Admin"
               />
             </Box>
 
