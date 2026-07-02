@@ -20,10 +20,15 @@ function Page() {
     update: () => void,
   ) => {
     try {
-      await apiFetch(`/projects/${project_id}/notes/${note_id}`, {
+      const response = await apiFetch(`/projects/${project_id}/notes/${note_id}`, {
         method: "PUT",
         body: JSON.stringify(payload),
       });
+
+      if (!response.ok) {
+        throw new Error(`Failed to update note: ${response.statusText}`);
+      }
+
       update();
       showAlert("UPDATE_NOTE_SUCCESS")
     } catch (error) {
