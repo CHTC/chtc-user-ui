@@ -90,11 +90,11 @@ const GroupFormSuspense = ({
   const [error, setError] = useState<string | ApiError | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  usePageTitle(group ? "Group: " + group.name : null);
+
   if (!id) {
     return <p>No group ID provided.</p>;
   }
-
-  usePageTitle("Group: " + group.name)
 
   return (
     <GroupForm

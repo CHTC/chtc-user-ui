@@ -94,11 +94,11 @@ const ProjectFormSuspense = ({
   const [error, setError] = useState<string | ApiError | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  usePageTitle(project ? "Project: " + project.name : null);
+
   if (!id) {
     return <p>No project ID provided.</p>;
   }
-
-  usePageTitle("Project: " + project.name)
 
   return (
     <ProjectForm

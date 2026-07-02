@@ -77,14 +77,14 @@ const TokenPage = () => {
     },
   );
 
+  usePageTitle(token ? "Token: " + (token as TokenGet).description : null);
+
   if (!id) {
     return <Typography color="error">No token ID provided.</Typography>;
   }
 
   const tokenData = token as TokenGet;
 
-  usePageTitle("Token: " + tokenData.description)
-  
   return (
     <Grid container>
       <Grid size={{ xs: 12, lg: 6 }}>

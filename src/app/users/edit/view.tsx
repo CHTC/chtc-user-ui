@@ -92,11 +92,11 @@ const UserFormSuspense = ({
   const [error, setError] = useState<string | ApiError | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  usePageTitle(user ? "User: " + user.name : null);
+
   if (!id) {
     return <p>No user ID provided.</p>;
   }
-
-  usePageTitle("User: " + user.name)
 
   return (
     <Box>

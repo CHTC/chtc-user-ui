@@ -63,12 +63,12 @@ function UserApplicationFormSuspense({ id }: { id: number }) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const router = useRouter();
 
+  // assumes created by field is field, not always true in dev, but always true in prod
+  usePageTitle(data ? "User Application: " + data.created_by?.name : null);
+
   if (!data) {
     return <Typography color="error">User application not found.</Typography>;
   }
-
-  // assumes created by field is field, not always true in dev, but always true in prod
-  usePageTitle("User Application: " + data.created_by?.name)
 
   const handleSubmit = async (payload: UserFormPatch) => {
     setError(null);
