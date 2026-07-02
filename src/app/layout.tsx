@@ -7,8 +7,10 @@ import { AppRouterCacheProvider } from "@mui/material-nextjs/v15-appRouter";
 import { ThemeProvider } from "@mui/material/styles";
 import { Red_Hat_Display, Red_Hat_Text } from "next/font/google";
 import { AuthClientProvider } from "../components/AuthProvider";
+import { AlertProvider } from "../components/AlertProvider";
 import "./globals.css";
 import { theme } from "./theme";
+import { SnackbarAlert } from "../components/SnackbarAlert";
 
 const rhd = Red_Hat_Display({
   subsets: ["latin"],
@@ -42,8 +44,11 @@ export default function RootLayout({
         <AppRouterCacheProvider>
           <ThemeProvider theme={theme}>
             <AuthClientProvider>
-              <Banner />
-              <AppShell>{children}</AppShell>
+              <AlertProvider>
+                <Banner />
+                <SnackbarAlert />
+                <AppShell>{children}</AppShell>
+              </AlertProvider>
             </AuthClientProvider>
           </ThemeProvider>
         </AppRouterCacheProvider>

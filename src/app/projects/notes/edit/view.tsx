@@ -7,9 +7,11 @@ import { Box, Breadcrumbs, Skeleton, Typography } from "@mui/material";
 import { useSearchParams } from "next/navigation";
 import { Suspense } from "react";
 import useSWR from "swr";
+import {useAlert} from "@/src/components/AlertProvider";
 
 function View() {
   const { isAuthenticated } = useAuthClient();
+  const { showAlert } = useAlert();
 
   const handleSubmit = async (
     note_id: number | null,
@@ -18,11 +20,17 @@ function View() {
     update: () => void,
   ) => {
     try {
-      await apiFetch(`/projects/${project_id}/notes/${note_id}`, {
+      const response = await apiFetch(`/projects/${project_id}/notes/${note_id}`, {
         method: "PUT",
         body: JSON.stringify(payload),
       });
+
+      if (!response.ok) {
+        throw new Error(`Failed to update note: ${response.statusText}`);
+      }
+
       update();
+      showAlert("UPDATE_NOTE_SUCCESS")
     } catch (error) {
       // TODO: error handling here
       console.error("Failed to update note:", error);

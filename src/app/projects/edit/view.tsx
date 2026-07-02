@@ -13,8 +13,11 @@ import {Box, Breadcrumbs, Button, Skeleton, Typography} from "@mui/material";
 import {useSearchParams} from "next/navigation";
 import {Suspense, useState} from "react";
 import useSWR from "swr";
+import {useAlert} from "@/src/components/AlertProvider";
 
 function View() {
+  const { showAlert } = useAlert()
+
   const handleSubmit = async (
     id: number,
     payload: ProjectCreateUpdate,
@@ -43,6 +46,8 @@ function View() {
       }
 
       update();
+
+      showAlert("UPDATE_PROJECT_SUCCESS")
     } catch (e: unknown) {
       const message = e instanceof Error ? e.message : "Failed to update project";
       setError(message);
