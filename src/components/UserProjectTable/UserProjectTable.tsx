@@ -3,6 +3,7 @@ import EditLink from "@/src/components/EditLink/EditLink";
 import { useTableFetch } from "@/src/utils/useTableFetch";
 import { JoinedProjectView } from "@/types";
 import { Table, TableBody, TableCell, TableHead, TableRow } from "@mui/material";
+import EmptyTableMessage from "../EmptyTableMessage/EmptyTableMessage";
 import ManagedBySelect from "@/src/components/ManagedBySelect/ManagedBySelect";
 
 interface UserProjectTableProps {
@@ -31,7 +32,7 @@ const UserProjectTable = ({ userId, adminView=false }: UserProjectTableProps) =>
         </TableRow>
       </TableHead>
       <TableBody>
-        {projects &&
+        {projects && projects.length > 0 ?
           (projects || []).map((project) => (
             <TableRow key={project.project_id}>
               <TableCell>
@@ -63,7 +64,7 @@ const UserProjectTable = ({ userId, adminView=false }: UserProjectTableProps) =>
                 </TableCell>
               )}
             </TableRow>
-          ))}
+          )) : <EmptyTableMessage message="No projects" />}
       </TableBody>
     </Table>
   );
