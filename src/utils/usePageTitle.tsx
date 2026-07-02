@@ -1,9 +1,8 @@
 import { useEffect } from "react";
 
 export default function usePageTitle(title: string | null | undefined) {
-  if (!title) return;
-
   useEffect(() => {
+    if (!title) return;
     document.title = title + " | CHTC User App";
-  })
+  }, [title]);
 }
