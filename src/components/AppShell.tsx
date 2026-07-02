@@ -9,7 +9,7 @@ const adminPages = [
   { label: "Users", path: "/users/", icon: <People /> },
   { label: "Projects", path: "/projects/", icon: <Folder /> },
   { label: "Groups", path: "/groups/", icon: <Group /> },
-  { label: "PIs", path: "/pis/", icon: <School /> },
+  { label: "PI List", path: "/pis/", icon: <School /> },
   { label: "Email", path: "/email/", icon: <People /> },
   { label: "Forms", path: "/forms/user-applications/", icon: <People /> },
 ];

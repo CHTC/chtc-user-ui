@@ -1,56 +1,34 @@
-import { apiFetch } from "@/src/components/AuthProvider";
-import useDebounce from "@/src/utils/useDebounce";
+import { GenericAutocomplete } from "@/src/components/GenericAutocomplete/GenericAutocomplete";
 import { User } from "@/types";
-import { Autocomplete, TextField } from "@mui/material";
-import { useState } from "react";
-import useSWR from "swr";
 
 interface UserAutoCompleteProps {
   value: User[];
   dataUrl: string;
   onSelect: (user: User[]) => void;
   defaultFilter?: Record<string, string>;
+  disabled?: boolean;
 }
 
-const UserAutocompleteMultiple = ({ value, dataUrl, onSelect, defaultFilter }: UserAutoCompleteProps) => {
-  const [inputValue, setInputValue] = useState("");
-  const debouncedInputValue = useDebounce(inputValue, 300);
-
-  const { data: users } = useSWR([`${dataUrl}?page_size=100`, debouncedInputValue], async (): Promise<User[]> => {
-    const urlParams = new URLSearchParams();
-    urlParams.append("page_size", "100");
-
-    if (debouncedInputValue) {
-      urlParams.append("name", `ilike.${debouncedInputValue}`);
-    }
-
-    if (defaultFilter) {
-      for (const [key, value] of Object.entries(defaultFilter)) {
-        urlParams.append(key, value);
-      }
-    }
-
-    const userResponse = await apiFetch(`${dataUrl}?${urlParams.toString()}`);
-    return [...(await userResponse.json()), ...value];
-  });
-
+const UserAutocompleteMultiple = ({ 
+  value, 
+  dataUrl, 
+  onSelect, 
+  defaultFilter, 
+  disabled = false 
+}: UserAutoCompleteProps) => {
   return (
-    <Autocomplete
+    <GenericAutocomplete<User>
       multiple
+      endpoint={dataUrl}
+      label="Select Users"
       value={value}
-      options={users || []}
-      getOptionLabel={(option) => option?.name || option.email1}
-      getOptionKey={(option) => option.id}
-      inputValue={inputValue}
-      onInputChange={(event, newInputValue) => {
-        setInputValue(newInputValue);
-      }}
-      onChange={(event, newValue) => {
-        if (newValue) {
-          onSelect(newValue);
-        }
-      }}
-      renderInput={(params) => <TextField {...params} label="Select User" variant="outlined" />}
+      onSelect={onSelect}
+      defaultFilter={defaultFilter}
+      getOptionLabel={(option) => 
+        option?.name ? option.netid ? `${option.name} (${option.netid})` : option.name : option.email1 || ""
+      }
+      searchFields={["name", "netid"]}
+      disabled={disabled}
     />
   );
 };

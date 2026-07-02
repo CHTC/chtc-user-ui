@@ -4,6 +4,8 @@ export type RoleEnum = "MEMBER" | "PI";
 
 export type FormStatusEnum = "PENDING" | "APPROVED" | "DENIED";
 
+export type EntityManagerEnum = "APPLICATION" | "MANIFEST" | "MORGRIDGE_ACTIVE_DIRECTORY";
+
 export interface TokenGet {
   id: number;
   created_by: number;
@@ -88,6 +90,7 @@ export interface Project {
   date: string | null;
   ticket: number | null;
   last_contact: string | null;
+  managed_by: EntityManagerEnum | null;
 }
 
 export interface PiProjectView {
@@ -128,10 +131,12 @@ export interface User {
   date: string | null;
   unix_uid: number | null;
   position: string;
+  created_at: string;
+  updated_at: string;
   submit_nodes?: UserSubmitGet[];
   notes?: Note[];
   projects?: JoinedProjectView[];
-  groups?: Group[];
+  groups?: UserGroupView[];
   user_forms?: UserForm[];
 }
 
@@ -210,6 +215,9 @@ export interface JoinedProjectView {
   position: string;
   role: RoleEnum;
   last_note_ticket: string | null;
+  managed_by: EntityManagerEnum;
+  created_at: string;
+  updated_at: string;
 }
 
 export interface UserProjectCreate {
@@ -217,6 +225,40 @@ export interface UserProjectCreate {
   user_id?: number | null;
   role?: RoleEnum | null;
   is_primary?: boolean | null;
+  managed_by?: EntityManagerEnum;
+}
+
+export interface UserGroupCreateUpdate {
+  user_id: number | null;
+  managed_by?: EntityManagerEnum;
+}
+
+// Returned by GET /users/{user_id}/groups
+export interface UserGroupView {
+  group_id: number;
+  user_id: number;
+  managed_by: EntityManagerEnum | null;
+  created_at: string | null;
+  updated_at: string | null;
+  name: string;
+  point_of_contact: User | null;
+  unix_gid: number | null;
+  has_groupdir: boolean;
+}
+
+// Returned by GET /groups/{group_id}/users
+export interface GroupUserView {
+  group_id: number;
+  user_id: number;
+  managed_by: EntityManagerEnum | null;
+  created_at: string | null;
+  updated_at: string | null;
+  name: string;
+  netid: string | null;
+  username: string | null;
+  is_admin: boolean | null;
+  active: boolean | null;
+  unix_uid: number | null;
 }
 
 export interface BaseForm {
@@ -243,6 +285,7 @@ export interface UserFormPost {
   pi_name?: string | null;
   pi_email?: string | null;
   position: PositionEnum;
+  department?: string | null;
   mentor_name?: string | null;
   mentor_email?: string | null;
   marketing_attribution?: string | null;

@@ -18,7 +18,7 @@ const SubmitNodeAutocomplete = ({ value, onSelect, defaultFilter, required, disa
       onSelect={onSelect}
       defaultFilter={defaultFilter}
       getOptionLabel={(option) => option.name}
-      searchField="name"
+      searchFields={["name"]}
       required={required}
       disabled={disabled}
     />
