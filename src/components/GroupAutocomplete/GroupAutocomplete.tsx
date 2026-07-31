@@ -18,7 +18,7 @@ const GroupAutocomplete = ({ value, onSelect, defaultFilter, required, disabled 
       onSelect={onSelect}
       defaultFilter={defaultFilter}
       getOptionLabel={(option) => option?.name ?? ""}
-      searchField="name"
+      searchFields={["name"]}
       required={required}
       disabled={disabled}
     />
