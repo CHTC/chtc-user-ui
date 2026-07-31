@@ -2,9 +2,9 @@
 
 import { AuthGuard } from "@/src/components/AuthGuard";
 import { apiFetch } from "@/src/components/AuthProvider";
+import GroupAutocomplete from "@/src/components/GroupAutocomplete/GroupAutocomplete";
 import ProjectAutocomplete from "@/src/components/ProjectAutocomplete/ProjectAutocomplete";
-import SubmitNodeAutocomplete from "@/src/components/SubmitNodeAutocomplete/SubmitNodeAutocomplete";
-import type { JoinedProjectView, Project, SubmitNode, User } from "@/types";
+import type { Group, JoinedProjectView, Project, User } from "@/types";
 import CheckIcon from "@mui/icons-material/Check";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import PlayArrowIcon from "@mui/icons-material/PlayArrow";
@@ -30,7 +30,7 @@ type CommittedFilters = {
   status: StatusFilter;
   role: RoleFilter;
   projectId: number | null;
-  submitNodeId: number | null;
+  groupId: number | null;
 };
 
 function qs(params: Record<string, string | number>): string {
@@ -48,9 +48,9 @@ function toEmails(items: Array<{ email1?: string | null; email2?: string | null 
 }
 
 async function fetchEmails(filters: CommittedFilters): Promise<string[]> {
-  const { status, role, projectId, submitNodeId } = filters;
-  if (projectId !== null && submitNodeId !== null) {
-    throw new Error("Cannot filter by both project and submit node at the same time");
+  const { status, role, projectId, groupId } = filters;
+  if (projectId !== null && groupId !== null) {
+    throw new Error("Cannot filter by both project and group at the same time");
   }
 
   if (projectId === null && role === "pi") {
@@ -77,18 +77,18 @@ async function fetchEmails(filters: CommittedFilters): Promise<string[]> {
     return toEmails(users);
   }
 
-  if (submitNodeId !== null) {
-    // By submit node (all users fetched, filter client-side by submit node)
+  if (groupId !== null) {
+    // By group (all users fetched, filter client-side by group membership)
     const res = await apiFetch(`/users${qs(params)}`);
     if (!res.ok) throw new Error(await res.text());
 
     const data: User[] = await res.json();
-    const users = data.filter((u) => u.submit_nodes?.some((sn) => sn.submit_node_id === submitNodeId));
+    const users = data.filter((u) => u.groups?.some((g) => g.group_id === groupId));
     return toEmails(users);
   }
 
   // Simple case:
-  // No project, no submit node, no PI to check
+  // No project, no group, no PI to check
   const res = await apiFetch(`/users${qs(params)}`);
 
   if (!res.ok) throw new Error(await res.text());
@@ -101,7 +101,7 @@ function Page() {
   const [status, setStatus] = useState<StatusFilter>("all");
   const [role, setRole] = useState<RoleFilter>("any");
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
-  const [selectedSubmitNode, setSelectedSubmitNode] = useState<SubmitNode | null>(null);
+  const [selectedGroup, setSelectedGroup] = useState<Group | null>(null);
   const [committedFilters, setCommittedFilters] = useState<CommittedFilters | null>(null);
   const [copied, setCopied] = useState(false);
 
@@ -119,7 +119,7 @@ function Page() {
       status,
       role,
       projectId: selectedProject?.id ?? null,
-      submitNodeId: selectedSubmitNode?.id ?? null,
+      groupId: selectedGroup?.id ?? null,
     });
   };
 
@@ -194,14 +194,14 @@ function Page() {
 
           <Divider sx={{ mb: 3 }} />
 
-          {/* Row 2: Project + Submit Node side by side */}
+          {/* Row 2: Project + Group side by side */}
           <Box sx={{ display: "flex", gap: 2, mb: 3, flexWrap: "wrap" }}>
             <Box sx={{ flex: 1, minWidth: 220 }}>
               <Typography variant="overline" color="text.secondary" display="block">
                 Project
               </Typography>
               <ProjectAutocomplete
-                disabled={!!selectedSubmitNode}
+                disabled={!!selectedGroup}
                 value={selectedProject ?? undefined}
                 onSelect={(p) => {
                   setSelectedProject(p);
@@ -212,13 +212,13 @@ function Page() {
 
             <Box sx={{ flex: 1, minWidth: 220 }}>
               <Typography variant="overline" color="text.secondary" display="block">
-                Submit Node
+                Group
               </Typography>
-              <SubmitNodeAutocomplete
+              <GroupAutocomplete
                 disabled={!!selectedProject}
-                value={selectedSubmitNode ?? undefined}
-                onSelect={(n) => {
-                  setSelectedSubmitNode(n);
+                value={selectedGroup ?? undefined}
+                onSelect={(g) => {
+                  setSelectedGroup(g);
                   resetResults();
                 }}
               />

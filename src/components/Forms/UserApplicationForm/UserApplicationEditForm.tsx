@@ -328,6 +328,7 @@ export function UserApplicationEditForm({
                         value={selectedSubmitNode ?? undefined}
                         onSelect={setSelectedSubmitNode}
                         disabled={isSubmitting}
+                        defaultFilter={{ group_id: "not.is.null" }}
                       />
                       <Box>
                         <Button

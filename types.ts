@@ -43,6 +43,7 @@ export interface RouteGet {
 export interface SubmitNode {
   id: number;
   name: string;
+  group_id: number | null;
 }
 
 export interface UserSubmitNodeCreate {
@@ -50,16 +51,16 @@ export interface UserSubmitNodeCreate {
 }
 
 export interface UserSubmitGet {
-  id: number;
-  submit_node_id: number;
-  submit_node_name: string;
+  // disk_quota: number | null;
+  // hpc_diskquota: number | null;
+  // hpc_inodequota: number | null;
+  // hpc_joblimit: number | null;
+  // hpc_corelimit: number | null;
+  // hpc_fairshare: number | null;
   user_id: number;
-  disk_quota: number | null;
-  hpc_diskquota: number | null;
-  hpc_inodequota: number | null;
-  hpc_joblimit: number | null;
-  hpc_corelimit: number | null;
-  hpc_fairshare: number | null;
+  id: number;
+  name: string;
+  group_id: number | null;
 }
 
 export interface Group {
