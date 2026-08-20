@@ -2,6 +2,7 @@ import DeleteActionButton from "@/src/components/DeleteActionButton/DeleteAction
 import EditLink from "@/src/components/EditLink/EditLink";
 import ManagedBySelect from "@/src/components/ManagedBySelect/ManagedBySelect";
 import { useTableFetch } from "@/src/utils/useTableFetch";
+import { useRevalidateUserAndGroups, userGroupsKey } from "@/src/utils/userCache";
 import { UserGroupView } from "@/types";
 import { Table, TableBody, TableCell, TableHead, TableRow } from "@mui/material";
 import { EmptyTableMessage } from "../EmptyTableMessage/EmptyTableMessage";
@@ -12,7 +13,9 @@ interface UserProjectTableProps {
 }
 
 const UserProjectTable = ({ userId, adminView = false }: UserProjectTableProps) => {
-  const { data: groups, mutate } = useTableFetch<UserGroupView[]>(`/users/${userId}/groups`);
+  const { data: groups, mutate } = useTableFetch<UserGroupView[]>(userGroupsKey(userId));
+  // Removing a group also removes the submit nodes it grants, so refresh the user too.
+  const revalidate = useRevalidateUserAndGroups(userId);
 
   return (
     <Table>
@@ -48,7 +51,7 @@ const UserProjectTable = ({ userId, adminView = false }: UserProjectTableProps) 
                 <TableCell>
                   <DeleteActionButton
                     url={`/groups/${group.group_id}/users/${userId}`}
-                    onSuccess={mutate}
+                    onSuccess={revalidate}
                     ariaLabel="Delete Group"
                   />
                 </TableCell>

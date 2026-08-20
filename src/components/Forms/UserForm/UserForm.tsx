@@ -25,7 +25,7 @@ import {
   TextField,
   Typography,
 } from "@mui/material";
-import React, { useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import useSWR from "swr";
 
 export type UserFormMode = "create" | "edit";
@@ -119,11 +119,23 @@ export const UserForm: React.FC<UserFormProps> = ({ mode, initialValues, onSubmi
   const [values, setValues] = useState<UserFormValues>(() => normalizeInitialValues(initialValues));
   const [selectedSubmitNodeId, setSelectedSubmitNodeId] = useState<number | "">("");
 
+  const savedSubmitNodeIds = useMemo(
+    () => (initialValues?.submit_nodes as UserSubmitGet[] | undefined)?.map((n) => n.id) ?? [],
+    [initialValues?.submit_nodes],
+  );
+  const userSubmitNodeIds = mode === "edit" ? savedSubmitNodeIds : values.submit_nodes;
+
+  // Submit nodes are granted through group membership, so they can change outside this
+  // form (e.g. removing a group). Pick up the new set when the fetched user actually
+  // changes, without clobbering pending edits on an otherwise identical revalidation.
+  const lastSavedSubmitNodeIds = useRef(savedSubmitNodeIds);
+  useEffect(() => {
+    if (arraysEqual(lastSavedSubmitNodeIds.current, savedSubmitNodeIds)) return;
+    lastSavedSubmitNodeIds.current = savedSubmitNodeIds;
+    setValues((prev) => ({ ...prev, submit_nodes: savedSubmitNodeIds }));
+  }, [savedSubmitNodeIds]);
+
   // Check if selected node is already assigned
-  const userSubmitNodeIds =
-    mode === "edit"
-      ? ((initialValues?.submit_nodes as UserSubmitGet[] | undefined)?.map((n) => n.id) ?? [])
-      : values.submit_nodes;
   const isNodeAssigned = selectedSubmitNodeId ? userSubmitNodeIds.includes(selectedSubmitNodeId as number) : false;
 
   const handleChange = (field: keyof UserFormValues, value: string | boolean | number[]) => {
@@ -205,9 +217,7 @@ export const UserForm: React.FC<UserFormProps> = ({ mode, initialValues, onSubmi
     maybeSet("position", (values.position || null) as UserUpdate["position"], initial.position);
 
     // Handle submit_nodes diff for edit: compare ID arrays, and only set if changed
-    const initialSubmitNodeIds =
-      (initial.submit_nodes as UserSubmitGet[] | undefined)?.map((x) => x.id) ?? [];
-    if (!arraysEqual(values.submit_nodes, initialSubmitNodeIds)) {
+    if (!arraysEqual(values.submit_nodes, savedSubmitNodeIds)) {
       updatePayload.submit_nodes = values.submit_nodes.map((id) => ({ submit_node_id: id }));
     }
 
