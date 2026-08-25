@@ -12,6 +12,7 @@ import useSWR from "swr";
 
 import UserGroupTable from "@/src/components/UserGroupTable/UserGroupTable";
 import UserProjectTable from "@/src/components/UserProjectTable/UserProjectTable";
+import { useRevalidateUserAndGroups, userKey } from "@/src/utils/userCache";
 import {GroupCreateUpdate, User, UserCreate, UserUpdate} from "@/types";
 import usePageTitle from "@/src/utils/usePageTitle";
 import {useAlert} from "@/src/components/AlertProvider";
@@ -91,9 +92,11 @@ const UserFormSuspense = ({
   ) => Promise<void>;
   adminView?: boolean;
 }) => {
-  const { data: user, mutate } = useSWR(id ? [`/users/${id}`] : null, () => userFetcher(id) as Promise<User>, {
+  const { data: user } = useSWR(id ? userKey(id) : null, () => userFetcher(id) as Promise<User>, {
     suspense: true,
   });
+  // Submit node changes are stored as group memberships, so refresh the group table too.
+  const revalidate = useRevalidateUserAndGroups(id);
   const [error, setError] = useState<string | ApiError | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -109,7 +112,7 @@ const UserFormSuspense = ({
         mode="edit"
         initialValues={user as Partial<UserCreate & UserUpdate>}
         onSubmit={(payload: UserCreate | Partial<UserUpdate>) =>
-          handleSubmit(id, payload, mutate, setError, setIsSubmitting)
+          handleSubmit(id, payload, revalidate, setError, setIsSubmitting)
         }
         error={error}
         isSubmitting={isSubmitting}
