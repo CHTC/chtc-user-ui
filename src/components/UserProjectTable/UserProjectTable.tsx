@@ -3,6 +3,7 @@ import EditLink from "@/src/components/EditLink/EditLink";
 import { useTableFetch } from "@/src/utils/useTableFetch";
 import { JoinedProjectView } from "@/types";
 import { Table, TableBody, TableCell, TableHead, TableRow } from "@mui/material";
+import EmptyTableMessage from "../EmptyTableMessage/EmptyTableMessage";
 import ManagedBySelect from "@/src/components/ManagedBySelect/ManagedBySelect";
 
 interface UserProjectTableProps {
@@ -19,8 +20,6 @@ const UserProjectTable = ({ userId, adminView=false }: UserProjectTableProps) =>
         <TableRow>
           <TableCell>Name</TableCell>
           <TableCell>Role</TableCell>
-          <TableCell>Is Primary</TableCell>
-          <TableCell>Staff</TableCell>
           <TableCell>Status</TableCell>
           <TableCell>Last Contact</TableCell>
           <TableCell>Accounting Group</TableCell>
@@ -33,7 +32,7 @@ const UserProjectTable = ({ userId, adminView=false }: UserProjectTableProps) =>
         </TableRow>
       </TableHead>
       <TableBody>
-        {projects &&
+        {projects && projects.length > 0 ?
           (projects || []).map((project) => (
             <TableRow key={project.project_id}>
               <TableCell>
@@ -41,16 +40,6 @@ const UserProjectTable = ({ userId, adminView=false }: UserProjectTableProps) =>
                 <EditLink href={`/projects/edit/?id=${project.project_id}`} ariaLabel="Go to project" />
               </TableCell>
               <TableCell>{project.role}</TableCell>
-              <TableCell>{project.is_primary ? "Yes" : "No"}</TableCell>
-              <TableCell>
-                {project.project_staff1?.name ?? project.project_staff2?.email1 ?? ""}
-                {project.project_staff2 && (
-                  <>
-                    <br />
-                    {project.project_staff2?.name ?? project.project_staff2?.email1 ?? ""}
-                  </>
-                )}
-              </TableCell>
               <TableCell>{project.project_status}</TableCell>
               <TableCell>
                 {project.project_last_contact ? new Date(project.project_last_contact).toLocaleString() : ""}
@@ -75,7 +64,7 @@ const UserProjectTable = ({ userId, adminView=false }: UserProjectTableProps) =>
                 </TableCell>
               )}
             </TableRow>
-          ))}
+          )) : <EmptyTableMessage message="No projects" />}
       </TableBody>
     </Table>
   );

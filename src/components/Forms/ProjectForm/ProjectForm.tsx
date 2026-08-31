@@ -7,7 +7,7 @@ import FieldOfScienceAutocomplete from "@/src/components/FieldOfScienceAutocompl
 import { ApiError } from "@/src/utils/formErrors";
 import { useFormState } from "@/src/utils/useFormState";
 import { CollegeAndDepartment, FieldsOfScience, FormMode, Project, ProjectCreateUpdate, User } from "@/types";
-import { Box, Button, Stack, TextField } from "@mui/material";
+import { Box, Button, FormControl, InputLabel, MenuItem, Select, Stack, TextField } from "@mui/material";
 import React from "react";
 
 export interface ProjectFormValues {
@@ -21,7 +21,6 @@ export interface ProjectFormValues {
   college_and_department: CollegeAndDepartment | null;
   field_of_science: FieldsOfScience | null;
   status: string;
-  access: string;
   url: string;
   date: string;
   ticket: string; // stringified ticket number
@@ -56,7 +55,6 @@ function normalizeInitialValues(initial?: Partial<Project>): ProjectFormValues {
     college_and_department: initial?.college_and_department ?? null,
     field_of_science: initial?.field_of_science ?? null,
     status: initial?.status ?? "",
-    access: initial?.access ?? "",
     url: initial?.url ?? "",
     date: initial?.date ?? "",
     ticket: initial?.ticket !== undefined && initial?.ticket !== null ? String(initial.ticket) : "",
@@ -76,7 +74,6 @@ const FIELD_NAME_MAP: Record<string, string> = {
   college_and_department_id: "College / Department",
   fos_id: "Field of Science",
   status: "Status",
-  access: "Access",
   url: "URL",
   date: "Date",
   ticket: "Ticket",
@@ -106,7 +103,6 @@ export const ProjectForm: React.FC<ProjectFormProps> = ({
       college_and_department_id: values.college_and_department?.id ?? null,
       fos_id: values.field_of_science?.fos_id ?? null,
       status: values.status || null,
-      access: values.access || null,
       url: values.url || null,
       date: values.date || null,
       ticket: values.ticket ? Number(values.ticket) : null,
@@ -189,21 +185,20 @@ export const ProjectForm: React.FC<ProjectFormProps> = ({
           disabled={isSubmitting}
         />
 
-        <TextField
-          label="Status"
-          value={values.status}
-          onChange={(e) => handleChange("status", e.target.value)}
-          fullWidth
-          disabled={isSubmitting}
-        />
-
-        <TextField
-          label="Access"
-          value={values.access}
-          onChange={(e) => handleChange("access", e.target.value)}
-          fullWidth
-          disabled={isSubmitting}
-        />
+        <FormControl fullWidth>
+          <InputLabel id="status-select">Status</InputLabel>
+          <Select
+            labelId="status-select"
+            id="status-select"
+            value={values.status}
+            label="Status"
+            onChange={(e) => handleChange("status", e.target.value)}
+            disabled={isSubmitting}
+          >
+            <MenuItem value={"Active"}>Active</MenuItem>
+            <MenuItem value={"Inactive"}>Inactive</MenuItem>
+          </Select>
+        </FormControl>
 
         <TextField
           label="URL"
