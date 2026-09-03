@@ -24,7 +24,7 @@ const CollegeDepartmentAutocomplete = ({
       onSelect={onSelect}
       defaultFilter={defaultFilter}
       getOptionLabel={(option) => [option.college, option.department].filter(Boolean).join(", ")}
-      searchFields={["college", "department"]}
+      staticOptions
       required={required}
       disabled={disabled}
     />

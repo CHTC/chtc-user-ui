@@ -27,7 +27,7 @@ const FieldOfScienceAutocomplete = ({
       // fields_of_science is keyed by the string fos_id
       getOptionId={(option) => option.fos_id}
       getOptionLabel={(option) => (option.sed_cip_title ? `${option.fos_id}: ${option.sed_cip_title}` : option.fos_id)}
-      searchFields={["fos_id", "sed_cip_title"]}
+      staticOptions
       helperText={
         <>
           Uses the NSF{" "}
