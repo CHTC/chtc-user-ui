@@ -98,24 +98,31 @@ export const SEGMENT_STYLES: Record<SegmentState, BarStateStyle> = {
 };
 
 /**
- * Calendar v2's segment styles. Same four colours, different words: there the
- * dark blue is everything placed TODAY that is still active, not just the bin's
- * own arrivals, and the light blue is work that was already in flight when the
- * day opened. See CensusMode "share" in binModel.
+ * Calendar v2's segment styles. Same four colours, worded for a bar whose
+ * population is one 4-hour window's: the jobs open when it started plus the
+ * jobs placed during it. See CensusMode "window" in binModel.
  */
 export const SHARE_SEGMENT_STYLES: Record<SegmentState, BarStateStyle> = {
   ...BAR_STATE_STYLES,
   active: {
     key: "active",
-    label: "Active, carried in",
+    label: "Still active",
     color: CARRIED_ACTIVE_COLOR,
-    description: "already active when the day opened and still active",
+    description: "active when the window opened and still active at its close",
   },
   becameActive: {
     key: "becameActive",
-    label: "Placed today, active",
+    label: "Placed, active",
     color: "#3b5bdb",
-    description: "placed during this day and still active",
+    description: "placed during this window and still active at its close",
+  },
+  completed: {
+    ...BAR_STATE_STYLES.completed,
+    description: "completed during this window",
+  },
+  removed: {
+    ...BAR_STATE_STYLES.removed,
+    description: "removed during this window",
   },
 };
 

@@ -35,7 +35,33 @@ interface DayStackedBarsProps {
    * blues, so the caller says which vocabulary applies.
    */
   styles?: Record<SegmentState, BarStateStyle>;
+  /**
+   * What the denominator is called: the y-axis title and the tooltip's footer.
+   * The journey census counts jobs in play so far; the window census counts one
+   * window's own population.
+   */
+  denominator?: {
+    axisTitle: string;
+    footer: (bin: BinCensus) => string;
+  };
 }
+
+const IN_PLAY_DENOMINATOR = {
+  axisTitle: "Share of jobs in play",
+  footer: (bin: BinCensus) => {
+    const base = `${bin.inPlay.toLocaleString()} jobs in play at this point`;
+    return bin.terminal ? `${base} · all of them in a final state` : base;
+  },
+};
+
+/** The window census's denominator wording; see CensusMode "window". */
+export const WINDOW_DENOMINATOR = {
+  axisTitle: "Share of the window's jobs",
+  footer: (bin: BinCensus) => {
+    const base = `${bin.inPlay.toLocaleString()} jobs in this window: ${(bin.inPlay - bin.placedInBin).toLocaleString()} open at its start + ${bin.placedInBin.toLocaleString()} placed`;
+    return bin.terminal ? `${base} · all finished by its close` : base;
+  },
+};
 
 /**
  * One day as six 100%-stacked bars: a census of the group's whole cohort taken
@@ -56,6 +82,7 @@ export default function DayStackedBars({
   height = 320,
   label,
   styles = SEGMENT_STYLES,
+  denominator = IN_PLAY_DENOMINATOR,
 }: DayStackedBarsProps) {
   const { data, options } = useMemo(() => {
     const data = {
@@ -89,7 +116,7 @@ export default function DayStackedBars({
           stacked: true,
           min: 0,
           max: 100,
-          title: { display: true, text: "Share of jobs in play" },
+          title: { display: true, text: denominator.axisTitle },
           ticks: { callback: (value: string | number) => `${value}%` },
         },
       },
@@ -109,9 +136,7 @@ export default function DayStackedBars({
             },
             footer: (items: TooltipItem<"bar">[]) => {
               if (items.length === 0) return "";
-              const bin = bins[items[0].dataIndex];
-              const base = `${bin.inPlay.toLocaleString()} jobs in play at this point`;
-              return bin.terminal ? `${base} · all of them in a final state` : base;
+              return denominator.footer(bins[items[0].dataIndex]);
             },
           },
         },
@@ -119,7 +144,7 @@ export default function DayStackedBars({
     };
 
     return { data, options };
-  }, [bins, styles]);
+  }, [bins, styles, denominator]);
 
   return (
     <Box role="img" aria-label={label} sx={{ position: "relative", width: "100%", height }}>

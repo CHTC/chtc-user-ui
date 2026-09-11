@@ -31,7 +31,7 @@ import {
   type GroupBy,
 } from "./grouping";
 import DayActivityBars from "./DayActivityBars";
-import DayStackedBars from "./DayStackedBars";
+import DayStackedBars, { WINDOW_DENOMINATOR } from "./DayStackedBars";
 import { SHARE_SEGMENT_STYLES } from "./palette";
 import { ActivityRows } from "./StateRows";
 import type { CalendarVersion } from "./VersionSwitch";
@@ -57,7 +57,7 @@ interface DayDialogProps {
   onClose: () => void;
   /**
    * Which calendar opened the dialog. v1 draws the journey census for one group
-   * and per-bin change counts for everything; v2 draws the share census -- the
+   * and per-bin change counts for everything; v2 draws the window census -- the
    * same six bars as its tiles -- whatever the selection.
    */
   variant?: CalendarVersion;
@@ -158,7 +158,7 @@ export default function DayDialog({
   );
 
   // The day's six-bin derivation for the same scope. v1: the whole-cohort ratio
-  // census for one group, per-bin change counts for everything. v2: the share
+  // census for one group, per-bin change counts for everything. v2: the window
   // census either way, so the dialog draws exactly what the tile drew.
   const shareMode = variant === "v2";
   const journeyMode = !shareMode && filter !== null;
@@ -168,7 +168,7 @@ export default function DayDialog({
     if (dayIndex < 0) return { census: null, activity: null };
     const dense = expandSeries(barData, filter);
     if (shareMode) {
-      return { census: buildDayCensus(barData, dense, dayIndex, "share"), activity: null };
+      return { census: buildDayCensus(barData, dense, dayIndex, "window"), activity: null };
     }
     return journeyMode
       ? { census: buildDayCensus(barData, dense, dayIndex, "journey"), activity: null }
@@ -251,9 +251,10 @@ export default function DayDialog({
                           bins={census.bins}
                           height={240}
                           styles={shareMode ? SHARE_SEGMENT_STYLES : undefined}
+                          denominator={shareMode ? WINDOW_DENOMINATOR : undefined}
                           label={
                             shareMode
-                              ? `Where the day's jobs stood at the end of each 4-hour window on ${formatDayLong(slice.day)}`
+                              ? `Where each 4-hour window's jobs stood at its close on ${formatDayLong(slice.day)}`
                               : `Share of the cluster's jobs active, completed, and removed per 4-hour bin on ${formatDayLong(slice.day)}`
                           }
                         />
@@ -263,9 +264,10 @@ export default function DayDialog({
                             component="p"
                             sx={{ color: "text.secondary", mt: 0.5, fontStyle: "italic" }}
                           >
-                            Each bar is 100% of the jobs active at any point this day:{" "}
-                            {census.activeAtDayStart.toLocaleString()} in flight at midnight plus{" "}
-                            {census.placedToday.toLocaleString()} placed during the day.
+                            Each bar is 100% of its own window: the jobs open when it started plus
+                            those placed during it. The day opened with{" "}
+                            {census.activeAtDayStart.toLocaleString()} jobs and{" "}
+                            {census.placedToday.toLocaleString()} were placed during it.
                           </Typography>
                         )}
                         {census.finishedAt !== null && (
