@@ -14,7 +14,12 @@ import {
 import { Bar } from "react-chartjs-2";
 
 import type { BinCensus } from "./binModel";
-import { BAR_SEGMENT_ORDER, SEGMENT_STYLES } from "./palette";
+import {
+  BAR_SEGMENT_ORDER,
+  SEGMENT_STYLES,
+  type BarStateStyle,
+  type SegmentState,
+} from "./palette";
 
 // Chart.js v4 is tree-shakeable: register exactly what the bar chart needs.
 Chart.register(BarElement, CategoryScale, LinearScale, Tooltip, Legend);
@@ -24,6 +29,12 @@ interface DayStackedBarsProps {
   height?: number;
   /** Accessible description; the canvas itself is opaque to a screen reader. */
   label: string;
+  /**
+   * What each segment is called. The journey census and calendar v2's share
+   * census stack the same four segments but mean different things by the two
+   * blues, so the caller says which vocabulary applies.
+   */
+  styles?: Record<SegmentState, BarStateStyle>;
 }
 
 /**
@@ -40,7 +51,12 @@ interface DayStackedBarsProps {
  * nothing and raise no tooltip. That is what stops a cluster that finished at
  * 08:00 from repeating an all-teal bar four more times.
  */
-export default function DayStackedBars({ bins, height = 320, label }: DayStackedBarsProps) {
+export default function DayStackedBars({
+  bins,
+  height = 320,
+  label,
+  styles = SEGMENT_STYLES,
+}: DayStackedBarsProps) {
   const { data, options } = useMemo(() => {
     const data = {
       // Labelled by the instant each census was taken, not by the window that
@@ -48,11 +64,11 @@ export default function DayStackedBars({ bins, height = 320, label }: DayStacked
       // invited reading them as a summary of those four hours.
       labels: bins.map((bin) => bin.snapshotAt),
       datasets: BAR_SEGMENT_ORDER.map((state) => ({
-        label: SEGMENT_STYLES[state].label,
+        label: styles[state].label,
         data: bins.map((bin) =>
           bin.drawn && bin.inPlay > 0 ? (bin[state] / bin.inPlay) * 100 : null,
         ),
-        backgroundColor: SEGMENT_STYLES[state].color,
+        backgroundColor: styles[state].color,
         borderWidth: 0,
         // Thin slivers (one removed job among a million) should still be hoverable.
         minBarLength: 0,
@@ -89,7 +105,7 @@ export default function DayStackedBars({ bins, height = 320, label }: DayStacked
               const state = BAR_SEGMENT_ORDER[ctx.datasetIndex];
               const count = bin[state];
               const share = bin.inPlay > 0 ? ((count / bin.inPlay) * 100).toFixed(1) : "0.0";
-              return `${SEGMENT_STYLES[state].label}: ${count.toLocaleString()} jobs (${share}%)`;
+              return `${styles[state].label}: ${count.toLocaleString()} jobs (${share}%)`;
             },
             footer: (items: TooltipItem<"bar">[]) => {
               if (items.length === 0) return "";
@@ -103,7 +119,7 @@ export default function DayStackedBars({ bins, height = 320, label }: DayStacked
     };
 
     return { data, options };
-  }, [bins]);
+  }, [bins, styles]);
 
   return (
     <Box role="img" aria-label={label} sx={{ position: "relative", width: "100%", height }}>

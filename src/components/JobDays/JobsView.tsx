@@ -20,7 +20,9 @@ import { useState } from "react";
 import useSWR from "swr";
 
 import DaysView from "./DaysView";
+import DaysViewV2 from "./DaysViewV2";
 import type { DayData } from "./_components/dayCards";
+import type { CalendarVersion } from "./_components/VersionSwitch";
 import type { StackedBarData } from "./types";
 
 /** The API's marker for an account with access to no submit node at all. */
@@ -45,6 +47,11 @@ export interface JobsViewProps {
    * the one that was asked.
    */
   range?: DayRange | null;
+  /**
+   * Which calendar to draw once the data lands. Both versions consume the same
+   * two payloads; only the page beneath differs. Defaults to v1.
+   */
+  variant?: CalendarVersion;
 }
 
 /** An error carrying the status that produced it, so the page can explain it. */
@@ -281,7 +288,7 @@ function NoJobs({ owner }: { owner: string | null }) {
  * costs minutes of submit-node time, so this refetches on demand (a retry, a
  * remount, a change of owner) and never on a timer.
  */
-export default function JobsView({ owner = null, range = null }: JobsViewProps) {
+export default function JobsView({ owner = null, range = null, variant = "v1" }: JobsViewProps) {
   // The range is part of the key, not just the request: changing it asks a
   // different question and must not be answered from the previous one's cache.
   const key = [owner, range?.start ?? null, range?.end ?? null];
@@ -325,7 +332,13 @@ export default function JobsView({ owner = null, range = null }: JobsViewProps) 
         A node that failed to answer is a footnote and sits at the bottom.
       */}
       {noSubmitNode && <NoSubmitNodeAlert owner={owner} />}
-      {empty ? <NoJobs owner={owner} /> : <DaysView data={series.data} dayData={dayData.data} />}
+      {empty ? (
+        <NoJobs owner={owner} />
+      ) : variant === "v2" ? (
+        <DaysViewV2 data={series.data} dayData={dayData.data} />
+      ) : (
+        <DaysView data={series.data} dayData={dayData.data} />
+      )}
       {!noSubmitNode && <DegradedQueueAlert errors={queueErrors} />}
     </Box>
   );

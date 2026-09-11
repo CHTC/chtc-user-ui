@@ -62,6 +62,10 @@ export interface BinCensus {
    * is not measured, so terminations are assumed to drain older jobs first; that
    * keeps the new-placement signal whole at the cost of occasionally overstating
    * it by the same-bin churn.
+   *
+   * In "share" mode (calendar v2) the window is the whole day rather than the
+   * bin: placed at any point TODAY and still active, under the same
+   * drain-older-first assumption.
    */
   becameActive: number;
   /** Completed, cumulative up to this bin. */
@@ -111,8 +115,15 @@ export interface DayCensus {
  *    (window opening included) and Completed/Removed accumulate for good, so a
  *    cluster's bars drift steadily toward teal over the days and no job ever
  *    drops out of view.
+ *  - "share": the calendar v2 reading. Like "day" -- terminations reset at
+ *    midnight and the denominator is the day's own population (active at open +
+ *    placed so far today) -- but the dark-blue segment is everything placed
+ *    today that is still active, not just this bin's arrivals, and nothing is
+ *    truncated: a day that finishes at 08:00 keeps drawing its all-finished
+ *    reading to midnight, because each bar is a standing summary and "still
+ *    finished" is the true state at 12:00.
  */
-export type CensusMode = "day" | "journey";
+export type CensusMode = "day" | "journey" | "share";
 
 /**
  * The six per-bin censuses for one day.
@@ -167,8 +178,9 @@ export function buildDayCensus(
     const completed = journey ? baseCompleted + completedCum : completedCum;
     const removed = journey ? baseRemoved + removedCum : removedCum;
     const activeTotal = Math.max(0, inPlay - completed - removed);
-    // This bin's arrivals, capped by what is still active at all (see BinCensus).
-    const becameActive = Math.min(placedThisBin, activeTotal);
+    // This bin's arrivals -- or, in share mode, today's -- capped by what is
+    // still active at all (see BinCensus).
+    const becameActive = Math.min(mode === "share" ? placedCum : placedThisBin, activeTotal);
     bins.push({
       label: binLabel(b, data.binHours),
       inPlay,
@@ -182,6 +194,21 @@ export function buildDayCensus(
       // Filled in below, once the whole day is known.
       drawn: true,
     });
+  }
+
+  // Share mode never truncates: every bar with anyone in the population is a
+  // real reading, finished or not.
+  if (mode === "share") {
+    bins.forEach((bin) => {
+      bin.drawn = bin.inPlay > 0;
+    });
+    return {
+      bins,
+      activeAtDayStart,
+      placedToday: placedCum,
+      finishedAt: null,
+      hasData: bins.some((bin) => bin.drawn),
+    };
   }
 
   // The last bin that still held active work; everything after it plus one is

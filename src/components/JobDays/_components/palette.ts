@@ -98,6 +98,28 @@ export const SEGMENT_STYLES: Record<SegmentState, BarStateStyle> = {
 };
 
 /**
+ * Calendar v2's segment styles. Same four colours, different words: there the
+ * dark blue is everything placed TODAY that is still active, not just the bin's
+ * own arrivals, and the light blue is work that was already in flight when the
+ * day opened. See CensusMode "share" in binModel.
+ */
+export const SHARE_SEGMENT_STYLES: Record<SegmentState, BarStateStyle> = {
+  ...BAR_STATE_STYLES,
+  active: {
+    key: "active",
+    label: "Active, carried in",
+    color: CARRIED_ACTIVE_COLOR,
+    description: "already active when the day opened and still active",
+  },
+  becameActive: {
+    key: "becameActive",
+    label: "Placed today, active",
+    color: "#3b5bdb",
+    description: "placed during this day and still active",
+  },
+};
+
+/**
  * Texture for the queue markers, and only for them.
  *
  * It does two jobs. It separates the queue markers from the day bars they sit
