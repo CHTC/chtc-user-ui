@@ -14,13 +14,7 @@ import {
 } from "@mui/material";
 import Close from "@mui/icons-material/Close";
 
-import {
-  QUEUE_ABOVE,
-  QUEUE_BELOW,
-  TILE_BARS_HEIGHT,
-  barFraction,
-  buildScaleTicks,
-} from "./binModel";
+import { barFraction, buildScaleTicks } from "./binModel";
 import { compactNumber } from "./dayCards";
 import {
   ACTIVITY_ORDER,
@@ -35,7 +29,7 @@ import QueueGlyph from "./QueueGlyph";
  * Which part of the example cell a feature is about. Several features point at
  * the bars, so emphasis is expressed per part rather than per feature.
  */
-type Part = "date" | "axis" | "bars" | "caption" | "queue" | "queueAxis";
+type Part = "date" | "axis" | "bars" | "caption" | "queue";
 
 type FeatureId =
   | "date"
@@ -86,8 +80,8 @@ const FEATURES: Feature[] = [
   {
     id: "height",
     title: "Height is how much happened",
-    body: "Every bar on the month is scaled against the busiest single window in it. The numbers down the left of each row say what those heights are worth in state changes.",
-    parts: ["axis", "bars"],
+    body: "Every bar on the month — day bars and queue markers alike — is scaled against the month's largest figure of either kind. The numbers down the left of each row say what those heights are worth in jobs.",
+    parts: ["axis", "bars", "queue"],
   },
   {
     id: "hover",
@@ -98,8 +92,8 @@ const FEATURES: Feature[] = [
   {
     id: "queue",
     title: "The bar on the edge is the queue",
-    body: "It belongs to no single day — it straddles midnight, counting the jobs simply sitting in the queue as one day becomes the next. Light blue was already in flight; dark blue arrived that day. Its falling hatch tells it apart from the day bars and points the way you want the queue to go. Being a headcount rather than a count of changes, it is measured against its own scale, down the right.",
-    parts: ["queue", "queueAxis"],
+    body: "It belongs to no single day — it straddles midnight, counting the jobs simply sitting in the queue as one day becomes the next. Light blue was already in flight; dark blue arrived that day. Its falling hatch tells it apart from the day bars and points the way you want the queue to go. It is a headcount rather than a count of changes, but it is drawn on the same scale as the day bars, so equal heights mean equal numbers of jobs.",
+    parts: ["queue", "axis"],
   },
   {
     id: "caption",
@@ -128,7 +122,6 @@ const EXAMPLE_BINS = [
 const EXAMPLE_TOTALS = EXAMPLE_BINS.map(
   (bin) => bin.placed + bin.completed + bin.removed,
 );
-const EXAMPLE_PEAK = Math.max(...EXAMPLE_TOTALS);
 /** The bar the colour and hover features point at: the only one with all three. */
 const FOCUS_BIN = 3;
 
@@ -138,30 +131,19 @@ const GUTTER = 46;
 /** A queue to match the example day: mostly carried over, partly fresh. */
 const EXAMPLE_QUEUE = { carried: 2998, fromToday: 2242 };
 const EXAMPLE_QUEUE_TOTAL = EXAMPLE_QUEUE.carried + EXAMPLE_QUEUE.fromToday;
-/**
- * A peak for the queue's own scale. Height and ticks are both derived from it with
- * the real functions, so the example cannot drift from what the calendar does.
- */
-const EXAMPLE_QUEUE_PEAK = 8400;
-const EXAMPLE_QUEUE_FRACTION = barFraction(
-  EXAMPLE_QUEUE_TOTAL,
-  EXAMPLE_QUEUE_PEAK,
-  "linear",
-);
-const EXAMPLE_QUEUE_TICKS = buildScaleTicks(EXAMPLE_QUEUE_PEAK, "linear");
-
-/** Width the example reserves for the queue scale hanging off its right. */
-const RIGHT_GUTTER = 56;
 
 /**
- * How far the example's queue marker reaches past the slot: the calendar's own
- * overshoot, scaled to this larger example. Derived from the real constants rather
- * than restated, so the illustration cannot drift from the geometry it illustrates.
- * The marker is drawn over a taller range than the day bars on purpose -- see
- * QUEUE_BELOW.
+ * The one peak everything in the example is scaled against: the busiest window
+ * or the queue, whichever is larger -- exactly how the calendar picks its
+ * month's peak. Here the queue wins, so the day bars stop short of the top and
+ * the marker reaches it, which is the honest picture of a queue outnumbering
+ * any single window's changes.
  */
-const EX_QUEUE_BELOW = Math.round((QUEUE_BELOW / TILE_BARS_HEIGHT) * SLOT_HEIGHT);
-const EX_QUEUE_ABOVE = Math.round((QUEUE_ABOVE / TILE_BARS_HEIGHT) * SLOT_HEIGHT);
+const EXAMPLE_PEAK = Math.max(...EXAMPLE_TOTALS, EXAMPLE_QUEUE_TOTAL);
+const EXAMPLE_QUEUE_FRACTION = barFraction(EXAMPLE_QUEUE_TOTAL, EXAMPLE_PEAK, "linear");
+
+/** Room on the right for the half of the queue marker that hangs past the cell. */
+const RIGHT_GUTTER = 12;
 
 /** The example cell's own padding, in px, so the slot can cancel it exactly. */
 const CELL_PAD = 12;
@@ -169,7 +151,7 @@ const CELL_PAD = 12;
 /** Reserved row below the slot for the hour labels; see ExampleCell. */
 const HOUR_ROW = 14;
 
-/** The activity scale's ticks, from the same peak the example's bars use. */
+/** The row axis's ticks, from the same shared peak the example's bars use. */
 const EXAMPLE_ACTIVITY_TICKS = buildScaleTicks(EXAMPLE_PEAK, "linear");
 
 interface CellGuideDialogProps {
@@ -355,8 +337,8 @@ function ExampleCell({ active }: { active: Feature | null }) {
 
   return (
     <Box>
-      {/* Both scales hang outside the cell, as they do on a real row, so the
-          wrapper reserves their width on either side. */}
+      {/* The axis hangs outside the cell on the left, as it does on a real row,
+          and the queue marker's outer half hangs past the right edge. */}
       <Box sx={{ pl: `${GUTTER}px`, pr: `${RIGHT_GUTTER}px` }}>
         <Box
           sx={{
@@ -378,7 +360,7 @@ function ExampleCell({ active }: { active: Feature | null }) {
 
           {/*
             One slot, and everything that has to share a baseline is positioned
-            against it at bottom: 0 -- the bars, both scales, and the queue marker.
+            against it at bottom: 0 -- the bars, the axis, and the queue marker.
             They used to be aligned by matching offsets measured from the cell,
             which is what let them drift apart: the hour labels quietly added their
             own height to the row, so the activity scale sat lower than the bars it
@@ -389,7 +371,7 @@ function ExampleCell({ active }: { active: Feature | null }) {
             boundary.
           */}
           <Box sx={{ position: "relative", height: SLOT_HEIGHT, mx: `-${CELL_PAD}px` }}>
-            {/* The activity scale, outside the cell on the left. */}
+            {/* The row axis, outside the cell on the left. */}
             <Box
               sx={{
                 position: "absolute",
@@ -471,15 +453,14 @@ function ExampleCell({ active }: { active: Feature | null }) {
               })}
             </Box>
 
-            {/* The queue marker, astride the cell's right border. */}
+            {/* The queue marker, astride the cell's right border, in the same
+                slot as the day bars: same floor, same ceiling, same scale. */}
             <Box
               sx={{
                 position: "absolute",
                 left: "100%",
-                // Reaches below and above the day bars' slot, as it does on a real
-                // row. See EX_QUEUE_BELOW.
-                bottom: -EX_QUEUE_BELOW,
-                height: `calc(100% + ${EX_QUEUE_BELOW + EX_QUEUE_ABOVE}px)`,
+                bottom: 0,
+                height: "100%",
                 width: 18,
                 transform: "translateX(-50%)",
                 display: "flex",
@@ -527,26 +508,6 @@ function ExampleCell({ active }: { active: Feature | null }) {
                   mt: "3px",
                 }}
               >
-                <QueueGlyph size={14} active={active?.id === "queue"} />
-              </Box>
-            </Box>
-
-            {/* The queue's own scale, outside the cell on the right. */}
-            <Box
-              sx={{
-                position: "absolute",
-                left: `calc(100% + 20px)`,
-                bottom: -EX_QUEUE_BELOW,
-                height: `calc(100% + ${EX_QUEUE_BELOW + EX_QUEUE_ABOVE}px)`,
-                width: RIGHT_GUTTER - 26,
-                ...dim("queueAxis"),
-                ...ring("queueAxis"),
-              }}
-            >
-              {EXAMPLE_QUEUE_TICKS.map((tick) => (
-                <ExampleTick key={tick.value} tick={tick} side="right" />
-              ))}
-              <Box sx={{ position: "absolute", top: "100%", left: 0, mt: "3px" }}>
                 <QueueGlyph size={14} active={active?.id === "queue"} />
               </Box>
             </Box>

@@ -328,26 +328,6 @@ function binLabel(bin: number, binHours: number): string {
 export const TILE_BARS_HEIGHT = 88;
 
 /**
- * How far the queue marker reaches past the day bars' slot, below and above, in
- * pixels.
- *
- * Deliberately a wider range than the day bars get, not the same one. The queue is
- * a level that drifts -- it can sit near its peak for a fortnight -- so squeezed
- * into the same 88 pixels its changes are barely visible. Spending the tile's spare
- * vertical space on it exaggerates exactly the differences a reader is looking for.
- *
- * Both queue axes stretch with the bars, so each still reads truthfully against its
- * own labels, and the two axes' top ticks no longer sit at the same height -- useful
- * in itself, since the scales measure different things and were never comparable.
- *
- * Bounded by what a tile has to spare: below, the caption band and the bottom
- * padding, with the marker's glyph riding down with it; above, the gap and the date
- * line, which the marker clears horizontally because it sits at the tile's edge.
- */
-export const QUEUE_BELOW = 12;
-export const QUEUE_ABOVE = 22;
-
-/**
  * Floor TileActivityBars applies so a bin with any activity stays visible. A bar
  * this short is no longer encoding its value -- it is the floor, and every bar
  * sitting on it looks identical whatever its count.
@@ -364,7 +344,11 @@ export const MIN_BAR_PIXELS = 2;
  * instead of choosing for the reader.
  */
 export interface ScaleAdvice {
-  /** Tallest 4-hour bin on the month; what every bar is scaled against. */
+  /**
+   * What every bar on the month is scaled against: the tallest 4-hour bin or the
+   * largest midnight queue, whichever is bigger. One scale for both kinds of bar,
+   * so a queue marker and a day bar of the same height mean the same number.
+   */
   peak: number;
   /** Days with activity at all. */
   activeDays: number;
@@ -381,10 +365,11 @@ export interface ScaleAdvice {
  * how much of the month linear scaling flattens onto the floor.
  *
  * Takes the month's entries already filtered, so this stays pure arithmetic over
- * the bins and needs no notion of calendars or date keys.
+ * the bins and needs no notion of calendars or date keys. `queuePeak` is the
+ * month's largest midnight queue, which shares the scale (see ScaleAdvice.peak).
  */
-export function buildScaleAdvice(entries: [string, DayActivity][]): ScaleAdvice {
-  let peak = 0;
+export function buildScaleAdvice(entries: [string, DayActivity][], queuePeak = 0): ScaleAdvice {
+  let peak = queuePeak;
   for (const [, activity] of entries) {
     for (const bin of activity.bins) if (bin.total > peak) peak = bin.total;
   }
@@ -414,12 +399,9 @@ export function buildScaleAdvice(entries: [string, DayActivity][]): ScaleAdvice 
 }
 
 /**
- * Which of the calendar's two height scales a bar is drawn against.
- *
- * The activity bars and the queue markers share a slot but measure different
- * things -- changes per window against standing jobs -- so they cannot share a
- * scale. Each gets its own axis, and hovering a bar lights up the one that
- * governs it.
+ * Which kind of bar the pointer is over. Both kinds are now drawn against the one
+ * row axis, so this only decides which way the hover readout opens (see
+ * READOUT_PLACEMENT); the axis lights up for either.
  */
 export type ScaleKind = "activity" | "queue";
 
@@ -488,12 +470,9 @@ export function buildScaleTicks(peak: number, scale: BarScale): ScaleTick[] {
 /**
  * Bar height as a fraction of the tallest value on screen, under either scale.
  *
- * Every kind of bar fills its own slot at its own maximum. Those slots are not the
- * same size: the queue marker is given a taller one than the day bars (see
- * QUEUE_BELOW in JobCalendar), because a queue level drifts slowly and needs the
- * extra range for its changes to show. Each bar is measured against its own peak
- * and read against its own axis, which stretches with it -- so a bar at full height
- * always means "the top of this scale", whichever scale that is.
+ * Day bars and queue markers share one slot and one peak (see ScaleAdvice.peak),
+ * so a bar at full height means the same count whichever kind it is, and the two
+ * kinds can be compared by eye.
  *
  * Linear is the honest one -- twice as tall is twice as much work -- but with a
  * 900,000-change peak on the page a 66-change bin is a fraction of a pixel and

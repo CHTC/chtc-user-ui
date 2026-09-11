@@ -197,18 +197,23 @@ export default function DaysView({ data, dayData }: DaysViewProps) {
   // One measurement of the visible month serves two consumers: the peak every
   // tile scales against, and the hint that says what linear scaling costs today.
   // Recomputed per month on purpose -- a single window-wide peak would bury every
-  // ordinary month under the one holding the 863,000-change day.
+  // ordinary month under the one holding the 863,000-change day. The month's
+  // largest midnight queue goes into the same peak: the queue markers share the
+  // day bars' slot and scale, so a marker and a bar of equal height mean the
+  // same number of jobs.
   const advice = useMemo(() => {
     if (!activities) return null;
-    const entries = [...activities].filter(([day]) => {
+    const inMonth = (day: string) => {
       const date = parseDayKey(day);
       return (
         date.getFullYear() === activeStartDate.getFullYear() &&
         date.getMonth() === activeStartDate.getMonth()
       );
-    });
-    return buildScaleAdvice(entries);
-  }, [activities, activeStartDate]);
+    };
+    const entries = [...activities].filter(([day]) => inMonth(day));
+    const monthDays = [...slices.keys()].filter(inMonth);
+    return buildScaleAdvice(entries, computeQueuePeak(slices, monthDays));
+  }, [activities, slices, activeStartDate]);
 
   // Worth saying only when the flattening is widespread: a couple of quiet days
   // among many is just a quiet week, not a scale problem.
@@ -217,10 +222,6 @@ export default function DaysView({ data, dayData }: DaysViewProps) {
     !!advice &&
     advice.squashedDays >= 3 &&
     advice.squashedDays >= advice.activeDays / 2;
-
-  // The queue markers' own scale: standing jobs, which the activity peak cannot
-  // measure, and window-wide rather than per month. See queuePeak.
-  const queuePeak = useMemo(() => computeQueuePeak(slices), [slices]);
 
   const scopeLabel = selectionLabel(options, groupBy, selection);
 
@@ -391,7 +392,6 @@ export default function DaysView({ data, dayData }: DaysViewProps) {
           activities={activities}
           scale={scale}
           peakBinTotal={advice?.peak ?? 0}
-          queuePeak={queuePeak}
           firstDay={dayData.days[0]}
           lastDay={asOf}
           asOf={asOf}
@@ -474,15 +474,11 @@ export default function DaysView({ data, dayData }: DaysViewProps) {
             than jobs that moved, which is a different quantity: a day whose six bars are
             all empty can still be holding a million jobs. Picking a single cluster or batch
             hides it, because those tiles already show their standing state — the two blues
-            in a ratio bar are the queue. Because it is a headcount and
-            not a count of changes it carries its own scale, down the right of the calendar
-            under the same stacked glyph — measured against the largest queue anywhere in
-            the window, so queue heights stay comparable from month to month. It is also
-            drawn over a taller range than the day bars, reaching a little below and well
-            above them: a queue level drifts slowly, and the extra height is what makes its
-            changes visible at all. Hovering either kind of bar lights up the scale that
-            governs it. Light blue is work already in flight when the day opened; dark blue
-            arrived during it.
+            in a ratio bar are the queue. It is drawn on the same scale as the day bars,
+            against the month&apos;s largest figure of either kind, so a queue marker and a
+            day bar of the same height mean the same number of jobs and both read off the
+            axis on the left. Light blue is work already in flight when the day opened; dark
+            blue arrived during it.
           </Typography>
         </Box>
 

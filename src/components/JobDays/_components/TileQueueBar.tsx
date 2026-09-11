@@ -26,17 +26,14 @@ interface TileQueueBarProps {
   day: string;
   /** The following day, for the readout's title. Null at the end of the window. */
   nextDay: string | null;
-  /** Largest queue in the whole baked window; the queue bars' own scale. */
+  /** The month's shared peak, the same one the day bars are scaled against. */
   peak: number;
   scale: BarScale;
   /** Bar-slot height, shared with the day's own bars. */
   height: number;
   /** Distance from the tile's bottom edge to the floor of the bar slot. */
   bottom: number;
-  /**
-   * Lights up the queue scale down the right of the calendar while this bar is
-   * hovered -- the queue markers answer to that axis, not to the one on the left.
-   */
+  /** Lights up the row axis while this bar is hovered. */
   onHoverScale?: (kind: ScaleKind | null) => void;
 }
 
@@ -49,8 +46,8 @@ interface TileQueueBarProps {
  * A day can show six empty activity bars, meaning nothing moved, while a million
  * jobs stand waiting; nothing else on the calendar would tell you.
  *
- * Being a different quantity, it gets a different scale (the month's largest
- * queue) and cannot be read against the row axis, which counts changes. Two
+ * It is drawn in the same slot and against the same scale as the day bars, so its
+ * height can be read off the row axis and compared with theirs directly. Two
  * things mark it out as not-a-day-bar: it belongs to no single tile, sitting half
  * in each of the days it separates, and it carries a glyph no other bar has.
  */
@@ -65,9 +62,8 @@ export default function TileQueueBar({
   onHoverScale,
 }: TileQueueBarProps) {
   const [hovered, setHovered] = useState(false);
-  // Fills the slot at its own maximum, exactly as the activity bars do: the
-  // tallest queue in the window reaches the same height as the busiest 4-hour
-  // window, each at the top of its own scale.
+  // Same peak and same scale function as the day bars, so equal heights are
+  // equal counts.
   const fraction = barFraction(queue.total, Math.max(peak, 1), scale);
 
   return (
@@ -110,7 +106,7 @@ export default function TileQueueBar({
                 ]
               : []),
           ]}
-          footer="Queue size, not state changes — read it against the queue scale down the right of the calendar, not the activity scale on the left."
+          footer="Queue size, not state changes — but on the same scale as the day bars, so its height can be read off the row axis and compared with theirs."
         />
       }
     >
@@ -174,8 +170,7 @@ export default function TileQueueBar({
         </Box>
 
         {/* Below the slot floor, on the boundary itself, so the reader can tell
-            at a glance which bars are queues and which are days. The same mark
-            heads the queue scale down the right of the calendar. */}
+            at a glance which bars are queues and which are days. */}
         <Box
           sx={{
             position: "absolute",
