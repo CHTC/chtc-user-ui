@@ -5,7 +5,11 @@ import { Box, Tooltip } from "@mui/material";
 
 import type { BinCensus, ScaleKind } from "./binModel";
 import BinReadout, { READOUT_PLACEMENT, READOUT_SLOT_PROPS, type ReadoutRow } from "./BinReadout";
-import { BAR_SEGMENT_ORDER, SHARE_SEGMENT_STYLES } from "./palette";
+import {
+  SHARE_SEGMENT_ORDER,
+  SHARE_SEGMENT_ORDER_TOP_DOWN,
+  SHARE_SEGMENT_STYLES,
+} from "./palette";
 
 interface TileShareBarsProps {
   /** The day's six window censuses; see CensusMode "window" in binModel. */
@@ -26,8 +30,8 @@ const COLUMN_GAP = 2;
  * Calendar v2's tile chart: six 100%-stacked columns, one per 4-hour window,
  * filling the tile's height. Each column is one window's own population -- the
  * jobs open when it started plus the jobs placed during it -- and where those
- * stood when it closed: still active at the base, newly placed and active above,
- * then completed, then removed on top.
+ * stood when it closed. Top down: still active, removed, completed, and the
+ * window's own placements at the base (see SHARE_SEGMENT_ORDER).
  *
  * Unlike the journey bars in TileBars, these do not run edge to edge: every
  * column has its own denominator, so a gap between them is the honest join.
@@ -55,8 +59,9 @@ export default function TileShareBars({
   };
 
   // Share first, count second: the bar is a percentage and the count is detail.
+  // Listed top-down, the way the eye reads the bar.
   const rows: ReadoutRow[] = bin?.drawn
-    ? BAR_SEGMENT_ORDER.filter((state) => bin[state] > 0).map((state) => ({
+    ? SHARE_SEGMENT_ORDER_TOP_DOWN.filter((state) => bin[state] > 0).map((state) => ({
         label: SHARE_SEGMENT_STYLES[state].label.toLowerCase(),
         color: SHARE_SEGMENT_STYLES[state].color,
         value: bin[state],
@@ -113,7 +118,7 @@ export default function TileShareBars({
               minWidth: 0,
               display: "flex",
               // Stacked bottom-up: column-reverse keeps the segment order
-              // identical to BAR_SEGMENT_ORDER.
+              // identical to SHARE_SEGMENT_ORDER.
               flexDirection: "column-reverse",
               overflow: "hidden",
               borderRadius: "1px",
@@ -123,7 +128,7 @@ export default function TileShareBars({
             }}
           >
             {entry.drawn &&
-              BAR_SEGMENT_ORDER.map((state) => (
+              SHARE_SEGMENT_ORDER.map((state) => (
                 <Box
                   key={state}
                   sx={{

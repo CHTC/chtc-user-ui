@@ -32,7 +32,7 @@ import {
 } from "./grouping";
 import DayActivityBars from "./DayActivityBars";
 import DayStackedBars, { WINDOW_DENOMINATOR } from "./DayStackedBars";
-import { SHARE_SEGMENT_STYLES } from "./palette";
+import { SHARE_SEGMENT_ORDER, SHARE_SEGMENT_STYLES } from "./palette";
 import { ActivityRows } from "./StateRows";
 import type { CalendarVersion } from "./VersionSwitch";
 
@@ -252,6 +252,7 @@ export default function DayDialog({
                           height={240}
                           styles={shareMode ? SHARE_SEGMENT_STYLES : undefined}
                           denominator={shareMode ? WINDOW_DENOMINATOR : undefined}
+                          order={shareMode ? SHARE_SEGMENT_ORDER : undefined}
                           label={
                             shareMode
                               ? `Where each 4-hour window's jobs stood at its close on ${formatDayLong(slice.day)}`

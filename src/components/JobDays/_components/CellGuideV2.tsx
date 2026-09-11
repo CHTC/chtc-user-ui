@@ -14,7 +14,12 @@ import {
 } from "@mui/material";
 import Close from "@mui/icons-material/Close";
 
-import { BAR_SEGMENT_ORDER, SHARE_SEGMENT_STYLES, type SegmentState } from "./palette";
+import {
+  SHARE_SEGMENT_ORDER,
+  SHARE_SEGMENT_ORDER_TOP_DOWN,
+  SHARE_SEGMENT_STYLES,
+  type SegmentState,
+} from "./palette";
 
 /** Which part of the example cell a feature is about. */
 type Part = "date" | "axis" | "bars";
@@ -56,7 +61,7 @@ const FEATURES: Feature[] = [
   {
     id: "colour",
     title: "Colour is where each job ended the window",
-    body: "Bottom to top: light blue was open at the start and is still active; dark blue was placed during the window and is still active; teal completed during it; red was removed during it. A window in which nothing moved is all light blue.",
+    body: "Top to bottom: light blue was open at the start and is still active; red was removed during the window; teal completed during it; dark blue at the base was placed during the window and is still active. A window in which nothing moved is all light blue.",
     parts: ["bars"],
   },
   {
@@ -338,7 +343,7 @@ function ExampleCell({ active }: { active: Feature | null }) {
                       outlineOffset: "2px",
                     }}
                   >
-                    {BAR_SEGMENT_ORDER.map((state: SegmentState) => (
+                    {SHARE_SEGMENT_ORDER.map((state: SegmentState) => (
                       <Box
                         key={state}
                         sx={{
@@ -406,7 +411,7 @@ function ExampleCell({ active }: { active: Feature | null }) {
           <Typography variant="caption" sx={{ fontWeight: 700, display: "block" }}>
             Wed, Aug 12 · {focus.time}
           </Typography>
-          {BAR_SEGMENT_ORDER.filter((state) => focus[state] > 0).map((state) => (
+          {SHARE_SEGMENT_ORDER_TOP_DOWN.filter((state) => focus[state] > 0).map((state) => (
             <ReadoutLine
               key={state}
               color={SHARE_SEGMENT_STYLES[state].color}
