@@ -25,6 +25,7 @@ import { ScaleHelpTooltip, ScaleHint, ScaleNote, SCALE_LABELS } from "./_compone
 import {
   buildDayActivity,
   buildDayCensus,
+  buildDayLevels,
   buildScaleAdvice,
   expandSeries,
   type DayActivity,
@@ -35,7 +36,6 @@ import {
   buildPeriodSummary,
   buildSliceMap,
   formatDayShort,
-  queuePeak as computeQueuePeak,
   parseDayKey,
   type DayData,
   type PeriodKey,
@@ -194,26 +194,41 @@ export default function DaysView({ data, dayData }: DaysViewProps) {
     return out;
   }, [data, dense, journeyMode]);
 
+  // The open-jobs level behind the bars, all-jobs mode only. Cluster mode's ratio
+  // bars already show the standing state.
+  const levels = useMemo(() => (journeyMode ? null : buildDayLevels(data, dense)), [data, dense, journeyMode]);
+
+  const inVisibleMonth = (day: string) => {
+    const date = parseDayKey(day);
+    return (
+      date.getFullYear() === activeStartDate.getFullYear() &&
+      date.getMonth() === activeStartDate.getMonth()
+    );
+  };
+
   // One measurement of the visible month serves two consumers: the peak every
   // tile scales against, and the hint that says what linear scaling costs today.
   // Recomputed per month on purpose -- a single window-wide peak would bury every
-  // ordinary month under the one holding the 863,000-change day. The month's
-  // largest midnight queue goes into the same peak: the queue markers share the
-  // day bars' slot and scale, so a marker and a bar of equal height mean the
-  // same number of jobs.
+  // ordinary month under the one holding the 863,000-change day.
   const advice = useMemo(() => {
     if (!activities) return null;
-    const inMonth = (day: string) => {
-      const date = parseDayKey(day);
-      return (
-        date.getFullYear() === activeStartDate.getFullYear() &&
-        date.getMonth() === activeStartDate.getMonth()
-      );
-    };
-    const entries = [...activities].filter(([day]) => inMonth(day));
-    const monthDays = [...slices.keys()].filter(inMonth);
-    return buildScaleAdvice(entries, computeQueuePeak(slices, monthDays));
-  }, [activities, slices, activeStartDate]);
+    return buildScaleAdvice([...activities].filter(([day]) => inVisibleMonth(day)));
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- inVisibleMonth closes over activeStartDate only
+  }, [activities, activeStartDate]);
+
+  // The level trace's own scale: the highest the queue reached on the visible
+  // month. Standing jobs and changes are different quantities and get different
+  // axes, so this is measured separately from the activity peak.
+  const levelPeak = useMemo(() => {
+    if (!levels) return 0;
+    let peak = 0;
+    for (const [day, level] of levels) {
+      if (!inVisibleMonth(day)) continue;
+      peak = Math.max(peak, level.start, ...level.ends);
+    }
+    return peak;
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- inVisibleMonth closes over activeStartDate only
+  }, [levels, activeStartDate]);
 
   // Worth saying only when the flattening is widespread: a couple of quiet days
   // among many is just a quiet week, not a scale problem.
@@ -390,8 +405,10 @@ export default function DaysView({ data, dayData }: DaysViewProps) {
           slices={slices}
           censuses={censuses}
           activities={activities}
+          levels={levels}
           scale={scale}
           peakBinTotal={advice?.peak ?? 0}
+          levelPeak={levelPeak}
           firstDay={dayData.days[0]}
           lastDay={asOf}
           asOf={asOf}
@@ -465,20 +482,20 @@ export default function DaysView({ data, dayData }: DaysViewProps) {
             component="p"
             sx={{ color: "text.secondary", display: "block", mt: 0.75 }}
           >
-            With nothing filtered out, each day also ends with a{" "}
+            With nothing filtered out, a{" "}
             <Box component="span" sx={{ fontWeight: 700, color: "text.primary" }}>
-              queue marker
+              grey line
             </Box>{" "}
-            — the narrow bar straddling the boundary into the next day, under a small
-            stacked glyph. It counts jobs still sitting in the queue at midnight rather
-            than jobs that moved, which is a different quantity: a day whose six bars are
-            all empty can still be holding a million jobs. Picking a single cluster or batch
-            hides it, because those tiles already show their standing state — the two blues
-            in a ratio bar are the queue. It is drawn on the same scale as the day bars,
-            against the month&apos;s largest figure of either kind, so a queue marker and a
-            day bar of the same height mean the same number of jobs and both read off the
-            axis on the left. Light blue is work already in flight when the day opened; dark
-            blue arrived during it.
+            also runs behind the bars: how many jobs were open — queued or running — at the
+            close of each 4-hour window, joined from one day straight into the next. It is
+            the queue as a level rather than a count of changes, which is a different
+            quantity: a day whose six bars are all empty can still be holding a million jobs.
+            It steps down as work finishes and jumps when a batch lands, and the dot on each
+            midnight boundary gives its numbers on hover, including how much of the queue
+            arrived that day. Being a headcount it has its own scale, down the right of the
+            calendar under the stacked glyph; the axis on the left belongs to the bars.
+            Picking a single cluster or batch hides the line, because those tiles already
+            show their standing state — the two blues in a ratio bar are the queue.
           </Typography>
         </Box>
 

@@ -143,32 +143,19 @@ export const SHARE_SEGMENT_STYLES: Record<SegmentState, BarStateStyle> = {
 };
 
 /**
- * Texture for the queue markers, and only for them.
+ * The queue level trace on the v1 calendar: a grey, not one of the four state
+ * colours, and drawn behind the bars.
  *
- * It does two jobs. It separates the queue markers from the day bars they sit
- * beside without relying on colour, which is a single channel and the first thing
- * to go under a colour-vision difference or a bad monitor. And it points: the lines
- * fall from left to right, because a queue draining is the healthy direction of
- * travel, and a run of markers that stops falling is the thing worth noticing.
- *
- * The day bars are deliberately left plain. Texturing both was tried and made the
- * calendar read as pattern rather than as data -- with thirty tiles of six bars
- * each, a texture on the bars is thirty times as much ink as a texture on the
- * markers, and it drowned the very thing it was meant to distinguish.
- *
- * Applied as an overlay on top of the segments rather than as each segment's own
- * background: a per-segment background restarts the pattern at every colour
- * boundary, so a two-tone marker would show two misaligned textures instead of one
- * continuous one.
+ * It replaced a hatched indigo column astride each midnight, which read as one
+ * more bar. Grey takes it out of the state vocabulary altogether -- it is the
+ * ground the day's changes happen against, not another kind of change -- and
+ * sitting behind the bars keeps it from competing with them. The grey leans
+ * toward the page's indigo so it reads as chosen rather than as unstyled.
  */
-export const QUEUE_TEXTURE = {
-  // 45deg, not -45deg. The angle names the gradient axis, and the stripes run
-  // perpendicular to it: an axis to the top-right gives lines falling from
-  // top-left to bottom-right, which is the way down. -45deg aims the axis at the
-  // top-left and produces exactly the opposite hatch.
-  backgroundImage:
-    "repeating-linear-gradient(45deg, rgba(255,255,255,0.42) 0 1px, rgba(255,255,255,0) 1px 4px)",
-} as const;
+export const LEVEL_LINE_COLOR = "#a3a6b8";
+
+/** The midnight dot on the trace; a step darker so it survives on the boundary. */
+export const LEVEL_DOT_COLOR = "#7e829a";
 
 /**
  * The magnitude chart's segments: state CHANGES per bin, so "placed" here is the

@@ -21,7 +21,8 @@ import {
   ACTIVITY_STYLES,
   BAR_STATE_STYLES,
   CARRIED_ACTIVE_COLOR,
-  QUEUE_TEXTURE,
+  LEVEL_DOT_COLOR,
+  LEVEL_LINE_COLOR,
 } from "./palette";
 import QueueGlyph from "./QueueGlyph";
 
@@ -29,7 +30,7 @@ import QueueGlyph from "./QueueGlyph";
  * Which part of the example cell a feature is about. Several features point at
  * the bars, so emphasis is expressed per part rather than per feature.
  */
-type Part = "date" | "axis" | "bars" | "caption" | "queue";
+type Part = "date" | "axis" | "bars" | "caption" | "queue" | "queueAxis";
 
 type FeatureId =
   | "date"
@@ -80,8 +81,8 @@ const FEATURES: Feature[] = [
   {
     id: "height",
     title: "Height is how much happened",
-    body: "Every bar on the month — day bars and queue markers alike — is scaled against the month's largest figure of either kind. The numbers down the left of each row say what those heights are worth in jobs.",
-    parts: ["axis", "bars", "queue"],
+    body: "Every bar on the month is scaled against the busiest single window in it. The numbers down the left of each row say what those heights are worth in state changes.",
+    parts: ["axis", "bars"],
   },
   {
     id: "hover",
@@ -91,9 +92,9 @@ const FEATURES: Feature[] = [
   },
   {
     id: "queue",
-    title: "The bar on the edge is the queue",
-    body: "It belongs to no single day — it straddles midnight, counting the jobs simply sitting in the queue as one day becomes the next. Light blue was already in flight; dark blue arrived that day. Its falling hatch tells it apart from the day bars and points the way you want the queue to go. It is a headcount rather than a count of changes, but it is drawn on the same scale as the day bars, so equal heights mean equal numbers of jobs.",
-    parts: ["queue", "axis"],
+    title: "The grey line behind the bars is the queue",
+    body: "How many jobs were open at the close of each window — the queue as a level, not the changes to it. It steps down as work finishes, jumps when a batch lands, and runs straight on into the next day so a week reads as one line. The dot on the midnight boundary gives its numbers on hover. Being a headcount rather than a count of changes, it is measured against its own scale, down the right under the stacked glyph.",
+    parts: ["queue", "queueAxis"],
   },
   {
     id: "caption",
@@ -122,28 +123,33 @@ const EXAMPLE_BINS = [
 const EXAMPLE_TOTALS = EXAMPLE_BINS.map(
   (bin) => bin.placed + bin.completed + bin.removed,
 );
+const EXAMPLE_PEAK = Math.max(...EXAMPLE_TOTALS);
 /** The bar the colour and hover features point at: the only one with all three. */
 const FOCUS_BIN = 3;
 
 const SLOT_HEIGHT = 150;
 const GUTTER = 46;
 
-/** A queue to match the example day: mostly carried over, partly fresh. */
-const EXAMPLE_QUEUE = { carried: 2998, fromToday: 2242 };
-const EXAMPLE_QUEUE_TOTAL = EXAMPLE_QUEUE.carried + EXAMPLE_QUEUE.fromToday;
-
 /**
- * The one peak everything in the example is scaled against: the busiest window
- * or the queue, whichever is larger -- exactly how the calendar picks its
- * month's peak. Here the queue wins, so the day bars stop short of the top and
- * the marker reaches it, which is the honest picture of a queue outnumbering
- * any single window's changes.
+ * The open-jobs level through the example day: what was in the queue at
+ * midnight, then the balance after each window, exactly as buildDayLevels
+ * would compute it from the bins above.
  */
-const EXAMPLE_PEAK = Math.max(...EXAMPLE_TOTALS, EXAMPLE_QUEUE_TOTAL);
-const EXAMPLE_QUEUE_FRACTION = barFraction(EXAMPLE_QUEUE_TOTAL, EXAMPLE_PEAK, "linear");
+const EXAMPLE_LEVEL_START = 3800;
+const EXAMPLE_LEVELS = EXAMPLE_BINS.reduce<number[]>((acc, bin) => {
+  const prev = acc.length ? acc[acc.length - 1] : EXAMPLE_LEVEL_START;
+  acc.push(Math.max(0, prev + bin.placed - bin.completed - bin.removed));
+  return acc;
+}, []);
+const EXAMPLE_LEVEL_END = EXAMPLE_LEVELS[EXAMPLE_LEVELS.length - 1];
+/** The queue scale's peak: the highest the level reached, as the calendar does per month. */
+const EXAMPLE_LEVEL_PEAK = Math.max(EXAMPLE_LEVEL_START, ...EXAMPLE_LEVELS);
+const EXAMPLE_LEVEL_TICKS = buildScaleTicks(EXAMPLE_LEVEL_PEAK, "linear");
+/** What the midnight census would say, to match the real dot's readout. */
+const EXAMPLE_QUEUE = { carried: 120, fromToday: 180 };
 
-/** Room on the right for the half of the queue marker that hangs past the cell. */
-const RIGHT_GUTTER = 12;
+/** Width the example reserves for the queue scale hanging off its right. */
+const RIGHT_GUTTER = 56;
 
 /** The example cell's own padding, in px, so the slot can cancel it exactly. */
 const CELL_PAD = 12;
@@ -151,7 +157,7 @@ const CELL_PAD = 12;
 /** Reserved row below the slot for the hour labels; see ExampleCell. */
 const HOUR_ROW = 14;
 
-/** The row axis's ticks, from the same shared peak the example's bars use. */
+/** The activity scale's ticks, from the same peak the example's bars use. */
 const EXAMPLE_ACTIVITY_TICKS = buildScaleTicks(EXAMPLE_PEAK, "linear");
 
 interface CellGuideDialogProps {
@@ -337,8 +343,8 @@ function ExampleCell({ active }: { active: Feature | null }) {
 
   return (
     <Box>
-      {/* The axis hangs outside the cell on the left, as it does on a real row,
-          and the queue marker's outer half hangs past the right edge. */}
+      {/* Both scales hang outside the cell, as they do on a real row, so the
+          wrapper reserves their width on either side. */}
       <Box sx={{ pl: `${GUTTER}px`, pr: `${RIGHT_GUTTER}px` }}>
         <Box
           sx={{
@@ -360,15 +366,15 @@ function ExampleCell({ active }: { active: Feature | null }) {
 
           {/*
             One slot, and everything that has to share a baseline is positioned
-            against it at bottom: 0 -- the bars, the axis, and the queue marker.
+            against it at bottom: 0 -- the bars, both scales, and the level trace.
             They used to be aligned by matching offsets measured from the cell,
             which is what let them drift apart: the hour labels quietly added their
             own height to the row, so the activity scale sat lower than the bars it
             was labelling.
 
             The negative side margins pull the slot out to the cell's borders, so
-            the queue marker straddles the edge exactly as it straddles a real day
-            boundary.
+            the level trace runs edge to edge and its midnight dot straddles the
+            edge exactly as it straddles a real day boundary.
           */}
           <Box sx={{ position: "relative", height: SLOT_HEIGHT, mx: `-${CELL_PAD}px` }}>
             {/* The row axis, outside the cell on the left. */}
@@ -388,11 +394,62 @@ function ExampleCell({ active }: { active: Feature | null }) {
               ))}
             </Box>
 
-            {/* The six bars, inset to the cell's own padding. */}
+            {/* The level trace, behind the bars and edge to edge, with the
+                midnight dot astride the right border. Grey, and underneath: it
+                is the ground the day's changes happen against. */}
             <Box
               sx={{
                 position: "absolute",
                 inset: 0,
+                zIndex: 0,
+                ...dim("queue"),
+                ...ring("queue"),
+              }}
+            >
+              <svg
+                width="100%"
+                height={SLOT_HEIGHT}
+                viewBox={`0 0 ${EXAMPLE_BINS.length} ${SLOT_HEIGHT}`}
+                preserveAspectRatio="none"
+                style={{ display: "block", overflow: "visible" }}
+              >
+                <polyline
+                  points={[
+                    `0,${(SLOT_HEIGHT - barFraction(EXAMPLE_LEVEL_START, EXAMPLE_LEVEL_PEAK, "linear") * SLOT_HEIGHT).toFixed(2)}`,
+                    ...EXAMPLE_LEVELS.map(
+                      (level, index) =>
+                        `${index + 1},${(SLOT_HEIGHT - barFraction(level, EXAMPLE_LEVEL_PEAK, "linear") * SLOT_HEIGHT).toFixed(2)}`,
+                    ),
+                  ].join(" ")}
+                  fill="none"
+                  stroke={LEVEL_LINE_COLOR}
+                  strokeWidth={active?.id === "queue" ? 3 : 2}
+                  strokeLinejoin="round"
+                  strokeLinecap="round"
+                  vectorEffect="non-scaling-stroke"
+                />
+              </svg>
+              <Box
+                sx={{
+                  position: "absolute",
+                  right: 0,
+                  bottom: barFraction(EXAMPLE_LEVEL_END, EXAMPLE_LEVEL_PEAK, "linear") * SLOT_HEIGHT,
+                  width: 10,
+                  height: 10,
+                  transform: "translate(50%, 50%)",
+                  borderRadius: "50%",
+                  backgroundColor: LEVEL_DOT_COLOR,
+                  boxShadow: (theme) => `0 0 0 2px ${theme.palette.background.paper}`,
+                }}
+              />
+            </Box>
+
+            {/* The six bars, inset to the cell's own padding, above the trace. */}
+            <Box
+              sx={{
+                position: "absolute",
+                inset: 0,
+                zIndex: 1,
                 mx: `${CELL_PAD}px`,
                 display: "flex",
                 gap: "3px",
@@ -453,61 +510,22 @@ function ExampleCell({ active }: { active: Feature | null }) {
               })}
             </Box>
 
-            {/* The queue marker, astride the cell's right border, in the same
-                slot as the day bars: same floor, same ceiling, same scale. */}
+            {/* The queue's own scale, outside the cell on the right. */}
             <Box
               sx={{
                 position: "absolute",
-                left: "100%",
+                left: `calc(100% + 14px)`,
                 bottom: 0,
                 height: "100%",
-                width: 18,
-                transform: "translateX(-50%)",
-                display: "flex",
-                flexDirection: "column",
-                justifyContent: "flex-end",
-                ...dim("queue"),
-                ...ring("queue"),
+                width: RIGHT_GUTTER - 20,
+                ...dim("queueAxis"),
+                ...ring("queueAxis"),
               }}
             >
-              <Box
-                sx={{
-                  position: "relative",
-                  width: "100%",
-                  height: `${EXAMPLE_QUEUE_FRACTION * 100}%`,
-                  display: "flex",
-                  flexDirection: "column-reverse",
-                  borderRadius: "2px",
-                  overflow: "hidden",
-                  boxShadow: (theme) => `0 0 0 1px ${theme.palette.background.paper}`,
-                }}
-              >
-                <Box
-                  sx={{
-                    flexGrow: EXAMPLE_QUEUE.carried,
-                    flexBasis: 0,
-                    backgroundColor: CARRIED_ACTIVE_COLOR,
-                  }}
-                />
-                <Box
-                  sx={{
-                    flexGrow: EXAMPLE_QUEUE.fromToday,
-                    flexBasis: 0,
-                    backgroundColor: BAR_STATE_STYLES.active.color,
-                  }}
-                />
-                <Box sx={{ position: "absolute", inset: 0, ...QUEUE_TEXTURE }} />
-              </Box>
-              <Box
-                aria-hidden
-                sx={{
-                  position: "absolute",
-                  top: "100%",
-                  left: "50%",
-                  transform: "translateX(-50%)",
-                  mt: "3px",
-                }}
-              >
+              {EXAMPLE_LEVEL_TICKS.map((tick) => (
+                <ExampleTick key={tick.value} tick={tick} side="right" />
+              ))}
+              <Box sx={{ position: "absolute", top: "100%", left: 0, mt: "3px" }}>
                 <QueueGlyph size={14} active={active?.id === "queue"} />
               </Box>
             </Box>
@@ -580,10 +598,10 @@ function ExampleCell({ active }: { active: Feature | null }) {
           {active?.id === "queue" ? (
             <>
               <Typography variant="caption" sx={{ fontWeight: 700, display: "block" }}>
-                Queue at midnight · Wed, Aug 12 → Thu, Aug 13
+                Open jobs at midnight · Wed, Aug 12 → Thu, Aug 13
               </Typography>
               <Typography variant="caption" sx={{ display: "block", opacity: 0.8 }}>
-                {EXAMPLE_QUEUE_TOTAL.toLocaleString()} jobs still in the queue
+                {EXAMPLE_LEVEL_END.toLocaleString()} jobs still open
               </Typography>
               <ReadoutLine
                 color={CARRIED_ACTIVE_COLOR}

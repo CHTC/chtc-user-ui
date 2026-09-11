@@ -12,7 +12,7 @@ import QueueGlyph from "./QueueGlyph";
  */
 export const AXIS_WIDTH = 44;
 
-/** Clearance the right-hand axis leaves for the queue marker's overhanging half. */
+/** Clearance the right-hand axis leaves for the midnight dot's overhanging half. */
 export const QUEUE_OVERHANG = 8;
 
 interface TileAxisProps {
@@ -46,11 +46,11 @@ interface TileAxisProps {
  * per row rather than once per tile, hanging off the edge of the grid so the tiles
  * keep their full width and their bars stay centred.
  *
- * One axis serves both kinds of bar: the day bars (changes per 4-hour window) and
- * the queue markers (standing jobs at midnight) are drawn in the same slot against
- * the same peak, so one set of labels reads them both. The right-hand side and the
- * glyph are kept for a caller that wants a second axis, but the calendar no longer
- * draws one.
+ * There are two, because the calendar draws two kinds of mark against two different
+ * quantities: activity (changes per 4-hour window) down the left, the queue level
+ * (standing jobs, the grey trace behind the bars) down the right. They cannot share
+ * a scale, so pairing a mark with its own axis on hover is how the reader is told
+ * which is which.
  *
  * Rendered into every tile and revealed by CSS only on the row's first or last
  * (see JobCalendar). Living inside the tile is what keeps it aligned: a column
