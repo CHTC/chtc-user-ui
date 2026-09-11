@@ -2,11 +2,12 @@
 
 import Header from "@/src/components/Header";
 import { useAuthClient } from "@/src/components/AuthProvider";
-import { Folder, Group, People, School, Add } from "@mui/icons-material";
+import { BarChart, Folder, Group, People, School, Add } from "@mui/icons-material";
 import { Box, Container } from "@mui/material";
 
 const adminPages = [
   { label: "Users", path: "/users/", icon: <People /> },
+  { label: "Jobs", path: "/users/jobs/", icon: <BarChart /> },
   { label: "Projects", path: "/projects/", icon: <Folder /> },
   { label: "Groups", path: "/groups/", icon: <Group /> },
   { label: "PI List", path: "/pis/", icon: <School /> },
@@ -16,6 +17,7 @@ const adminPages = [
 
 const userPages = [
   { label: "Account", path: "/users/me", icon: <People />},
+  { label: "Jobs", path: "/users/me/jobs/", icon: <BarChart />},
   { label: "Application", path: "/forms/user-applications/create/", icon: <Add />},
 ];
 

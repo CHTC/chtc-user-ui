@@ -1,4 +1,5 @@
 import { Metadata } from "next";
+import UsersHeader from "@/src/app/users/_components/UsersHeader";
 import View from "./view";
 
 export const metadata: Metadata = {
@@ -6,6 +7,10 @@ export const metadata: Metadata = {
 };
 
 function Page() {
-  return <View />
+  return (
+    <UsersHeader>
+      <View />
+    </UsersHeader>
+  )
 }
 export default Page;
