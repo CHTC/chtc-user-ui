@@ -44,6 +44,8 @@ interface DayStackedBarsProps {
     axisTitle: string;
     footer: (bin: BinCensus) => string;
   };
+  /** Bottom-up stacking order. Defaults to the journey census's; v2 has its own. */
+  order?: readonly SegmentState[];
 }
 
 const IN_PLAY_DENOMINATOR = {
@@ -83,6 +85,7 @@ export default function DayStackedBars({
   label,
   styles = SEGMENT_STYLES,
   denominator = IN_PLAY_DENOMINATOR,
+  order = BAR_SEGMENT_ORDER,
 }: DayStackedBarsProps) {
   const { data, options } = useMemo(() => {
     const data = {
@@ -90,7 +93,7 @@ export default function DayStackedBars({
       // closed. These bars are readings at a point in time; calling them "00-04"
       // invited reading them as a summary of those four hours.
       labels: bins.map((bin) => bin.snapshotAt),
-      datasets: BAR_SEGMENT_ORDER.map((state) => ({
+      datasets: order.map((state) => ({
         label: styles[state].label,
         data: bins.map((bin) =>
           bin.drawn && bin.inPlay > 0 ? (bin[state] / bin.inPlay) * 100 : null,
@@ -129,7 +132,7 @@ export default function DayStackedBars({
             // numbers live.
             label: (ctx: TooltipItem<"bar">) => {
               const bin = bins[ctx.dataIndex];
-              const state = BAR_SEGMENT_ORDER[ctx.datasetIndex];
+              const state = order[ctx.datasetIndex];
               const count = bin[state];
               const share = bin.inPlay > 0 ? ((count / bin.inPlay) * 100).toFixed(1) : "0.0";
               return `${styles[state].label}: ${count.toLocaleString()} jobs (${share}%)`;
@@ -144,7 +147,7 @@ export default function DayStackedBars({
     };
 
     return { data, options };
-  }, [bins, styles, denominator]);
+  }, [bins, styles, denominator, order]);
 
   return (
     <Box role="img" aria-label={label} sx={{ position: "relative", width: "100%", height }}>

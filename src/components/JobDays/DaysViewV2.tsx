@@ -38,7 +38,7 @@ import {
   selectionLabel,
   type GroupBy,
 } from "./_components/grouping";
-import { BAR_SEGMENT_ORDER, SHARE_SEGMENT_STYLES } from "./_components/palette";
+import { SHARE_SEGMENT_ORDER_TOP_DOWN, SHARE_SEGMENT_STYLES } from "./_components/palette";
 import {
   CELL_GUIDE_V2_KEY,
   readGroupParams,
@@ -241,7 +241,7 @@ export default function DaysViewV2({ data, dayData }: DaysViewV2Props) {
             sx={{ ml: { sm: "auto" }, flexWrap: "wrap", rowGap: 0.5 }}
             aria-label="Bar colours"
           >
-            {BAR_SEGMENT_ORDER.map((state) => (
+            {SHARE_SEGMENT_ORDER_TOP_DOWN.map((state) => (
               <Stack key={state} direction="row" spacing={0.6} alignItems="center">
                 <Box
                   sx={{
@@ -316,9 +316,10 @@ export default function DaysViewV2({ data, dayData }: DaysViewV2Props) {
             Each bar is one 4-hour window, read as it closes — at 04:00, 08:00 and so on to
             midnight. Its population is the jobs that were open when the window started plus
             the jobs placed during it, and the bar splits that population by where it stood at
-            the close: light blue was open at the start and is still active; dark blue was
-            placed during the window and is still active; teal completed during the window;
-            red was removed during it. Nothing carries over except the jobs themselves — the
+            the close. From the top down: light blue was open at the start and is still
+            active; red was removed during the window; teal completed during it; dark blue
+            at the base was placed during the window and is still active. Nothing carries
+            over except the jobs themselves — the
             two blues together are exactly what the next window opens with, so 200 jobs open
             at 08:00 with 100 completing by noon draws a 50/50 bar, and the noon window starts
             with 100. A window in which nothing moved is all light blue. A blank window had

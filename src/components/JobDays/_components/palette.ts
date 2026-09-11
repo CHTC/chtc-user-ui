@@ -98,6 +98,22 @@ export const SEGMENT_STYLES: Record<SegmentState, BarStateStyle> = {
 };
 
 /**
+ * Calendar v2's stacking order, bottom-up: today's placements at the base, then
+ * completed, then removed, with the still-active carried work on top. Read top
+ * down that is active, removed, completed, placed -- the standing work sits
+ * where the eye lands first and the new arrivals form the floor.
+ */
+export const SHARE_SEGMENT_ORDER: SegmentState[] = [
+  "becameActive",
+  "completed",
+  "removed",
+  "active",
+];
+
+/** The same order read top-down, for legends and readouts that list the stack. */
+export const SHARE_SEGMENT_ORDER_TOP_DOWN: SegmentState[] = [...SHARE_SEGMENT_ORDER].reverse();
+
+/**
  * Calendar v2's segment styles. Same four colours, worded for a bar whose
  * population is one 4-hour window's: the jobs open when it started plus the
  * jobs placed during it. See CensusMode "window" in binModel.
