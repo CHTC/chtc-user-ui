@@ -23,8 +23,12 @@ import {
   CARRIED_ACTIVE_COLOR,
   LEVEL_DOT_COLOR,
   LEVEL_LINE_COLOR,
+  OUTCOME_ORDER,
+  OUTCOME_ORDER_TOP_DOWN,
+  OUTCOME_STYLES,
 } from "./palette";
 import QueueGlyph from "./QueueGlyph";
+import type { CalendarVersion } from "./VersionSwitch";
 
 /**
  * Which part of the example cell a feature is about. Several features point at
@@ -110,6 +114,24 @@ const FEATURES: Feature[] = [
   },
 ];
 
+/**
+ * Calendar v2 swaps the level trace for a bar astride midnight that answers for
+ * the jobs the day inherited; everything else in the cell is the same.
+ */
+const V2_QUEUE_FEATURE: Feature = {
+  id: "queue",
+  title: "The bar on the edge is the day's inheritance",
+  body: "It straddles midnight and answers one question: of the jobs that were already open when this day began, how many are still open, completed, or removed by its end? Top to bottom, grey is still open — nothing happened to those — then red removed and teal completed. Jobs placed during the day are not in it at all — the six bars count those — so a day that inherited 200 jobs and finished 100 is 50/50 whatever else arrived. It is a share, read against the 0–100% scale down the right. A star on top marks a clean sweep: every job the day began with completed before it ended.",
+  parts: ["queue", "queueAxis"],
+};
+
+/** The feature list for one calendar version. */
+function featuresFor(variant: CalendarVersion): Feature[] {
+  return variant === "v2"
+    ? FEATURES.map((feature) => (feature.id === "queue" ? V2_QUEUE_FEATURE : feature))
+    : FEATURES;
+}
+
 /** The made-up day the example draws: a quiet morning, a busy afternoon. */
 const EXAMPLE_BINS = [
   { label: "00–04", placed: 0, completed: 0, removed: 0 },
@@ -160,7 +182,23 @@ const HOUR_ROW = 14;
 /** The activity scale's ticks, from the same peak the example's bars use. */
 const EXAMPLE_ACTIVITY_TICKS = buildScaleTicks(EXAMPLE_PEAK, "linear");
 
+/**
+ * Calendar v2's example: what became of the 3,800 jobs the example day began
+ * with. Adds up to EXAMPLE_LEVEL_START, and squares with the bins above -- the
+ * day's 4,800 completions include the 1,200 placed at 04-08, which the bar
+ * leaves out.
+ */
+const EXAMPLE_OUTCOME = { active: 300, completed: 3200, removed: 300 };
+const EXAMPLE_OUTCOME_TOTAL = EXAMPLE_OUTCOME.active + EXAMPLE_OUTCOME.completed + EXAMPLE_OUTCOME.removed;
+const PERCENT_TICKS = [
+  { value: 100, fraction: 1 },
+  { value: 50, fraction: 0.5 },
+  { value: 0, fraction: 0 },
+];
+
 interface CellGuideDialogProps {
+  /** Which calendar the guide explains; the cells differ at the day boundary. */
+  variant?: CalendarVersion;
   open: boolean;
   /**
    * Closing is what dismisses the guide for good -- there is no checkbox to tick.
@@ -180,9 +218,10 @@ interface CellGuideDialogProps {
  * hovers a feature on the left and sees exactly which part of the cell it means
  * light up on the right.
  */
-export default function CellGuideDialog({ open, onClose }: CellGuideDialogProps) {
+export default function CellGuideDialog({ variant = "v1", open, onClose }: CellGuideDialogProps) {
   const [active, setActive] = useState<FeatureId | null>(null);
-  const feature = FEATURES.find((f) => f.id === active) ?? null;
+  const features = featuresFor(variant);
+  const feature = features.find((f) => f.id === active) ?? null;
 
   return (
     <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth scroll="body">
@@ -217,7 +256,7 @@ export default function CellGuideDialog({ open, onClose }: CellGuideDialogProps)
           spacing={{ xs: 2.5, md: 3 }}
         >
           <Stack spacing={1} sx={{ flex: 1, minWidth: 0 }}>
-            {FEATURES.map((entry) => (
+            {features.map((entry) => (
               <FeatureCard
                 key={entry.id}
                 feature={entry}
@@ -239,7 +278,7 @@ export default function CellGuideDialog({ open, onClose }: CellGuideDialogProps)
               alignSelf: "flex-start",
             }}
           >
-            <ExampleCell active={feature} />
+            <ExampleCell active={feature} variant={variant} />
           </Box>
         </Stack>
       </DialogContent>
@@ -323,7 +362,7 @@ function FeatureCard({
  * maths as the real thing so nothing here can teach the reader something the
  * calendar does not do.
  */
-function ExampleCell({ active }: { active: Feature | null }) {
+function ExampleCell({ active, variant }: { active: Feature | null; variant: CalendarVersion }) {
   const lit = (part: Part) => !active || active.parts.includes(part);
   // Two features single out one bar; the rest treat the row as a whole.
   const focusOneBar = active?.id === "colour" || active?.id === "hover";
@@ -348,6 +387,7 @@ function ExampleCell({ active }: { active: Feature | null }) {
       <Box sx={{ pl: `${GUTTER}px`, pr: `${RIGHT_GUTTER}px` }}>
         <Box
           sx={{
+            position: "relative",
             border: "1px solid",
             borderColor: "divider",
             borderRadius: 1,
@@ -358,6 +398,60 @@ function ExampleCell({ active }: { active: Feature | null }) {
             gap: 1,
           }}
         >
+          {/* Calendar v2: the day's inheritance, a bordered 100%-stacked bar
+              astride the right border and running the whole cell, top to
+              bottom -- as it does on a real tile. */}
+          {variant === "v2" && (
+            <>
+              <Box
+                sx={{
+                  position: "absolute",
+                  left: "100%",
+                  top: 0,
+                  bottom: 0,
+                  width: 18,
+                  transform: "translateX(-50%)",
+                  display: "flex",
+                  flexDirection: "column-reverse",
+                  overflow: "hidden",
+                  zIndex: 2,
+                  border: "1px solid",
+                  borderColor: LEVEL_DOT_COLOR,
+                  boxShadow: (theme) => `0 0 0 1px ${theme.palette.background.paper}`,
+                  ...dim("queue"),
+                  ...ring("queue"),
+                }}
+              >
+                {OUTCOME_ORDER.map((state) => (
+                  <Box
+                    key={state}
+                    sx={{
+                      flexGrow: EXAMPLE_OUTCOME[state],
+                      flexBasis: 0,
+                      backgroundColor: OUTCOME_STYLES[state].color,
+                    }}
+                  />
+                ))}
+              </Box>
+              {/* Its 0-100% scale, spanning the cell with it. */}
+              <Box
+                sx={{
+                  position: "absolute",
+                  left: `calc(100% + 14px)`,
+                  top: 0,
+                  bottom: 0,
+                  width: RIGHT_GUTTER - 20,
+                  ...dim("queueAxis"),
+                  ...ring("queueAxis"),
+                }}
+              >
+                {PERCENT_TICKS.map((tick) => (
+                  <ExampleTick key={tick.value} tick={tick} side="right" unit="percent" />
+                ))}
+              </Box>
+            </>
+          )}
+
           <Box sx={{ alignSelf: "center", ...dim("date"), ...ring("date") }}>
             <Typography variant="body2" sx={{ fontWeight: 600, color: "text.secondary" }}>
               12
@@ -394,9 +488,10 @@ function ExampleCell({ active }: { active: Feature | null }) {
               ))}
             </Box>
 
-            {/* The level trace, behind the bars and edge to edge, with the
-                midnight dot astride the right border. Grey, and underneath: it
-                is the ground the day's changes happen against. */}
+            {/* Calendar v1: the level trace, behind the bars and edge to edge,
+                with the midnight dot astride the right border. Grey, and
+                underneath: it is the ground the day's changes happen against. */}
+            {variant === "v1" && (
             <Box
               sx={{
                 position: "absolute",
@@ -443,6 +538,7 @@ function ExampleCell({ active }: { active: Feature | null }) {
                 }}
               />
             </Box>
+            )}
 
             {/* The six bars, inset to the cell's own padding, above the trace. */}
             <Box
@@ -510,25 +606,28 @@ function ExampleCell({ active }: { active: Feature | null }) {
               })}
             </Box>
 
-            {/* The queue's own scale, outside the cell on the right. */}
-            <Box
-              sx={{
-                position: "absolute",
-                left: `calc(100% + 14px)`,
-                bottom: 0,
-                height: "100%",
-                width: RIGHT_GUTTER - 20,
-                ...dim("queueAxis"),
-                ...ring("queueAxis"),
-              }}
-            >
-              {EXAMPLE_LEVEL_TICKS.map((tick) => (
-                <ExampleTick key={tick.value} tick={tick} side="right" />
-              ))}
-              <Box sx={{ position: "absolute", top: "100%", left: 0, mt: "3px" }}>
-                <QueueGlyph size={14} active={active?.id === "queue"} />
+            {/* Calendar v1: the queue level's own scale, outside the cell on
+                the right, aligned to the bar slot like the trace it labels. */}
+            {variant === "v1" && (
+              <Box
+                sx={{
+                  position: "absolute",
+                  left: `calc(100% + 14px)`,
+                  bottom: 0,
+                  height: "100%",
+                  width: RIGHT_GUTTER - 20,
+                  ...dim("queueAxis"),
+                  ...ring("queueAxis"),
+                }}
+              >
+                {EXAMPLE_LEVEL_TICKS.map((tick) => (
+                  <ExampleTick key={tick.value} tick={tick} side="right" />
+                ))}
+                <Box sx={{ position: "absolute", top: "100%", left: 0, mt: "3px" }}>
+                  <QueueGlyph size={14} active={active?.id === "queue"} />
+                </Box>
               </Box>
-            </Box>
+            )}
           </Box>
 
           {/*
@@ -595,7 +694,23 @@ function ExampleCell({ active }: { active: Feature | null }) {
             color: "common.white",
           }}
         >
-          {active?.id === "queue" ? (
+          {active?.id === "queue" && variant === "v2" ? (
+            <>
+              <Typography variant="caption" sx={{ fontWeight: 700, display: "block" }}>
+                Jobs open as Wed, Aug 12 began · by midnight
+              </Typography>
+              <Typography variant="caption" sx={{ display: "block", opacity: 0.8 }}>
+                {EXAMPLE_OUTCOME_TOTAL.toLocaleString()} jobs were open at the start of the day
+              </Typography>
+              {OUTCOME_ORDER_TOP_DOWN.map((state) => (
+                <ReadoutLine
+                  key={state}
+                  color={OUTCOME_STYLES[state].color}
+                  text={`${Math.round((EXAMPLE_OUTCOME[state] / EXAMPLE_OUTCOME_TOTAL) * 100)}% ${OUTCOME_STYLES[state].label.toLowerCase()} · ${EXAMPLE_OUTCOME[state].toLocaleString()}`}
+                />
+              ))}
+            </>
+          ) : active?.id === "queue" ? (
             <>
               <Typography variant="caption" sx={{ fontWeight: 700, display: "block" }}>
                 Open jobs at midnight · Wed, Aug 12 → Thu, Aug 13
@@ -646,9 +761,11 @@ function ExampleCell({ active }: { active: Feature | null }) {
 function ExampleTick({
   tick,
   side,
+  unit = "count",
 }: {
   tick: { value: number; fraction: number };
   side: "left" | "right";
+  unit?: "count" | "percent";
 }) {
   const dash = <Box sx={{ width: 4, height: "1px", backgroundColor: "divider", flexShrink: 0 }} />;
   return (
@@ -668,7 +785,7 @@ function ExampleTick({
         component="span"
         sx={{ fontSize: "0.7rem", lineHeight: 1, color: "text.secondary" }}
       >
-        {compactNumber(tick.value)}
+        {unit === "percent" ? `${tick.value}%` : compactNumber(tick.value)}
       </Typography>
       {side === "left" && dash}
     </Box>

@@ -98,51 +98,6 @@ export const SEGMENT_STYLES: Record<SegmentState, BarStateStyle> = {
 };
 
 /**
- * Calendar v2's stacking order, bottom-up: today's placements at the base, then
- * completed, then removed, with the still-active carried work on top. Read top
- * down that is active, removed, completed, placed -- the standing work sits
- * where the eye lands first and the new arrivals form the floor.
- */
-export const SHARE_SEGMENT_ORDER: SegmentState[] = [
-  "becameActive",
-  "completed",
-  "removed",
-  "active",
-];
-
-/** The same order read top-down, for legends and readouts that list the stack. */
-export const SHARE_SEGMENT_ORDER_TOP_DOWN: SegmentState[] = [...SHARE_SEGMENT_ORDER].reverse();
-
-/**
- * Calendar v2's segment styles. Same four colours, worded for a bar whose
- * population is one 4-hour window's: the jobs open when it started plus the
- * jobs placed during it. See CensusMode "window" in binModel.
- */
-export const SHARE_SEGMENT_STYLES: Record<SegmentState, BarStateStyle> = {
-  ...BAR_STATE_STYLES,
-  active: {
-    key: "active",
-    label: "Still active",
-    color: CARRIED_ACTIVE_COLOR,
-    description: "active when the window opened and still active at its close",
-  },
-  becameActive: {
-    key: "becameActive",
-    label: "Placed, active",
-    color: "#3b5bdb",
-    description: "placed during this window and still active at its close",
-  },
-  completed: {
-    ...BAR_STATE_STYLES.completed,
-    description: "completed during this window",
-  },
-  removed: {
-    ...BAR_STATE_STYLES.removed,
-    description: "removed during this window",
-  },
-};
-
-/**
  * The queue level trace on the v1 calendar: a grey, not one of the four state
  * colours, and drawn behind the bars.
  *
@@ -151,11 +106,59 @@ export const SHARE_SEGMENT_STYLES: Record<SegmentState, BarStateStyle> = {
  * ground the day's changes happen against, not another kind of change -- and
  * sitting behind the bars keeps it from competing with them. The grey leans
  * toward the page's indigo so it reads as chosen rather than as unstyled.
+ *
+ * Calendar v2 borrows the same grey for "still active" in its boundary bar, for
+ * the same reason: nothing happened to those jobs.
  */
 export const LEVEL_LINE_COLOR = "#a3a6b8";
 
 /** The midnight dot on the trace; a step darker so it survives on the boundary. */
 export const LEVEL_DOT_COLOR = "#7e829a";
+
+/**
+ * Calendar v2's boundary bar: what became of the jobs open when the day began.
+ * Three states, since placements are not part of it: the two terminal colours,
+ * and grey for what is still open -- grey because nothing happened to those
+ * jobs, and the bar is about what happened.
+ */
+export type OutcomeState = "active" | "completed" | "removed";
+
+/**
+ * Bottom-up stacking order: completed at the base, removed above it, and the
+ * still-open work on top -- so read top down it is active, removed, completed,
+ * the order chosen for v2.
+ */
+export const OUTCOME_ORDER: OutcomeState[] = ["completed", "removed", "active"];
+
+/** The same order read top-down, for legends and readouts that list the stack. */
+export const OUTCOME_ORDER_TOP_DOWN: OutcomeState[] = [...OUTCOME_ORDER].reverse();
+
+/**
+ * "Still active" in the boundary bar: a lighter grey than the level trace, so
+ * the part of the bar where nothing happened recedes and the teal and red --
+ * the part where something did -- carry the bar. The border keeps it legible
+ * against the paper.
+ */
+export const OUTCOME_ACTIVE_COLOR = "#d0d3dd";
+
+export const OUTCOME_STYLES: Record<OutcomeState, { label: string; color: string; description: string }> = {
+  active: {
+    label: "Still active",
+    color: OUTCOME_ACTIVE_COLOR,
+    description: "open when the day began and still open at its end; nothing happened to these",
+  },
+  completed: {
+    label: "Completed",
+    color: BAR_STATE_STYLES.completed.color,
+    description: "open when the day began and completed during it",
+  },
+  removed: {
+    label: "Removed",
+    color: BAR_STATE_STYLES.removed.color,
+    description: "open when the day began and removed during it",
+  },
+};
+
 
 /**
  * The magnitude chart's segments: state CHANGES per bin, so "placed" here is the

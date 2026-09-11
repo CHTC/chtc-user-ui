@@ -15,24 +15,29 @@
 // the parameter only decides what is asked for.
 
 import { apiFetch } from "@/src/components/AuthProvider";
-import { Alert, AlertTitle, Box, Button, Skeleton, Stack, Typography } from "@mui/material";
-import { useState } from "react";
+import { Alert, AlertTitle, Box, Button, LinearProgress, Skeleton, Stack, Typography } from "@mui/material";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import useSWR from "swr";
 
 import DaysView from "./DaysView";
-import DaysViewV2 from "./DaysViewV2";
+import {
+  defaultRange,
+  mergeDaySummaries,
+  mergeSeries,
+  monthRange,
+  todayKey,
+  unionRange,
+  weekChunks,
+  type DayRange,
+} from "./_components/chunks";
 import type { DayData } from "./_components/dayCards";
 import type { CalendarVersion } from "./_components/VersionSwitch";
 import type { StackedBarData } from "./types";
 
+export type { DayRange } from "./_components/chunks";
+
 /** The API's marker for an account with access to no submit node at all. */
 const NO_SUBMIT_NODE = "no submit node on record";
-
-/** A [start, end) pair of "YYYY-MM-DD" days, `end` exclusive, as the API takes them. */
-export interface DayRange {
-  start: string;
-  end: string;
-}
 
 export interface JobsViewProps {
   /**
@@ -86,6 +91,43 @@ async function getJson<T>(endpoint: string, owner: string | null, range: DayRang
     throw new JobsApiError(detail ?? response.statusText, response.status);
   }
   return response.json() as Promise<T>;
+}
+
+/**
+ * Weeks already fetched this session, keyed by endpoint, owner and window.
+ *
+ * A week that has ended is settled history: once read it is the same answer
+ * for as long as the page is open, so paging back to a month re-reads nothing.
+ * The week containing today is not held here -- it changes as the day goes on
+ * -- and comes back through the API's own short cache instead. A failed fetch
+ * is dropped so a retry asks again.
+ */
+const settledWeeks = new Map<string, Promise<unknown>>();
+
+function fetchWeek<T>(endpoint: string, owner: string | null, week: DayRange, today: string): Promise<T> {
+  const settled = week.end <= today;
+  const key = `${endpoint}|${owner ?? ""}|${week.start}|${week.end}`;
+  const held = settled ? (settledWeeks.get(key) as Promise<T> | undefined) : undefined;
+  if (held) return held;
+  const pending = getJson<T>(endpoint, owner, week);
+  if (settled) {
+    settledWeeks.set(key, pending);
+    pending.catch(() => settledWeeks.delete(key));
+  }
+  return pending;
+}
+
+/** Every week of the range, fetched together and stitched into one payload. */
+async function fetchRange<T>(
+  endpoint: string,
+  owner: string | null,
+  weeks: DayRange[],
+  today: string,
+  merge: (parts: T[]) => T,
+): Promise<T | null> {
+  if (weeks.length === 0) return null;
+  const parts = await Promise.all(weeks.map((week) => fetchWeek<T>(endpoint, owner, week, today)));
+  return merge(parts);
 }
 
 /**
@@ -280,43 +322,85 @@ function NoJobs({ owner }: { owner: string | null }) {
 }
 
 /**
- * Two requests rather than one: they are independent aggregations on the API
- * side, and keeping them separate means neither waits on the other. Both are
- * needed before the page can paint, so the skeleton stands until both land.
+ * The window is fetched a week at a time -- Sunday to Saturday -- and stitched
+ * back together (see chunks.ts). Two endpoints rather than one: they are
+ * independent aggregations on the API side, and keeping them separate means
+ * neither waits on the other. Both are needed before the page can paint, so the
+ * skeleton stands until both land.
+ *
+ * The window grows as the reader pages the calendar. Paging to a month outside
+ * what is loaded widens the range to cover it, which fetches only the weeks not
+ * already in hand; the page stays up meanwhile, with a progress bar over it.
  *
  * No refresh interval, deliberately. The API caches for 60s and the cold path
  * costs minutes of submit-node time, so this refetches on demand (a retry, a
- * remount, a change of owner) and never on a timer.
+ * remount, a change of owner, a new month) and never on a timer.
  */
 export default function JobsView({ owner = null, range = null, variant = "v1" }: JobsViewProps) {
-  // The range is part of the key, not just the request: changing it asks a
-  // different question and must not be answered from the previous one's cache.
-  const key = [owner, range?.start ?? null, range?.end ?? null];
-  const series = useSWR<StackedBarData, unknown>(["/jobs/series", ...key], () =>
-    getJson<StackedBarData>("/jobs/series", owner, range),
+  const today = todayKey();
+  const requested = useMemo(
+    () => range ?? defaultRange(today),
+    // Keyed on the dates, not the object: the parent may hand over a fresh
+    // object each render for the same window.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [range?.start, range?.end, today],
   );
-  const dayData = useSWR<DayData, unknown>(["/jobs/day-summary", ...key], () =>
-    getJson<DayData>("/jobs/day-summary", owner, range),
+
+  // What is loaded so far: the requested window, widened as the reader pages.
+  // Reset whenever the question changes -- a different owner or a different
+  // window is a different page, not an extension of this one.
+  const [loaded, setLoaded] = useState<DayRange>(requested);
+  useEffect(() => {
+    setLoaded(requested);
+  }, [owner, requested]);
+
+  const weeks = useMemo(() => weekChunks(loaded, today), [loaded, today]);
+
+  // The weeks are the key, not just the request: a widened range asks a
+  // different question and gets a new merge. keepPreviousData holds the page up
+  // while the extra weeks arrive.
+  const key = [owner, ...weeks.map((week) => `${week.start}/${week.end}`)];
+  const series = useSWR<StackedBarData | null, unknown>(
+    ["/jobs/series", ...key],
+    () => fetchRange<StackedBarData>("/jobs/series", owner, weeks, today, mergeSeries),
+    { keepPreviousData: true },
   );
+  const dayData = useSWR<DayData | null, unknown>(
+    ["/jobs/day-summary", ...key],
+    () => fetchRange<DayData>("/jobs/day-summary", owner, weeks, today, mergeDaySummaries),
+    { keepPreviousData: true },
+  );
+
+  // Called by the calendar when the reader pages to a month: widen the loaded
+  // range to cover it. A month already inside it changes nothing.
+  const showMonth = useCallback((monthStart: Date) => {
+    const needed = monthRange(monthStart, todayKey());
+    setLoaded((current) => {
+      const next = unionRange(current, needed);
+      return next && (next.start !== current.start || next.end !== current.end) ? next : current;
+    });
+  }, []);
+
+  const retry = () => {
+    void series.mutate();
+    void dayData.mutate();
+  };
 
   const error = series.error ?? dayData.error;
-  if (error) {
-    return (
-      <JobsError
-        error={error}
-        onRetry={() => {
-          void series.mutate();
-          void dayData.mutate();
-        }}
-      />
-    );
-  }
+  const haveData = !!series.data && !!dayData.data;
 
-  if (!series.data || !dayData.data) return <JobsSkeleton />;
+  // Nothing to stand behind yet: an error is the whole page.
+  if (error && !haveData) return <JobsError error={error} onRetry={retry} />;
+
+  if (series.data === undefined || dayData.data === undefined) return <JobsSkeleton />;
+
+  // A range entirely in the future has no weeks to ask for.
+  if (series.data === null || dayData.data === null) return <NoJobs owner={owner} />;
 
   const condorQ = series.data.sources.condorQ;
   const queueErrors = condorQ.errors ?? [];
   const noSubmitNode = condorQ.schedd === NO_SUBMIT_NODE;
+  const extending = series.isValidating || dayData.isValidating;
 
   // A user with no jobs in the window gets a perfectly valid, entirely empty
   // payload. DaysView would render a blank calendar and a Sankey of nothing,
@@ -325,6 +409,12 @@ export default function JobsView({ owner = null, range = null, variant = "v1" }:
 
   return (
     <Box>
+      {/* Widening the window in progress: the page stays, this says why the
+          calendar has blank months for a moment. */}
+      <Box sx={{ height: 4, mb: 1 }}>{extending && <LinearProgress />}</Box>
+      {/* A failure while widening leaves the loaded weeks on screen and says so
+          above them, rather than replacing a working page with an error. */}
+      {error ? <JobsError error={error} onRetry={retry} /> : null}
       {/*
         An account with no submit node at all stays at the top: nothing failed,
         but the live queue was never asked, so a whole class of job is missing
@@ -337,10 +427,13 @@ export default function JobsView({ owner = null, range = null, variant = "v1" }:
       }
       {empty ? (
         <NoJobs owner={owner} />
-      ) : variant === "v2" ? (
-        <DaysViewV2 data={series.data} dayData={dayData.data} />
       ) : (
-        <DaysView data={series.data} dayData={dayData.data} />
+        <DaysView
+          data={series.data}
+          dayData={dayData.data}
+          variant={variant}
+          onVisibleMonthChange={showMonth}
+        />
       )}
       {!noSubmitNode && <DegradedQueueAlert errors={queueErrors} />}
     </Box>

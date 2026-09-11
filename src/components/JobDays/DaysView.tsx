@@ -17,10 +17,11 @@ import InfoOutlined from "@mui/icons-material/InfoOutlined";
 
 import type { BarScale, StackedBarData } from "./types";
 import CellGuideDialog from "./_components/CellGuide";
+import { MAX_HISTORY_DAYS, addDays } from "./_components/chunks";
 import DayDialog from "./_components/DayDialog";
 import JobCalendar from "./_components/JobCalendar";
 import PeriodCard from "./_components/PeriodCard";
-import VersionSwitch from "./_components/VersionSwitch";
+import VersionSwitch, { type CalendarVersion } from "./_components/VersionSwitch";
 import { ScaleHelpTooltip, ScaleHint, ScaleNote, SCALE_LABELS } from "./_components/ScaleInfo";
 import {
   buildDayActivity,
@@ -33,6 +34,7 @@ import {
 } from "./_components/binModel";
 import {
   asOfDay,
+  buildDayOutcomes,
   buildPeriodSummary,
   buildSliceMap,
   formatDayShort,
@@ -50,6 +52,8 @@ import {
   type GroupBy,
 } from "./_components/grouping";
 import {
+  CELL_GUIDE_KEY,
+  CELL_GUIDE_V2_KEY,
   DEFAULT_SCALE,
   readGroupParams,
   readGuideDismissed,
@@ -64,6 +68,18 @@ interface DaysViewProps {
   data: StackedBarData;
   /** The day bake: cohorts, flow edges, and the carry-over census. */
   dayData: DayData;
+  /**
+   * Which calendar to draw. The two differ only at the day boundary: v1 runs a
+   * grey queue-level trace behind the bars, v2 stands a 100%-stacked bar astride
+   * each midnight saying what became of the jobs that day inherited.
+   */
+  variant?: CalendarVersion;
+  /**
+   * The reader paged the calendar to the month starting here. The data is
+   * loaded a week at a time, so whoever owns the fetch widens it to cover the
+   * month; this view keeps drawing what it has meanwhile.
+   */
+  onVisibleMonthChange?: (monthStart: Date) => void;
 }
 
 /**
@@ -76,8 +92,19 @@ interface DaysViewProps {
  * Active is what lets them sit together: a job is Active from the moment it is
  * placed and leaves only by completing or being removed, top and bottom alike.
  */
-export default function DaysView({ data, dayData }: DaysViewProps) {
+export default function DaysView({
+  data,
+  dayData,
+  variant = "v1",
+  onVisibleMonthChange,
+}: DaysViewProps) {
   const asOf = asOfDay(dayData);
+  // Each version has its own guide, dismissed separately: a reader who has
+  // learnt one cell has not learnt the other.
+  const guideKey = variant === "v2" ? CELL_GUIDE_V2_KEY : CELL_GUIDE_KEY;
+  // How far back the calendar may be paged: the data loads as the reader goes,
+  // so this is the API's limit rather than the edge of what is loaded.
+  const pageFloor = addDays(asOf, -MAX_HISTORY_DAYS);
 
   const [groupBy, setGroupBy] = useState<GroupBy>("cluster");
   const [selection, setSelection] = useState<string>(ALL_GROUPS);
@@ -93,6 +120,10 @@ export default function DaysView({ data, dayData }: DaysViewProps) {
     const d = parseDayKey(asOf);
     return new Date(d.getFullYear(), d.getMonth(), 1);
   });
+  const showMonth = (next: Date) => {
+    setActiveStartDate(next);
+    onVisibleMonthChange?.(next);
+  };
 
   // Deep links: /days?groupBy=batch&group=3&scale=linear. Read once on mount rather
   // than via useSearchParams -- this page is statically exported, so an effect
@@ -113,8 +144,8 @@ export default function DaysView({ data, dayData }: DaysViewProps) {
 
     const wanted = readScaleParam(window.location.search);
     if (wanted) setScale(wanted);
-    if (!readGuideDismissed()) setGuideOpen(true);
-  }, [data]);
+    if (!readGuideDismissed(guideKey)) setGuideOpen(true);
+  }, [data, guideKey]);
 
   /**
    * Closing the guide is the whole of dismissing it.
@@ -126,7 +157,7 @@ export default function DaysView({ data, dayData }: DaysViewProps) {
    */
   const closeGuide = () => {
     setGuideOpen(false);
-    writeGuideDismissed(true);
+    writeGuideDismissed(true, guideKey);
   };
 
   // Every selection writes back to the URL, so the current view is always
@@ -194,9 +225,20 @@ export default function DaysView({ data, dayData }: DaysViewProps) {
     return out;
   }, [data, dense, journeyMode]);
 
-  // The open-jobs level behind the bars, all-jobs mode only. Cluster mode's ratio
-  // bars already show the standing state.
-  const levels = useMemo(() => (journeyMode ? null : buildDayLevels(data, dense)), [data, dense, journeyMode]);
+  // v1: the open-jobs level behind the bars, all-jobs mode only. Cluster mode's
+  // ratio bars already show the standing state.
+  const levels = useMemo(
+    () => (variant === "v1" && !journeyMode ? buildDayLevels(data, dense) : null),
+    [variant, data, dense, journeyMode],
+  );
+
+  // v2: what became of each day's inherited jobs, for whichever group is in
+  // view. Shown in cluster mode too: the ratio bars say where the whole cohort
+  // stands, this says how the day treated what it started with.
+  const outcomes = useMemo(
+    () => (variant === "v2" ? buildDayOutcomes(dayData, filter) : null),
+    [variant, dayData, filter],
+  );
 
   const inVisibleMonth = (day: string) => {
     const date = parseDayKey(day);
@@ -256,7 +298,7 @@ export default function DaysView({ data, dayData }: DaysViewProps) {
           <Typography variant="h4" component="h1" sx={{ fontWeight: 700 }}>
             What happened to {data.owner}&apos;s jobs
           </Typography>
-          <VersionSwitch current="v1" />
+          <VersionSwitch current={variant} />
         </Stack>
         <Typography variant="body1" sx={{ color: "text.secondary" }}>
           {dayData.counted.toLocaleString()} jobs across {data.series.length} clusters
@@ -266,7 +308,10 @@ export default function DaysView({ data, dayData }: DaysViewProps) {
           {journeyMode
             ? `the whole of ${scopeLabel} as a ratio, with completed work staying in view so the bars drift toward teal as jobs finish`
             : "how many jobs were placed, completed, or removed in each bin, so a heavy bin towers and a quiet one stays empty"}
-          . Hover a bar for its numbers, or click a day for its full breakdown.
+          .{" "}
+          {variant === "v2" &&
+            "The bar astride each midnight shows what became of the jobs the day started with: still open, completed, or removed, leaving out anything placed during it. "}
+          Hover a bar for its numbers, or click a day for its full breakdown.
         </Typography>
       </Stack>
 
@@ -406,14 +451,15 @@ export default function DaysView({ data, dayData }: DaysViewProps) {
           censuses={censuses}
           activities={activities}
           levels={levels}
+          outcomes={outcomes}
           scale={scale}
           peakBinTotal={advice?.peak ?? 0}
           levelPeak={levelPeak}
-          firstDay={dayData.days[0]}
+          firstDay={pageFloor}
           lastDay={asOf}
           asOf={asOf}
           activeStartDate={activeStartDate}
-          onActiveStartDateChange={setActiveStartDate}
+          onActiveStartDateChange={showMonth}
           onSelectDay={setOpenDay}
         />
 
@@ -434,7 +480,7 @@ export default function DaysView({ data, dayData }: DaysViewProps) {
         </Box>
       </Stack>
 
-      <CellGuideDialog open={guideOpen} onClose={closeGuide} />
+      <CellGuideDialog variant={variant} open={guideOpen} onClose={closeGuide} />
 
       <DayDialog
         dayData={dayData}
@@ -447,6 +493,7 @@ export default function DaysView({ data, dayData }: DaysViewProps) {
         asOf={asOf}
         open={openDay !== null}
         onClose={() => setOpenDay(null)}
+        variant={variant}
       />
 
       <Stack spacing={2} sx={{ mt: 4 }}>
@@ -482,31 +529,57 @@ export default function DaysView({ data, dayData }: DaysViewProps) {
             component="p"
             sx={{ color: "text.secondary", display: "block", mt: 0.75 }}
           >
-            With nothing filtered out, a{" "}
-            <Box component="span" sx={{ fontWeight: 700, color: "text.primary" }}>
-              grey line
-            </Box>{" "}
-            also runs behind the bars: how many jobs were open — queued or running — at the
-            close of each 4-hour window, joined from one day straight into the next. It is
-            the queue as a level rather than a count of changes, which is a different
-            quantity: a day whose six bars are all empty can still be holding a million jobs.
-            It steps down as work finishes and jumps when a batch lands, and the dot on each
-            midnight boundary gives its numbers on hover, including how much of the queue
-            arrived that day. Being a headcount it has its own scale, down the right of the
-            calendar under the stacked glyph; the axis on the left belongs to the bars.
-            Picking a single cluster or batch hides the line, because those tiles already
-            show their standing state — the two blues in a ratio bar are the queue.
+            {variant === "v1" ? (
+              <>
+                With nothing filtered out, a{" "}
+                <Box component="span" sx={{ fontWeight: 700, color: "text.primary" }}>
+                  grey line
+                </Box>{" "}
+                also runs behind the bars: how many jobs were open — queued or running — at
+                the close of each 4-hour window, joined from one day straight into the next.
+                It is the queue as a level rather than a count of changes, which is a
+                different quantity: a day whose six bars are all empty can still be holding a
+                million jobs. It steps down as work finishes and jumps when a batch lands, and
+                the dot on each midnight boundary gives its numbers on hover, including how
+                much of the queue arrived that day. Being a headcount it has its own scale,
+                down the right of the calendar under the stacked glyph; the axis on the left
+                belongs to the bars. Picking a single cluster or batch hides the line, because
+                those tiles already show their standing state — the two blues in a ratio bar
+                are the queue.
+              </>
+            ) : (
+              <>
+                Each day also ends with a{" "}
+                <Box component="span" sx={{ fontWeight: 700, color: "text.primary" }}>
+                  bar astride midnight
+                </Box>
+                : of the jobs that were already open when the day began, what share are still
+                open, completed, or removed by its end — grey, teal and red, with still open
+                on top in grey because nothing happened to those jobs. Nothing placed during
+                the day is part of it. That is the point:
+                the six bars count every change, including the day&apos;s own arrivals, while
+                this bar answers only for the work the day inherited, so a day that took on
+                a fresh batch while finishing half of its backlog still reads as a 50/50 day.
+                It is a share, read against the 0–100% scale down the right; the axis on the
+                left belongs to the bars. A star on top marks a clean sweep, a day that
+                completed every job it began with. Hover it for the counts.
+              </>
+            )}
           </Typography>
         </Box>
 
         <Typography variant="caption" component="p" sx={{ color: "text.secondary" }}>
           Baked {new Date(data.generatedAt).toLocaleString()} ({data.timezone}) from{" "}
           {dayData.sources.adstash.terminalRecords.toLocaleString()} Adstash terminal records
+          {dayData.queries && dayData.queries > 1
+            ? ` read across ${dayData.queries} weekly queries`
+            : ""}{" "}
           and {dayData.sources.condorQ.stillQueued.toLocaleString()} live condor_q ads on{" "}
           {dayData.sources.condorQ.schedd}. &ldquo;Today&rdquo; is {formatDayShort(asOf)}, the
-          last day in the baked window; the summary period ends on the day before it, since
-          the as-of day is still in progress and would understate every count. Hold is not
-          shown: the history records carry no hold data for these jobs.
+          last day in the loaded window; the summary period ends on the day before it, since
+          the as-of day is still in progress and would understate every count. Paging the
+          calendar to an earlier month loads that month&apos;s weeks. Hold is not shown: the
+          history records carry no hold data for these jobs.
         </Typography>
       </Stack>
     </Box>

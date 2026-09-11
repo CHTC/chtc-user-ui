@@ -17,6 +17,7 @@ import Close from "@mui/icons-material/Close";
 import type { StackedBarData } from "../types";
 import { buildDayActivity, buildDayCensus, expandSeries } from "./binModel";
 import {
+  buildDayOutcomes,
   buildSliceMap,
   compactNumber,
   formatDayLong,
@@ -31,8 +32,8 @@ import {
   type GroupBy,
 } from "./grouping";
 import DayActivityBars from "./DayActivityBars";
-import DayStackedBars, { WINDOW_DENOMINATOR } from "./DayStackedBars";
-import { SHARE_SEGMENT_ORDER, SHARE_SEGMENT_STYLES } from "./palette";
+import DayStackedBars from "./DayStackedBars";
+import { OUTCOME_ORDER_TOP_DOWN, OUTCOME_STYLES } from "./palette";
 import { ActivityRows } from "./StateRows";
 import type { CalendarVersion } from "./VersionSwitch";
 
@@ -56,9 +57,8 @@ interface DayDialogProps {
   open: boolean;
   onClose: () => void;
   /**
-   * Which calendar opened the dialog. v1 draws the journey census for one group
-   * and per-bin change counts for everything; v2 draws the window census -- the
-   * same six bars as its tiles -- whatever the selection.
+   * Which calendar opened the dialog. Both draw the same six-bin chart; v2 adds
+   * the day's outcome for the jobs it inherited, matching its boundary bar.
    */
   variant?: CalendarVersion;
 }
@@ -157,23 +157,25 @@ export default function DayDialog({
     [dayData, filter, day],
   );
 
-  // The day's six-bin derivation for the same scope. v1: the whole-cohort ratio
-  // census for one group, per-bin change counts for everything. v2: the window
-  // census either way, so the dialog draws exactly what the tile drew.
-  const shareMode = variant === "v2";
-  const journeyMode = !shareMode && filter !== null;
+  // The day's six-bin derivation for the same scope: the whole-cohort ratio census
+  // for one group, per-bin change counts for everything.
+  const journeyMode = filter !== null;
   const { census, activity } = useMemo(() => {
     if (!day) return { census: null, activity: null };
     const dayIndex = barData.days.indexOf(day);
     if (dayIndex < 0) return { census: null, activity: null };
     const dense = expandSeries(barData, filter);
-    if (shareMode) {
-      return { census: buildDayCensus(barData, dense, dayIndex, "window"), activity: null };
-    }
     return journeyMode
       ? { census: buildDayCensus(barData, dense, dayIndex, "journey"), activity: null }
       : { census: null, activity: buildDayActivity(barData, dense, dayIndex) };
-  }, [barData, filter, journeyMode, shareMode, day]);
+  }, [barData, filter, journeyMode, day]);
+
+  // Calendar v2: what became of the jobs open when this day began, for the same
+  // scope as the boundary bar that was clicked.
+  const outcome = useMemo(
+    () => (variant === "v2" && day ? (buildDayOutcomes(dayData, filter).get(day) ?? null) : null),
+    [variant, dayData, filter, day],
+  );
 
   return (
     <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth scroll="body">
@@ -250,27 +252,8 @@ export default function DayDialog({
                         <DayStackedBars
                           bins={census.bins}
                           height={240}
-                          styles={shareMode ? SHARE_SEGMENT_STYLES : undefined}
-                          denominator={shareMode ? WINDOW_DENOMINATOR : undefined}
-                          order={shareMode ? SHARE_SEGMENT_ORDER : undefined}
-                          label={
-                            shareMode
-                              ? `Where each 4-hour window's jobs stood at its close on ${formatDayLong(slice.day)}`
-                              : `Share of the cluster's jobs active, completed, and removed per 4-hour bin on ${formatDayLong(slice.day)}`
-                          }
+                          label={`Share of the cluster's jobs active, completed, and removed per 4-hour bin on ${formatDayLong(slice.day)}`}
                         />
-                        {shareMode && (
-                          <Typography
-                            variant="caption"
-                            component="p"
-                            sx={{ color: "text.secondary", mt: 0.5, fontStyle: "italic" }}
-                          >
-                            Each bar is 100% of its own window: the jobs open when it started plus
-                            those placed during it. The day opened with{" "}
-                            {census.activeAtDayStart.toLocaleString()} jobs and{" "}
-                            {census.placedToday.toLocaleString()} were placed during it.
-                          </Typography>
-                        )}
                         {census.finishedAt !== null && (
                           <Typography
                             variant="caption"
@@ -313,6 +296,79 @@ export default function DayDialog({
                   </>
                 )}
               </Box>
+
+              {/* Calendar v2's boundary bar, drawn large, with its numbers. */}
+              {outcome && (
+                <Box component="section">
+                  <Typography
+                    variant="overline"
+                    component="h3"
+                    sx={{ color: "text.secondary", lineHeight: 1.6, display: "block" }}
+                  >
+                    Jobs open when the day began
+                  </Typography>
+                  <Typography variant="caption" sx={{ color: "text.secondary" }}>
+                    {outcome.opening.toLocaleString()} jobs, whenever they were placed; nothing
+                    placed during the day is counted here
+                  </Typography>
+                  {outcome.hasData ? (
+                    <>
+                      <Box
+                        role="img"
+                        aria-label={`Of ${outcome.opening.toLocaleString()} jobs open when the day began: ${outcome.active.toLocaleString()} still active, ${outcome.completed.toLocaleString()} completed, ${outcome.removed.toLocaleString()} removed`}
+                        sx={{
+                          mt: 1,
+                          height: 22,
+                          display: "flex",
+                          borderRadius: "3px",
+                          overflow: "hidden",
+                        }}
+                      >
+                        {OUTCOME_ORDER_TOP_DOWN.map((state) => (
+                          <Box
+                            key={state}
+                            sx={{
+                              flexGrow: outcome[state],
+                              flexBasis: 0,
+                              backgroundColor: OUTCOME_STYLES[state].color,
+                            }}
+                          />
+                        ))}
+                      </Box>
+                      <Stack spacing={0.25} sx={{ mt: 1.25 }}>
+                        {OUTCOME_ORDER_TOP_DOWN.map((state) => {
+                          const share = (outcome[state] / outcome.opening) * 100;
+                          return (
+                            <Stack key={state} direction="row" spacing={1} alignItems="baseline">
+                              <Box
+                                sx={{
+                                  width: 10,
+                                  height: 10,
+                                  borderRadius: "2px",
+                                  backgroundColor: OUTCOME_STYLES[state].color,
+                                  flexShrink: 0,
+                                  transform: "translateY(1px)",
+                                }}
+                              />
+                              <Typography variant="body2" sx={{ fontWeight: 700 }}>
+                                {share < 0.1 && outcome[state] > 0 ? "<0.1%" : `${share.toFixed(share < 10 ? 1 : 0)}%`}
+                              </Typography>
+                              <Typography variant="body2" sx={{ color: "text.secondary" }}>
+                                {OUTCOME_STYLES[state].label.toLowerCase()} ·{" "}
+                                {outcome[state].toLocaleString()}
+                              </Typography>
+                            </Stack>
+                          );
+                        })}
+                      </Stack>
+                    </>
+                  ) : (
+                    <Typography variant="body2" sx={{ color: "text.secondary", mt: 0.75 }}>
+                      Nothing was open when the day began.
+                    </Typography>
+                  )}
+                </Box>
+              )}
             </Stack>
           </DialogContent>
         </>
