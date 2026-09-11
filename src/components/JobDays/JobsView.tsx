@@ -331,7 +331,10 @@ export default function JobsView({ owner = null, range = null, variant = "v1" }:
         from everything below and the reader needs that before they read it.
         A node that failed to answer is a footnote and sits at the bottom.
       */}
-      {noSubmitNode && <NoSubmitNodeAlert owner={owner} />}
+      {
+        // TODO: Remove when not in development
+        // noSubmitNode && <NoSubmitNodeAlert owner={owner} />
+      }
       {empty ? (
         <NoJobs owner={owner} />
       ) : variant === "v2" ? (

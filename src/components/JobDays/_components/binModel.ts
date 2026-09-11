@@ -49,7 +49,11 @@ export function expandSeries(data: StackedBarData, filter: ClusterFilter): Dense
 export interface BinCensus {
   /** "00–04" .. "20–24". */
   label: string;
-  /** Everything in play by the end of this bin: active at day start + placed so far. */
+  /**
+   * The bar's denominator. Day and journey modes: everything in play by the end
+   * of this bin (active at day start + placed so far). Window mode: active at
+   * the START of this bin + placed during it, so it resets every four hours.
+   */
   inPlay: number;
   /**
    * Still active and carried from an earlier bin. Together with `becameActive`
@@ -63,14 +67,15 @@ export interface BinCensus {
    * keeps the new-placement signal whole at the cost of occasionally overstating
    * it by the same-bin churn.
    *
-   * In "share" mode (calendar v2) the window is the whole day rather than the
-   * bin: placed at any point TODAY and still active, under the same
-   * drain-older-first assumption.
+   * The same meaning in "window" mode (calendar v2), where it is also the
+   * segment that says how much of the window's population is new.
    */
   becameActive: number;
-  /** Completed, cumulative up to this bin. */
+  /** Placed in this bin, whether or not still active by its end. */
+  placedInBin: number;
+  /** Completed: cumulative up to this bin, or in window mode this bin's alone. */
   completed: number;
-  /** Removed, cumulative up to this bin. */
+  /** Removed: cumulative up to this bin, or in window mode this bin's alone. */
   removed: number;
   /** Placed today, cumulative up to this bin. */
   placedSoFar: number;
@@ -115,15 +120,15 @@ export interface DayCensus {
  *    (window opening included) and Completed/Removed accumulate for good, so a
  *    cluster's bars drift steadily toward teal over the days and no job ever
  *    drops out of view.
- *  - "share": the calendar v2 reading. Like "day" -- terminations reset at
- *    midnight and the denominator is the day's own population (active at open +
- *    placed so far today) -- but the dark-blue segment is everything placed
- *    today that is still active, not just this bin's arrivals, and nothing is
- *    truncated: a day that finishes at 08:00 keeps drawing its all-finished
- *    reading to midnight, because each bar is a standing summary and "still
- *    finished" is the true state at 12:00.
+ *  - "window": the calendar v2 reading. Every bin is its own population: the
+ *    jobs active when the window opened plus the jobs placed during it. By the
+ *    window's close each of those is still active (carried or newly placed),
+ *    completed, or removed -- this window's terminations only, nothing
+ *    cumulative. What is still active becomes the whole of the next window's
+ *    opening population. So 200 active at 08:00 with 100 completing by 12:00
+ *    draws a 50/50 bar, and the 12:00 window opens with 100.
  */
-export type CensusMode = "day" | "journey" | "share";
+export type CensusMode = "day" | "journey" | "window";
 
 /**
  * The six per-bin censuses for one day.
@@ -167,25 +172,35 @@ export function buildDayCensus(
   let placedCum = 0;
   let completedCum = 0;
   let removedCum = 0;
+  // Window mode only: what the next window opens with.
+  let activeAtBinStart = activeAtDayStart;
   for (let b = 0; b < binsPerDay; b++) {
     const placedThisBin = dense.placed[startBin + b];
+    const completedThisBin = dense.completed[startBin + b];
+    const removedThisBin = dense.removed[startBin + b];
     placedCum += placedThisBin;
-    completedCum += dense.completed[startBin + b];
-    removedCum += dense.removed[startBin + b];
+    completedCum += completedThisBin;
+    removedCum += removedThisBin;
 
     const journey = mode === "journey";
-    const inPlay = journey ? basePlaced + placedCum : activeAtDayStart + placedCum;
-    const completed = journey ? baseCompleted + completedCum : completedCum;
-    const removed = journey ? baseRemoved + removedCum : removedCum;
+    const window = mode === "window";
+    const inPlay = window
+      ? activeAtBinStart + placedThisBin
+      : journey
+        ? basePlaced + placedCum
+        : activeAtDayStart + placedCum;
+    const completed = window ? completedThisBin : journey ? baseCompleted + completedCum : completedCum;
+    const removed = window ? removedThisBin : journey ? baseRemoved + removedCum : removedCum;
     const activeTotal = Math.max(0, inPlay - completed - removed);
-    // This bin's arrivals -- or, in share mode, today's -- capped by what is
-    // still active at all (see BinCensus).
-    const becameActive = Math.min(mode === "share" ? placedCum : placedThisBin, activeTotal);
+    // This bin's arrivals, capped by what is still active at all (see BinCensus).
+    const becameActive = Math.min(placedThisBin, activeTotal);
+    activeAtBinStart = activeTotal;
     bins.push({
       label: binLabel(b, data.binHours),
       inPlay,
       active: activeTotal - becameActive,
       becameActive,
+      placedInBin: placedThisBin,
       completed,
       removed,
       placedSoFar: placedCum,
@@ -196,9 +211,10 @@ export function buildDayCensus(
     });
   }
 
-  // Share mode never truncates: every bar with anyone in the population is a
-  // real reading, finished or not.
-  if (mode === "share") {
+  // Window mode never truncates: a bar draws whenever its window had a
+  // population, and an empty window (nothing open, nothing placed) is simply
+  // blank of its own accord.
+  if (mode === "window") {
     bins.forEach((bin) => {
       bin.drawn = bin.inPlay > 0;
     });
