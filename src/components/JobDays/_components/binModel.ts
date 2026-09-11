@@ -306,6 +306,49 @@ export function buildDayActivity(
   return { bins, total, hasData: total > 0 };
 }
 
+/**
+ * How many jobs were open -- queued or running -- through one day, read at the
+ * start of the day and at the close of each 4-hour window.
+ *
+ * This is the queue as a level, the thing the activity bars cannot show: a day
+ * with six empty bars can still have a million jobs waiting. The calendar draws
+ * it as a grey trace behind the bars, continuous from one day into the next.
+ */
+export interface DayLevel {
+  /** Open when the day began; equals the previous day's last `ends` entry. */
+  start: number;
+  /** Open at the close of each window, one entry per bin. */
+  ends: number[];
+  /** True when anything was open at any point in the day. */
+  hasData: boolean;
+}
+
+/**
+ * The open-jobs level for every day in the window, in one pass.
+ *
+ * Derived from the 4-hour transitions rather than read from the midnight
+ * census: opening balance plus placements, minus completions and removals, bin
+ * by bin. Clamped at zero as it goes, since counting noise between the two
+ * sources can push it a hair negative, and a negative queue would poison every
+ * later reading. The midnight census (see DayQueue) is the measured figure and
+ * the two can differ slightly; the hover readout says so.
+ */
+export function buildDayLevels(data: StackedBarData, dense: DenseSeries): Map<string, DayLevel> {
+  const out = new Map<string, DayLevel>();
+  let level = dense.openingActive;
+  data.days.forEach((day, dayIndex) => {
+    const start = level;
+    const ends: number[] = [];
+    for (let b = 0; b < data.binsPerDay; b++) {
+      const bin = dayIndex * data.binsPerDay + b;
+      level = Math.max(0, level + dense.placed[bin] - dense.completed[bin] - dense.removed[bin]);
+      ends.push(level);
+    }
+    out.set(day, { start, ends, hasData: start > 0 || ends.some((v) => v > 0) });
+  });
+  return out;
+}
+
 /** "04:00" -- the clock time bin 0 of a 4-hour bake closes at. */
 function snapshotLabel(bin: number, binHours: number): string {
   const hour = (bin + 1) * binHours;
@@ -344,11 +387,7 @@ export const MIN_BAR_PIXELS = 2;
  * instead of choosing for the reader.
  */
 export interface ScaleAdvice {
-  /**
-   * What every bar on the month is scaled against: the tallest 4-hour bin or the
-   * largest midnight queue, whichever is bigger. One scale for both kinds of bar,
-   * so a queue marker and a day bar of the same height mean the same number.
-   */
+  /** Tallest 4-hour bin on the month; what every bar is scaled against. */
   peak: number;
   /** Days with activity at all. */
   activeDays: number;
@@ -365,11 +404,10 @@ export interface ScaleAdvice {
  * how much of the month linear scaling flattens onto the floor.
  *
  * Takes the month's entries already filtered, so this stays pure arithmetic over
- * the bins and needs no notion of calendars or date keys. `queuePeak` is the
- * month's largest midnight queue, which shares the scale (see ScaleAdvice.peak).
+ * the bins and needs no notion of calendars or date keys.
  */
-export function buildScaleAdvice(entries: [string, DayActivity][], queuePeak = 0): ScaleAdvice {
-  let peak = queuePeak;
+export function buildScaleAdvice(entries: [string, DayActivity][]): ScaleAdvice {
+  let peak = 0;
   for (const [, activity] of entries) {
     for (const bin of activity.bins) if (bin.total > peak) peak = bin.total;
   }
@@ -399,9 +437,12 @@ export function buildScaleAdvice(entries: [string, DayActivity][], queuePeak = 0
 }
 
 /**
- * Which kind of bar the pointer is over. Both kinds are now drawn against the one
- * row axis, so this only decides which way the hover readout opens (see
- * READOUT_PLACEMENT); the axis lights up for either.
+ * Which of the calendar's two height scales a mark is drawn against.
+ *
+ * The activity bars count changes per 4-hour window; the grey level trace counts
+ * standing jobs. They cannot share a scale, so each gets its own axis -- activity
+ * down the left, the queue down the right -- and hovering a mark lights up the
+ * one that governs it.
  */
 export type ScaleKind = "activity" | "queue";
 
@@ -470,9 +511,9 @@ export function buildScaleTicks(peak: number, scale: BarScale): ScaleTick[] {
 /**
  * Bar height as a fraction of the tallest value on screen, under either scale.
  *
- * Day bars and queue markers share one slot and one peak (see ScaleAdvice.peak),
- * so a bar at full height means the same count whichever kind it is, and the two
- * kinds can be compared by eye.
+ * Every kind of mark fills the slot at its own maximum: the tallest bin reaches
+ * the top of the activity scale, the highest queue level reaches the top of the
+ * queue scale, and each is read against its own axis.
  *
  * Linear is the honest one -- twice as tall is twice as much work -- but with a
  * 900,000-change peak on the page a 66-change bin is a fraction of a pixel and

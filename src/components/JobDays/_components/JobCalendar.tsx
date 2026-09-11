@@ -12,6 +12,7 @@ import {
   buildScaleTicks,
   type DayActivity,
   type DayCensus,
+  type DayLevel,
   type ScaleKind,
   type ScaleTick,
 } from "./binModel";
@@ -26,7 +27,7 @@ import {
 import TileAxis, { AXIS_WIDTH, QUEUE_OVERHANG } from "./TileAxis";
 import TileActivityBars from "./TileActivityBars";
 import TileBars from "./TileBars";
-import TileQueueBar from "./TileQueueBar";
+import TileLevelLine from "./TileLevelLine";
 
 interface JobCalendarProps {
   slices: Map<string, DaySlice>;
@@ -41,16 +42,26 @@ interface JobCalendarProps {
    * bars against the visible month's peak bin, so magnitude is the signal.
    */
   activities: Map<string, DayActivity> | null;
-  /** Which scale the magnitude bars use. Ignored by the ratio bars. */
+  /**
+   * All-jobs mode: the open-jobs level through each day, keyed like `slices`.
+   * Drawn as a grey trace behind the bars. Null in cluster mode, whose ratio
+   * bars already show the standing state.
+   */
+  levels: Map<string, DayLevel> | null;
+  /** Which scale the magnitude bars and the level trace use. Ignored by the ratio bars. */
   scale: BarScale;
   /**
-   * The visible month's peak: its tallest 4-hour bin or its largest midnight
-   * queue, whichever is bigger. Every day bar and every queue marker scales
-   * against it, so heights compare across days and across the two kinds of bar.
-   * Measured by the page rather than here, because the scale hint beside the
-   * toggle reasons about the same number.
+   * Tallest 4-hour bin on the visible month; every tile scales against it so bar
+   * heights compare across days. Measured by the page rather than here, because
+   * the scale hint beside the toggle reasons about the same number.
    */
   peakBinTotal: number;
+  /**
+   * Highest open-jobs level on the visible month: the level trace's own scale,
+   * on the right. Standing jobs and changes are different quantities, so they
+   * get different axes.
+   */
+  levelPeak: number;
   /** First and last day the baked window covers, "YYYY-MM-DD". */
   firstDay: string;
   lastDay: string;
@@ -70,8 +81,10 @@ export default function JobCalendar({
   slices,
   censuses,
   activities,
+  levels,
   scale,
   peakBinTotal,
+  levelPeak,
   firstDay,
   lastDay,
   asOf,
@@ -82,13 +95,14 @@ export default function JobCalendar({
   const minDate = parseDayKey(firstDay);
   const maxDate = parseDayKey(lastDay);
 
-  // Whether the pointer is over a bar of either kind. Both kinds are read against
-  // the one row axis, which lights up while any bar is hovered.
+  // Which scale the pointer is currently over. The calendar draws against two
+  // of them, so hovering a mark lights up the axis that governs it -- and, just
+  // as usefully, leaves the other one alone.
   const [hoveredScale, setHoveredScale] = useState<ScaleKind | null>(null);
 
-  // What bar heights mean, which differs by mode: one group's ratio bars are
-  // always a 0-100% share of its cohort, while the magnitude bars and the queue
-  // markers are counts against this month's shared peak under the chosen scale.
+  // What the day bars' heights mean, which differs by mode: one group's ratio bars
+  // are always a 0-100% share of its cohort, while the magnitude bars are counts
+  // against this month's busiest bin under the chosen scale.
   const axis = useMemo<{ ticks: ScaleTick[]; unit: "count" | "percent" }>(
     () =>
       censuses
@@ -104,6 +118,13 @@ export default function JobCalendar({
     [censuses, peakBinTotal, scale],
   );
 
+  // The level trace's own scale, on the right. Built the same way as the activity
+  // scale, so both put their top tick at the top of the slot.
+  const levelTicks = useMemo(
+    () => (levels ? buildScaleTicks(levelPeak, scale) : []),
+    [levels, levelPeak, scale],
+  );
+
   return (
     <Box
       sx={{
@@ -112,9 +133,10 @@ export default function JobCalendar({
         // this way the numbers can never be pushed under the page's own edge, and
         // a narrow viewport shrinks the calendar instead of clipping the scale.
         pl: `${AXIS_WIDTH}px`,
-        // Room for the half of the last column's queue marker that hangs past the
-        // grid's right edge.
-        pr: `${QUEUE_OVERHANG}px`,
+        // Room for the queue scale, plus the half of the last column's midnight
+        // dot that hangs past the grid's right edge and which that scale sits
+        // clear of.
+        pr: `${AXIS_WIDTH + QUEUE_OVERHANG}px`,
         "& .react-calendar": {
           width: "100%",
           maxWidth: "none",
@@ -190,8 +212,12 @@ export default function JobCalendar({
           // TileBody.
           overflow: "visible !important",
         },
-        // One axis per row, on the row's first tile.
+        // One axis per row at each end: activity on the row's first tile, the queue
+        // scale on its last.
         "& .react-calendar__month-view__days__day:not(:nth-of-type(7n + 1)) .day-axis": {
+          display: "none",
+        },
+        "& .react-calendar__month-view__days__day:not(:nth-of-type(7n)) .day-axis-right": {
           display: "none",
         },
         "& .react-calendar__tile:enabled:hover, & .react-calendar__tile:enabled:focus": {
@@ -204,7 +230,7 @@ export default function JobCalendar({
         // Dim the day, not the tile: the row axis is a sibling of the body and
         // belongs to the whole row, so it must stay legible even when the row
         // happens to start in the previous month.
-        "& .react-calendar__month-view__days__day--neighboringMonth > abbr, & .react-calendar__month-view__days__day--neighboringMonth .day-body":
+        "& .react-calendar__month-view__days__day--neighboringMonth > abbr, & .react-calendar__month-view__days__day--neighboringMonth .day-body, & .react-calendar__month-view__days__day--neighboringMonth .day-level":
           { opacity: 0.35 },
         // The as-of day is marked instead of the browser's own current date; the
         // baked window ends whenever the data was built.
@@ -259,8 +285,45 @@ export default function JobCalendar({
                 bottom={AXIS_BOTTOM}
                 side="left"
                 unit={axis.unit}
-                highlighted={hoveredScale !== null}
+                highlighted={hoveredScale === "activity"}
               />
+              {/* The queue scale, revealed by CSS on the last tile of each row.
+                  Only where there is a level trace to scale. */}
+              {levelTicks.length > 0 && (
+                <TileAxis
+                  ticks={levelTicks}
+                  height={BARS_SLOT}
+                  bottom={AXIS_BOTTOM}
+                  side="right"
+                  unit="count"
+                  highlighted={hoveredScale === "queue"}
+                  glyph
+                />
+              )}
+              {/*
+                The open-jobs level, behind the bars. Only in the all-clusters
+                view: a single cluster's tiles already show its standing state --
+                the two blues in a journey bar ARE its queue -- so a trace would
+                repeat what the tile has said, against a scale the percentage
+                axis cannot annotate.
+
+                Sibling of the day body, not a child of it: the body clips, and
+                the trace has to run edge to edge into the neighbouring day, with
+                its midnight dot astride the boundary.
+              */}
+              {levels && slice && levels.get(key)?.hasData && (
+                <TileLevelLine
+                  level={levels.get(key) as DayLevel}
+                  day={key}
+                  nextDay={slices.has(nextKey) ? nextKey : null}
+                  queue={slice.queue}
+                  peak={levelPeak}
+                  scale={scale}
+                  height={BARS_SLOT}
+                  bottom={AXIS_BOTTOM}
+                  onHoverScale={setHoveredScale}
+                />
+              )}
               <TileBody
                 slice={slice}
                 census={censuses?.get(key)}
@@ -269,31 +332,6 @@ export default function JobCalendar({
                 scale={scale}
                 onHoverScale={setHoveredScale}
               />
-              {/*
-                Only in the all-clusters view. A single cluster's tiles already
-                show its standing state -- the two blues in the last bar of a
-                journey tile ARE its queue -- so a separate marker would repeat
-                what the tile has already said, against a scale the percentage
-                axis cannot annotate.
-
-                Same slot, same floor and same peak as the day bars, so the two
-                kinds of bar start and end on the same lines and compare by eye.
-
-                Sibling of the day body, not a child of it: the body clips, and
-                this has to hang over the boundary into tomorrow.
-              */}
-              {activities && slice?.queue && slice.queue.total > 0 && (
-                <TileQueueBar
-                  queue={slice.queue}
-                  day={key}
-                  nextDay={slices.has(nextKey) ? nextKey : null}
-                  peak={peakBinTotal}
-                  scale={scale}
-                  height={BARS_SLOT}
-                  bottom={AXIS_BOTTOM}
-                  onHoverScale={setHoveredScale}
-                />
-              )}
             </>
           );
         }}
@@ -383,6 +421,10 @@ function TileBody({
         // The tile is unclipped so the axis can reach outside it; the day's own
         // content is clipped here instead.
         overflow: "hidden",
+        // Above the level trace, which is a positioned sibling at z-index 0 and
+        // would otherwise paint over this in-flow content.
+        position: "relative",
+        zIndex: 1,
       }}
     >
       <Box

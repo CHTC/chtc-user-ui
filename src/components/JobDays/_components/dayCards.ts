@@ -311,20 +311,6 @@ export function buildSliceMap(data: DayData, filter: ClusterFilter): Map<string,
   return slices;
 }
 
-/**
- * Largest end-of-day queue among the given days. Measured per visible month, like
- * the activity peak, because the two share one scale on the calendar: a queue
- * marker and a day bar of the same height mean the same number of jobs.
- */
-export function queuePeak(slices: Map<string, DaySlice>, days: Iterable<string>): number {
-  let peak = 0;
-  for (const day of days) {
-    const queue = slices.get(day)?.queue;
-    if (queue && queue.total > peak) peak = queue.total;
-  }
-  return peak;
-}
-
 /** True when the day carries nothing at all -- no cohort and no transitions. */
 export function isEmptySlice(slice: DaySlice | undefined): boolean {
   if (!slice) return true;
