@@ -16,6 +16,7 @@
 import { AuthGuard } from "@/src/components/AuthGuard";
 import { useAuthClient } from "@/src/components/AuthProvider";
 import JobsView from "@/src/components/JobDays/JobsView";
+import type { CalendarVersion } from "@/src/components/JobDays/_components/VersionSwitch";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import { Alert, AlertTitle, Box, Button, Skeleton, Stack } from "@mui/material";
 import Link from "next/link";
@@ -66,7 +67,7 @@ function readOwnerParam(): string | null {
   return value?.trim() ? value.trim() : null;
 }
 
-function AdminJobs() {
+function AdminJobs({ variant }: { variant: CalendarVersion }) {
   const { currentUser, loading } = useAuthClient();
   // Null both before the URL has been read and when it named nobody, so `ready`
   // is what separates "still looking" from "there was no netid in the link".
@@ -100,7 +101,7 @@ function AdminJobs() {
       </Box>
 
       {owner ? (
-        <JobsView owner={owner} range={range} />
+        <JobsView owner={owner} range={range} variant={variant} />
       ) : ready ? (
         // Only reachable by typing the URL by hand or following a truncated
         // link; the table always supplies a netid.
@@ -114,10 +115,14 @@ function AdminJobs() {
   );
 }
 
-function View() {
+/**
+ * `variant` picks the calendar: /users/jobs/calendar/ draws v1 and
+ * /users/jobs/calendar/v2/ draws v2, for the same user and window.
+ */
+function View({ variant = "v1" }: { variant?: CalendarVersion }) {
   return (
     <AuthGuard message="You must be logged in to see a user's jobs.">
-      <AdminJobs />
+      <AdminJobs variant={variant} />
     </AuthGuard>
   );
 }

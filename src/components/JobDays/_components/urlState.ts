@@ -76,9 +76,15 @@ export function readScaleParam(search: string): BarScale | null {
  */
 export const CELL_GUIDE_KEY = "days.cellGuideDismissed";
 
-export function readGuideDismissed(): boolean {
+/**
+ * Calendar v2 has its own guide, and its own dismissal: a reader who has learnt
+ * the v1 cell has not learnt the v2 one.
+ */
+export const CELL_GUIDE_V2_KEY = "days.cellGuideV2Dismissed";
+
+export function readGuideDismissed(key: string = CELL_GUIDE_KEY): boolean {
   try {
-    return window.localStorage.getItem(CELL_GUIDE_KEY) === "1";
+    return window.localStorage.getItem(key) === "1";
   } catch {
     // Private-browsing modes throw on access; showing the guide again is the
     // harmless failure.
@@ -86,10 +92,10 @@ export function readGuideDismissed(): boolean {
   }
 }
 
-export function writeGuideDismissed(dismissed: boolean): void {
+export function writeGuideDismissed(dismissed: boolean, key: string = CELL_GUIDE_KEY): void {
   try {
-    if (dismissed) window.localStorage.setItem(CELL_GUIDE_KEY, "1");
-    else window.localStorage.removeItem(CELL_GUIDE_KEY);
+    if (dismissed) window.localStorage.setItem(key, "1");
+    else window.localStorage.removeItem(key);
   } catch {
     // Nothing to do: the guide simply reappears next time.
   }

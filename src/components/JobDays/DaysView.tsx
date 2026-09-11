@@ -20,6 +20,7 @@ import CellGuideDialog from "./_components/CellGuide";
 import DayDialog from "./_components/DayDialog";
 import JobCalendar from "./_components/JobCalendar";
 import PeriodCard from "./_components/PeriodCard";
+import VersionSwitch from "./_components/VersionSwitch";
 import { ScaleHelpTooltip, ScaleHint, ScaleNote, SCALE_LABELS } from "./_components/ScaleInfo";
 import {
   buildDayActivity,
@@ -229,9 +230,18 @@ export default function DaysView({ data, dayData }: DaysViewProps) {
       sx={{ px: { xs: 2, md: 4 }, py: { xs: 3, md: 4 }, maxWidth: 1100, mx: "auto" }}
     >
       <Stack spacing={0.5} sx={{ mb: 3 }}>
-        <Typography variant="h4" component="h1" sx={{ fontWeight: 700 }}>
-          What happened to {data.owner}&apos;s jobs
-        </Typography>
+        <Stack
+          direction="row"
+          alignItems="center"
+          justifyContent="space-between"
+          spacing={2}
+          sx={{ flexWrap: "wrap" }}
+        >
+          <Typography variant="h4" component="h1" sx={{ fontWeight: 700 }}>
+            What happened to {data.owner}&apos;s jobs
+          </Typography>
+          <VersionSwitch current="v1" />
+        </Stack>
         <Typography variant="body1" sx={{ color: "text.secondary" }}>
           {dayData.counted.toLocaleString()} jobs across {data.series.length} clusters
           {batchGrouping && ` in ${data.batches?.length} batches`}, {scopeLabel}. The diagram
