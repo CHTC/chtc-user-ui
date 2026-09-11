@@ -312,23 +312,15 @@ export function buildSliceMap(data: DayData, filter: ClusterFilter): Map<string,
 }
 
 /**
- * Largest end-of-day queue anywhere in the baked window.
- *
- * Deliberately window-wide, where the activity bars' peak is per month. The two
- * are different kinds of quantity and want different treatment:
- *
- *  - Activity is a flow, and what a reader wants from it is contrast within the
- *    month they are looking at -- which day was busy, which was quiet.
- *  - A queue is a level, and it means the same thing in every month. Scaling it
- *    per month would be actively misleading here: this queue sits near 1.5M for
- *    weeks and then drains to a few thousand, so a per-month peak pins every bar
- *    in July to full height AND every bar in August to full height, and the
- *    drain -- the only story the series has -- disappears.
+ * Largest end-of-day queue among the given days. Measured per visible month, like
+ * the activity peak, because the two share one scale on the calendar: a queue
+ * marker and a day bar of the same height mean the same number of jobs.
  */
-export function queuePeak(slices: Map<string, DaySlice>): number {
+export function queuePeak(slices: Map<string, DaySlice>, days: Iterable<string>): number {
   let peak = 0;
-  for (const slice of slices.values()) {
-    if (slice.queue && slice.queue.total > peak) peak = slice.queue.total;
+  for (const day of days) {
+    const queue = slices.get(day)?.queue;
+    if (queue && queue.total > peak) peak = queue.total;
   }
   return peak;
 }

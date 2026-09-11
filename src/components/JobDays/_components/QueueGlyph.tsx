@@ -8,9 +8,9 @@ import { BAR_STATE_STYLES, CARRIED_ACTIVE_COLOR } from "./palette";
  * The mark that means "this is a queue, not a day": three stacked rules narrowing
  * upward, a queue seen side-on.
  *
- * Shared by the queue markers on the boundaries and by the queue scale down the
- * right of the calendar, so the reader can see that the scale on the right belongs
- * to those bars and not to the ones inside the tiles.
+ * Sits under the queue markers on the boundaries, and under the example queue
+ * marker in the cell guide, so the reader can tell a queue marker from the day
+ * bars inside the tiles.
  */
 export default function QueueGlyph({
   size = 11,
