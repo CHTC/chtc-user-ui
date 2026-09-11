@@ -36,6 +36,12 @@ interface TileAxisProps {
   highlighted?: boolean;
   /** Marks the axis as the queue scale, matching the glyph under the queue bars. */
   glyph?: boolean;
+  /**
+   * Span the whole tile, top edge to bottom edge, instead of the bar slot. For a
+   * mark that itself runs the full tile -- calendar v2's boundary bar -- so its
+   * 100% and 0% land on the bar's ends. `height` and `bottom` are ignored.
+   */
+  fullHeight?: boolean;
 }
 
 /**
@@ -65,6 +71,7 @@ export default function TileAxis({
   unit,
   highlighted = false,
   glyph = false,
+  fullHeight = false,
 }: TileAxisProps) {
   if (ticks.length === 0) return null;
 
@@ -80,9 +87,8 @@ export default function TileAxis({
         ...(side === "left"
           ? { right: "calc(100% + 6px)" }
           : { left: `calc(100% + ${QUEUE_OVERHANG + 4}px)` }),
-        bottom,
+        ...(fullHeight ? { top: 0, bottom: 0 } : { bottom, height }),
         width: AXIS_WIDTH - 10,
-        height,
         pointerEvents: "none",
       }}
     >

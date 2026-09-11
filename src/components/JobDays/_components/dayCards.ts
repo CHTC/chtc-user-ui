@@ -103,7 +103,18 @@ export interface DayData {
     adstash: { host: string; index: string; terminalRecords: number };
     condorQ: CondorQSource & { stillQueued: number };
   };
+  /** Jobs placed inside the window. Adds up across tiled windows. */
   counted: number;
+  /**
+   * Jobs placed before the window that were still open when it started. Absent
+   * on payloads from before windows tiled.
+   */
+  placedBeforeWindow?: number;
+  /**
+   * How many weekly windows were stitched into this payload. Set by the client
+   * merge (see chunks.ts), never by the API.
+   */
+  queries?: number;
 }
 
 /**
@@ -309,6 +320,70 @@ export function buildSliceMap(data: DayData, filter: ClusterFilter): Map<string,
   }
 
   return slices;
+}
+
+/**
+ * What became, by the end of one day, of the jobs that were open when it began.
+ *
+ * Calendar v2's boundary bar. Placements during the day are deliberately not
+ * part of it: the question is how the standing queue fared, and a day that took
+ * on 200 new jobs while finishing 100 of the 200 it started with is still a
+ * 50/50 day for the work it inherited.
+ */
+export interface DayOutcome {
+  /** Jobs open -- queued or running -- when the day began. */
+  opening: number;
+  /** Of those, still open at the day's end. */
+  active: number;
+  /** Of those, completed during the day. */
+  completed: number;
+  /** Of those, removed during the day. */
+  removed: number;
+  /** True when anything was open when the day began. */
+  hasData: boolean;
+}
+
+/**
+ * The day outcomes for every day, from the cohort censuses.
+ *
+ * A cohort placed before day D is part of D's opening population; reading it at
+ * the end of D-1 gives how many were still open, and the growth of its terminal
+ * counts from D-1 to D gives how many finished during D. Exact, not inferred:
+ * the cohort rows attribute every completion to the day its job was placed, so
+ * nothing placed on D can leak in.
+ *
+ * On the first loaded day there is no D-1 reading. A cohort placed before the
+ * window counts only its survivors at the window's start, and its terminal
+ * counts on that first day are the day's own, so the day-one reading stands in
+ * for both.
+ */
+export function buildDayOutcomes(data: DayData, filter: ClusterFilter): Map<string, DayOutcome> {
+  const out = new Map<string, DayOutcome>();
+  data.days.forEach((day, index) => {
+    const previous = index > 0 ? data.days[index - 1] : null;
+    let opening = 0;
+    let active = 0;
+    let completed = 0;
+    let removed = 0;
+    for (const cohort of data.cohorts) {
+      if (!inFilter(filter, cohort.cluster) || cohort.day >= day) continue;
+      const today = cohort.asOf[day];
+      if (!today) continue;
+      const before = previous ? cohort.asOf[previous] : undefined;
+      if (before) {
+        opening += before[0] + before[1];
+        completed += Math.max(0, today[2] - before[2]);
+        removed += Math.max(0, today[3] - before[3]);
+      } else {
+        opening += today[0] + today[1] + today[2] + today[3];
+        completed += today[2];
+        removed += today[3];
+      }
+      active += today[0] + today[1];
+    }
+    out.set(day, { opening, active, completed, removed, hasData: opening > 0 });
+  });
+  return out;
 }
 
 /** True when the day carries nothing at all -- no cohort and no transitions. */

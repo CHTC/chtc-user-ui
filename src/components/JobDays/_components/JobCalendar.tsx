@@ -22,12 +22,25 @@ import {
   formatDayShort,
   isEmptySlice,
   parseDayKey,
+  type DayOutcome,
   type DaySlice,
 } from "./dayCards";
 import TileAxis, { AXIS_WIDTH, QUEUE_OVERHANG } from "./TileAxis";
 import TileActivityBars from "./TileActivityBars";
 import TileBars from "./TileBars";
 import TileLevelLine from "./TileLevelLine";
+import TileOutcomeBar from "./TileOutcomeBar";
+
+/**
+ * The percentage axis for the outcome bars: every one of them is 0-100%. No 0%
+ * tick: the bars run the full height of the tile, so one row's floor is the
+ * next row's ceiling and the two labels would print on top of each other. The
+ * bottom edge of the tile is the zero.
+ */
+const PERCENT_TICKS: ScaleTick[] = [
+  { value: 100, fraction: 1 },
+  { value: 50, fraction: 0.5 },
+];
 
 interface JobCalendarProps {
   slices: Map<string, DaySlice>;
@@ -48,6 +61,12 @@ interface JobCalendarProps {
    * bars already show the standing state.
    */
   levels: Map<string, DayLevel> | null;
+  /**
+   * Calendar v2: what became of the jobs open when each day began, keyed like
+   * `slices`. Drawn as a 100%-stacked bar astride each midnight, in the place
+   * the queue marker once had. Null on v1, which draws the level trace instead.
+   */
+  outcomes: Map<string, DayOutcome> | null;
   /** Which scale the magnitude bars and the level trace use. Ignored by the ratio bars. */
   scale: BarScale;
   /**
@@ -62,7 +81,11 @@ interface JobCalendarProps {
    * get different axes.
    */
   levelPeak: number;
-  /** First and last day the baked window covers, "YYYY-MM-DD". */
+  /**
+   * Earliest and latest day the reader may page to, "YYYY-MM-DD". The data is
+   * loaded a week at a time as the reader pages, so `firstDay` is how far back
+   * paging is allowed rather than the edge of what is loaded.
+   */
   firstDay: string;
   lastDay: string;
   /** The day everything is read as of; marked in the grid. */
@@ -82,6 +105,7 @@ export default function JobCalendar({
   censuses,
   activities,
   levels,
+  outcomes,
   scale,
   peakBinTotal,
   levelPeak,
@@ -118,11 +142,17 @@ export default function JobCalendar({
     [censuses, peakBinTotal, scale],
   );
 
-  // The level trace's own scale, on the right. Built the same way as the activity
-  // scale, so both put their top tick at the top of the slot.
-  const levelTicks = useMemo(
-    () => (levels ? buildScaleTicks(levelPeak, scale) : []),
-    [levels, levelPeak, scale],
+  // The right-hand scale: the level trace's own count scale on v1, built the same
+  // way as the activity scale so both put their top tick at the top of the slot;
+  // a fixed 0-100% on v2, where the boundary bars are shares.
+  const rightAxis = useMemo<{ ticks: ScaleTick[]; unit: "count" | "percent"; glyph: boolean } | null>(
+    () =>
+      levels
+        ? { ticks: buildScaleTicks(levelPeak, scale), unit: "count", glyph: true }
+        : outcomes
+          ? { ticks: PERCENT_TICKS, unit: "percent", glyph: false }
+          : null,
+    [levels, outcomes, levelPeak, scale],
   );
 
   return (
@@ -260,6 +290,9 @@ export default function JobCalendar({
         }
         tileDisabled={({ date }) => {
           const key = dayKeyOf(date);
+          // A day with inherited work to report on is alive even if nothing
+          // moved: its outcome bar is the answer.
+          if (outcomes?.get(key)?.hasData) return false;
           // Cluster mode: a day is alive whenever the cluster has jobs in view,
           // even if nothing moved -- persistence is the point.
           if (censuses) {
@@ -287,17 +320,32 @@ export default function JobCalendar({
                 unit={axis.unit}
                 highlighted={hoveredScale === "activity"}
               />
-              {/* The queue scale, revealed by CSS on the last tile of each row.
-                  Only where there is a level trace to scale. */}
-              {levelTicks.length > 0 && (
+              {/* The right-hand scale, revealed by CSS on the last tile of each
+                  row. Only where there is something on the right to scale. */}
+              {rightAxis && rightAxis.ticks.length > 0 && (
                 <TileAxis
-                  ticks={levelTicks}
+                  ticks={rightAxis.ticks}
                   height={BARS_SLOT}
                   bottom={AXIS_BOTTOM}
                   side="right"
-                  unit="count"
+                  unit={rightAxis.unit}
                   highlighted={hoveredScale === "queue"}
-                  glyph
+                  glyph={rightAxis.glyph}
+                  // The v2 boundary bar runs the whole tile, so its scale does too.
+                  fullHeight={rightAxis.unit === "percent"}
+                />
+              )}
+              {/*
+                Calendar v2: what became of the jobs open when the day began, as
+                a 100%-stacked bar astride the boundary into tomorrow. Sibling of
+                the day body for the same reason as the level trace.
+              */}
+              {outcomes && slice && outcomes.get(key)?.hasData && (
+                <TileOutcomeBar
+                  outcome={outcomes.get(key) as DayOutcome}
+                  day={key}
+                  nextDay={slices.has(nextKey) ? nextKey : null}
+                  onHoverScale={setHoveredScale}
                 />
               )}
               {/*
