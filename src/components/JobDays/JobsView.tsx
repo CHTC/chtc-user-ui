@@ -403,7 +403,7 @@ export default function JobsView({ owner = null, range = null, variant = "v1" }:
   const extending = series.isValidating || dayData.isValidating;
 
   // A user with no jobs in the window gets a perfectly valid, entirely empty
-  // payload. DaysView would render a blank calendar and a Sankey of nothing,
+  // payload. DaysView would render a blank calendar and a summary of nothing,
   // which reads as a broken page rather than as an answer.
   const empty = series.data.series.length === 0 && dayData.data.cohorts.length === 0;
 

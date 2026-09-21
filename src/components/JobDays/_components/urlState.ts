@@ -1,4 +1,5 @@
-// URL-linkable view state for this page: which cluster, and which bar scale.
+// URL-linkable view state for this page: which cluster, which bar scale, and
+// which days the bars are scaled to.
 //
 // replaceState rather than a router push -- the site is a static export and the
 // selection is a view preference, not navigation, so it should not stack history
@@ -7,11 +8,14 @@
 
 import type { BarScale } from "../types";
 import { ALL_GROUPS, type GroupBy } from "./grouping";
+import type { DayRange } from "./JobCalendar";
 
 /** Which grouping is in force, and which group within it is selected. */
 export const GROUP_BY_PARAM = "groupBy";
 export const GROUP_PARAM = "group";
 export const SCALE_PARAM = "scale";
+/** The days the bars are scaled to, as "YYYY-MM-DD..YYYY-MM-DD". */
+export const RANGE_PARAM = "range";
 
 export const DEFAULT_GROUP_BY: GroupBy = "cluster";
 
@@ -63,6 +67,30 @@ export function writeScaleParam(next: BarScale): void {
 export function readScaleParam(search: string): BarScale | null {
   const value = new URLSearchParams(search).get(SCALE_PARAM);
   return value === "linear" || value === "log" ? value : null;
+}
+
+/**
+ * One param for both ends, since either alone means nothing. No range clears
+ * it, so a link carries the range only when the reader has dragged one out.
+ */
+export function writeRangeParam(range: DayRange | null): void {
+  write(RANGE_PARAM, range ? `${range.start}..${range.end}` : null);
+}
+
+const DAY_KEY = /^\d{4}-\d{2}-\d{2}$/;
+
+/**
+ * The range a URL asks for, or null when it is missing or malformed. Ends in
+ * either order are accepted and put the right way round; whether the days
+ * exist in the data is not checked here -- a range with no data in it just
+ * greys the grid, which is what the link said to do.
+ */
+export function readRangeParam(search: string): DayRange | null {
+  const value = new URLSearchParams(search).get(RANGE_PARAM);
+  if (!value) return null;
+  const [a, b] = value.split("..");
+  if (!a || !b || !DAY_KEY.test(a) || !DAY_KEY.test(b)) return null;
+  return a <= b ? { start: a, end: b } : { start: b, end: a };
 }
 
 /**

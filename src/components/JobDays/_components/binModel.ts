@@ -1,16 +1,17 @@
-// Deriving one day's 4-hour census from the baked window-long series.
+// Deriving one day's 4-hour bars from the baked window-long series.
 //
 // The bake ships sparse per-cluster counts (placed / completed / removed per
-// bin). Everything drawn is arithmetic over those: a running balance gives
-// "active when the day opened", then cumulative sums inside the day give each
-// bar's census.
+// bin). Everything drawn is arithmetic over those: per-bin sums give each
+// bar's change counts, and a running balance gives the open-jobs level.
 //
-// Copied from app/stacked-bar/_components/binModel.ts and extended: bins are now
-// marked drawn or not, so a day stops drawing once the work it holds has all
-// finished (see truncation notes on buildDayCensus). The period helpers are gone
-// -- the summary at the top of this page is a Sankey, not per-day bars.
+// Copied from app/stacked-bar/_components/binModel.ts and trimmed: the
+// 100%-stacked cohort census a single cluster used to draw is gone, so one
+// derivation serves every selection. The summary at the top of the page reuses
+// the same arithmetic over coarser buckets -- a day per bar for a week, a week
+// per bar for a month -- see periodBuckets.
 
 import type { BarScale, StackedBarData } from "../types";
+import { parseDayKey } from "./dayCards";
 import { inFilter, type ClusterFilter } from "./grouping";
 
 /** The selected clusters' series, summed into dense window-long arrays. */
@@ -45,178 +46,7 @@ export function expandSeries(data: StackedBarData, filter: ClusterFilter): Dense
   return out;
 }
 
-/** The census at the end of one 4-hour bin. */
-export interface BinCensus {
-  /** "00–04" .. "20–24". */
-  label: string;
-  /** Everything in play by the end of this bin: active at day start + placed so far. */
-  inPlay: number;
-  /**
-   * Still active and carried from an earlier bin. Together with `becameActive`
-   * this is inPlay minus the terminations so far.
-   */
-  active: number;
-  /**
-   * Placed in THIS bin and still active -- the segment that marks when work
-   * arrived. Attribution when a job is placed and terminated inside the same bin
-   * is not measured, so terminations are assumed to drain older jobs first; that
-   * keeps the new-placement signal whole at the cost of occasionally overstating
-   * it by the same-bin churn.
-   *
-   */
-  becameActive: number;
-  /** Completed, cumulative up to this bin. */
-  completed: number;
-  /** Removed, cumulative up to this bin. */
-  removed: number;
-  /** Placed today, cumulative up to this bin. */
-  placedSoFar: number;
-  /**
-   * Clock time the census was taken: the instant the window closes. The bars are
-   * a reading at that moment, not a summary of the window, so the readout names
-   * the moment rather than the span.
-   */
-  snapshotAt: string;
-  /** True when everything in play has reached a final state by this bin's end. */
-  terminal: boolean;
-  /**
-   * False for the bins past the point where the day's work is finished for good.
-   * Charts skip them entirely rather than repeating an all-terminal bar to
-   * midnight. See buildDayCensus.
-   */
-  drawn: boolean;
-}
-
-export interface DayCensus {
-  bins: BinCensus[];
-  /** Jobs already active when the day opened (carried in from earlier days). */
-  activeAtDayStart: number;
-  /** Placed at any point during the day. */
-  placedToday: number;
-  /**
-   * Index of the bin in which the last job reached a final state, when that
-   * happened before the day was out; null when work was still active at
-   * midnight. This is the one all-terminal bar the day draws.
-   */
-  finishedAt: number | null;
-  /** True when the day has anything worth drawing. */
-  hasData: boolean;
-}
-
-/**
- * How the census counts terminations and sizes its denominator:
- *
- *  - "day": terminations reset at midnight and the denominator is the day's own
- *    work (active at open + placed today). The all-jobs reading of one day.
- *  - "journey": nothing resets. The denominator is every job placed so far
- *    (window opening included) and Completed/Removed accumulate for good, so a
- *    cluster's bars drift steadily toward teal over the days and no job ever
- *    drops out of view.
- */
-export type CensusMode = "day" | "journey";
-
-/**
- * The six per-bin censuses for one day.
- *
- * Each bar is a snapshot of where the work stands at the bin's end, not a per-bin
- * transition count -- see buildDayActivity for that.
- *
- * Bins past the end of the work are marked `drawn: false`. Once every job in play
- * is completed or removed, repeating that same all-terminal bar for the rest of
- * the day says nothing: the reader has already been told the answer, and five
- * more identical bars imply five more bins of activity. So the day draws through
- * the bin in which the last job finished -- that bar is worth seeing, it is where
- * the cluster crossed the line -- and stops. Placement is what revives a day: if
- * fresh work arrives in a later bin the count restarts from the last bin that
- * still held active work, so a day that empties out and then fills again is drawn
- * in full.
- */
-export function buildDayCensus(
-  data: StackedBarData,
-  dense: DenseSeries,
-  dayIndex: number,
-  mode: CensusMode = "day",
-): DayCensus {
-  const binsPerDay = data.binsPerDay;
-  const startBin = dayIndex * binsPerDay;
-
-  // Balances carried into the day. Clamped: counting noise between the two
-  // sources can push the active balance a hair negative, which would poison
-  // every later day if left to accumulate.
-  let basePlaced = dense.openingActive;
-  let baseCompleted = 0;
-  let baseRemoved = 0;
-  for (let b = 0; b < startBin; b++) {
-    basePlaced += dense.placed[b];
-    baseCompleted += dense.completed[b];
-    baseRemoved += dense.removed[b];
-  }
-  const activeAtDayStart = Math.max(0, basePlaced - baseCompleted - baseRemoved);
-
-  const bins: BinCensus[] = [];
-  let placedCum = 0;
-  let completedCum = 0;
-  let removedCum = 0;
-  for (let b = 0; b < binsPerDay; b++) {
-    const placedThisBin = dense.placed[startBin + b];
-    placedCum += placedThisBin;
-    completedCum += dense.completed[startBin + b];
-    removedCum += dense.removed[startBin + b];
-
-    const journey = mode === "journey";
-    const inPlay = journey ? basePlaced + placedCum : activeAtDayStart + placedCum;
-    const completed = journey ? baseCompleted + completedCum : completedCum;
-    const removed = journey ? baseRemoved + removedCum : removedCum;
-    const activeTotal = Math.max(0, inPlay - completed - removed);
-    // This bin's arrivals, capped by what is still active at all (see BinCensus).
-    const becameActive = Math.min(placedThisBin, activeTotal);
-    bins.push({
-      label: binLabel(b, data.binHours),
-      inPlay,
-      active: activeTotal - becameActive,
-      becameActive,
-      completed,
-      removed,
-      placedSoFar: placedCum,
-      snapshotAt: snapshotLabel(b, data.binHours),
-      terminal: inPlay > 0 && activeTotal === 0,
-      // Filled in below, once the whole day is known.
-      drawn: true,
-    });
-  }
-
-  // The last bin that still held active work; everything after it plus one is
-  // the tail this day should not draw.
-  const lastActive = bins.reduce(
-    (last, bin, index) => (bin.active + bin.becameActive > 0 ? index : last),
-    -1,
-  );
-  const drawnThrough = Math.min(lastActive + 1, bins.length - 1);
-  bins.forEach((bin, index) => {
-    bin.drawn = index <= drawnThrough && bin.inPlay > 0;
-  });
-  // The one all-terminal bar, when there is one: the bin the day was drawn
-  // through, if by its end nothing was left active.
-  const finishedAt = bins[drawnThrough].terminal ? drawnThrough : null;
-
-  return {
-    bins,
-    activeAtDayStart,
-    placedToday: placedCum,
-    finishedAt,
-    // Journey mode: a day counts only while the cluster is alive -- something was
-    // active when it opened, placed during it, or finished during it. Without
-    // this, a cluster that wrapped up weeks ago would keep drawing its static
-    // all-terminal bar every day to the end of the window. Day mode keeps the
-    // in-play test.
-    hasData:
-      mode === "journey"
-        ? activeAtDayStart > 0 || placedCum > 0 || completedCum > 0 || removedCum > 0
-        : bins.some((bin) => bin.drawn),
-  };
-}
-
-/** The state changes inside one 4-hour bin -- deltas, not a census. */
+/** The state changes inside one 4-hour bin. */
 export interface BinActivity {
   /** "00–04" .. "20–24". */
   label: string;
@@ -236,32 +66,155 @@ export interface DayActivity {
 
 /**
  * The magnitude view for one day: how many state changes landed in each bin. A
- * busy bin is a tall bar, a quiet one is empty -- the complement of the census,
- * which shows composition but deliberately hides scale.
- *
- * No truncation needed here: a bin with nothing in it already draws nothing, so
- * a day whose work all finished at 04:00 has five empty bins of its own accord.
+ * busy bin is a tall bar, a quiet one is empty. A bin with nothing in it draws
+ * nothing, so a day whose work all finished at 04:00 has five empty bins of
+ * its own accord.
  */
 export function buildDayActivity(
   data: StackedBarData,
   dense: DenseSeries,
   dayIndex: number,
 ): DayActivity {
-  const binsPerDay = data.binsPerDay;
-  const startBin = dayIndex * binsPerDay;
+  return buildBucketActivity(dense, dayBuckets(data, dayIndex));
+}
 
-  const bins: BinActivity[] = [];
-  let total = 0;
-  for (let b = 0; b < binsPerDay; b++) {
-    const placed = dense.placed[startBin + b];
-    const completed = dense.completed[startBin + b];
-    const removed = dense.removed[startBin + b];
-    const binTotal = placed + completed + removed;
-    total += binTotal;
-    bins.push({ label: binLabel(b, data.binHours), placed, completed, removed, total: binTotal });
+// --- Buckets: the same two derivations over spans coarser than a 4-hour bin ---
+
+/**
+ * A run of consecutive dense bins drawn as one bar. The calendar's bars are
+ * always one bin each; the summary at the top of the page widens them to a day
+ * per bar for a week and a week per bar for a month, so the same arithmetic
+ * serves every period length.
+ */
+export interface Bucket {
+  /** First dense bin, inclusive. */
+  from: number;
+  /** Last dense bin, exclusive. */
+  to: number;
+  /** Axis label: "00–04", "Mon 10", "Aug 2–8". */
+  label: string;
+}
+
+/** What one bar of a chart spans, for its axis title and its tooltips. */
+export type BucketUnit = "hours" | "days" | "weeks";
+
+/** One day's six 4-hour bins as buckets: what the calendar tiles draw. */
+export function dayBuckets(data: StackedBarData, dayIndex: number): Bucket[] {
+  const startBin = dayIndex * data.binsPerDay;
+  const out: Bucket[] = [];
+  for (let b = 0; b < data.binsPerDay; b++) {
+    out.push({
+      from: startBin + b,
+      to: startBin + b + 1,
+      label: binLabel(b, data.binHours),
+    });
+  }
+  return out;
+}
+
+/**
+ * The given days as buckets: one per day, or one per calendar week (Sunday to
+ * Saturday, as the calendar grid runs). Days the series does not carry are
+ * skipped, so a week the reader has not paged into yet simply has no bar. A
+ * week cut short by the period's edge is labelled with the days it actually
+ * covers, so a 30-day month never pretends its first bar is a whole week.
+ */
+export function periodBuckets(
+  data: StackedBarData,
+  days: string[],
+  unit: "days" | "weeks",
+): Bucket[] {
+  const known = days.filter((day) => data.days.includes(day));
+  if (unit === "days") {
+    return known.map((day) => {
+      const index = data.days.indexOf(day);
+      return {
+        from: index * data.binsPerDay,
+        to: (index + 1) * data.binsPerDay,
+        // Weekday first, then the date, whatever the locale's own order is.
+        label: `${parseDayKey(day).toLocaleDateString(undefined, { weekday: "short" })} ${parseDayKey(day).getDate()}`,
+      };
+    });
   }
 
+  // Group by the Sunday that starts each day's week; days arrive ascending, so
+  // each group is a run and its first and last members are the bucket's edges.
+  const weeks: string[][] = [];
+  let lastWeekStart: number | null = null;
+  for (const day of known) {
+    const date = parseDayKey(day);
+    const weekStart = new Date(date.getFullYear(), date.getMonth(), date.getDate() - date.getDay()).getTime();
+    if (weekStart !== lastWeekStart) {
+      weeks.push([]);
+      lastWeekStart = weekStart;
+    }
+    weeks[weeks.length - 1].push(day);
+  }
+  return weeks.map((week) => {
+    const first = week[0];
+    const last = week[week.length - 1];
+    const firstIndex = data.days.indexOf(first);
+    const lastIndex = data.days.indexOf(last);
+    return {
+      from: firstIndex * data.binsPerDay,
+      to: (lastIndex + 1) * data.binsPerDay,
+      label: weekLabel(first, last),
+    };
+  });
+}
+
+/** "Aug 2–8", or "Jul 27 – Aug 1" when the week straddles a month. */
+function weekLabel(first: string, last: string): string {
+  const a = parseDayKey(first);
+  const b = parseDayKey(last);
+  const month = (d: Date) => d.toLocaleDateString(undefined, { month: "short" });
+  if (a.getMonth() === b.getMonth()) {
+    return a.getDate() === b.getDate()
+      ? `${month(a)} ${a.getDate()}`
+      : `${month(a)} ${a.getDate()}–${b.getDate()}`;
+  }
+  return `${month(a)} ${a.getDate()} – ${month(b)} ${b.getDate()}`;
+}
+
+/** State changes per bucket: buildDayActivity over any span. */
+export function buildBucketActivity(dense: DenseSeries, buckets: Bucket[]): DayActivity {
+  const bins: BinActivity[] = [];
+  let total = 0;
+  for (const bucket of buckets) {
+    let placed = 0;
+    let completed = 0;
+    let removed = 0;
+    for (let b = bucket.from; b < bucket.to; b++) {
+      placed += dense.placed[b] ?? 0;
+      completed += dense.completed[b] ?? 0;
+      removed += dense.removed[b] ?? 0;
+    }
+    const binTotal = placed + completed + removed;
+    total += binTotal;
+    bins.push({ label: bucket.label, placed, completed, removed, total: binTotal });
+  }
   return { bins, total, hasData: total > 0 };
+}
+
+/**
+ * The open-jobs level through a run of buckets: what buildDayLevels does for a
+ * day, over any span. `start` is the level when the first bucket opened and
+ * `ends` the level at the close of each, clamped at zero the same way.
+ */
+export function buildBucketLevel(dense: DenseSeries, buckets: Bucket[]): DayLevel {
+  let level = dense.openingActive;
+  const from = buckets.length > 0 ? buckets[0].from : 0;
+  for (let b = 0; b < from; b++) {
+    level = Math.max(0, level + (dense.placed[b] ?? 0) - (dense.completed[b] ?? 0) - (dense.removed[b] ?? 0));
+  }
+  const start = level;
+  const ends = buckets.map((bucket) => {
+    for (let b = bucket.from; b < bucket.to; b++) {
+      level = Math.max(0, level + (dense.placed[b] ?? 0) - (dense.completed[b] ?? 0) - (dense.removed[b] ?? 0));
+    }
+    return level;
+  });
+  return { start, ends, hasData: start > 0 || ends.some((v) => v > 0) };
 }
 
 /**
@@ -305,13 +258,6 @@ export function buildDayLevels(data: StackedBarData, dense: DenseSeries): Map<st
     out.set(day, { start, ends, hasData: start > 0 || ends.some((v) => v > 0) });
   });
   return out;
-}
-
-/** "04:00" -- the clock time bin 0 of a 4-hour bake closes at. */
-function snapshotLabel(bin: number, binHours: number): string {
-  const hour = (bin + 1) * binHours;
-  // The last window closes at the end of the day, which nobody calls 24:00.
-  return hour >= 24 ? "midnight" : `${String(hour).padStart(2, "0")}:00`;
 }
 
 /** "00–04" for bin 0 of a 4-hour bake. */

@@ -83,8 +83,8 @@ export function ScaleHelpTooltip() {
     <Stack spacing={1} sx={{ maxWidth: 320, py: 0.5 }}>
       <Typography variant="caption" sx={{ display: "block", lineHeight: 1.5 }}>
         How the calendar turns state-change counts into bar heights. It scales every
-        day against the busiest 4-hour bin on the visible month, so heights are
-        comparable across that month and nowhere else.
+        day against the busiest 4-hour bin on the visible month — or on the days you
+        have dragged out — so heights are comparable across that scope and nowhere else.
       </Typography>
       <HelpEntry scale="linear" />
       <HelpEntry scale="log" />
@@ -109,7 +109,8 @@ export function ScaleNote({ scale }: { scale: BarScale }) {
       <Typography variant="caption" component="p" sx={{ color: "text.secondary", display: "block" }}>
         The calendar&apos;s magnitude bars are scaled against the busiest 4-hour bin on the
         month you are looking at, which means heights compare honestly within a month and
-        not between months — paging to a quieter month rescales everything. The toggle
+        not between months — paging to a quieter month rescales everything. Dragging across
+        a run of days scales to just those days instead, greying out the rest. The toggle
         above picks how that scaling works, and it is currently{" "}
         <Box component="span" sx={{ fontWeight: 700, color: "text.primary" }}>
           {SCALE_LABELS[scale]}

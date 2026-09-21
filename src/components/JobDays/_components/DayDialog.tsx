@@ -15,7 +15,7 @@ import {
 import Close from "@mui/icons-material/Close";
 
 import type { StackedBarData } from "../types";
-import { buildDayActivity, buildDayCensus, expandSeries } from "./binModel";
+import { buildDayActivity, buildDayLevels, expandSeries } from "./binModel";
 import {
   buildDayOutcomes,
   buildSliceMap,
@@ -32,7 +32,6 @@ import {
   type GroupBy,
 } from "./grouping";
 import DayActivityBars from "./DayActivityBars";
-import DayStackedBars from "./DayStackedBars";
 import { OUTCOME_ORDER_TOP_DOWN, OUTCOME_STYLES } from "./palette";
 import { ActivityRows } from "./StateRows";
 import type { CalendarVersion } from "./VersionSwitch";
@@ -57,8 +56,10 @@ interface DayDialogProps {
   open: boolean;
   onClose: () => void;
   /**
-   * Which calendar opened the dialog. Both draw the same six-bin chart; v2 adds
-   * the day's outcome for the jobs it inherited, matching its boundary bar.
+   * Which calendar opened the dialog. Accepted for the callers' sake but not
+   * currently read: both calendars draw the same six-bin chart and the day's
+   * outcome for the jobs it inherited -- on v2 that section matches the
+   * boundary bar, on v1 it is where the completion fill's numbers are printed.
    */
   variant?: CalendarVersion;
 }
@@ -93,7 +94,6 @@ export default function DayDialog({
   asOf,
   open,
   onClose,
-  variant = "v1",
 }: DayDialogProps) {
   // Clusters that are part of this day: a cohort placed on it, or any activity.
   const dayClusters = useMemo(() => {
@@ -157,24 +157,26 @@ export default function DayDialog({
     [dayData, filter, day],
   );
 
-  // The day's six-bin derivation for the same scope: the whole-cohort ratio census
-  // for one group, per-bin change counts for everything.
-  const journeyMode = filter !== null;
-  const { census, activity } = useMemo(() => {
-    if (!day) return { census: null, activity: null };
+  // The day's six-bin derivation for the same scope: per-bin change counts,
+  // with the queue level over them, as on the tile and the summary.
+  const { activity, level } = useMemo(() => {
+    if (!day) return { activity: null, level: null };
     const dayIndex = barData.days.indexOf(day);
-    if (dayIndex < 0) return { census: null, activity: null };
+    if (dayIndex < 0) return { activity: null, level: null };
     const dense = expandSeries(barData, filter);
-    return journeyMode
-      ? { census: buildDayCensus(barData, dense, dayIndex, "journey"), activity: null }
-      : { census: null, activity: buildDayActivity(barData, dense, dayIndex) };
-  }, [barData, filter, journeyMode, day]);
+    return {
+      activity: buildDayActivity(barData, dense, dayIndex),
+      level: buildDayLevels(barData, dense).get(day) ?? null,
+    };
+  }, [barData, filter, day]);
 
-  // Calendar v2: what became of the jobs open when this day began, for the same
-  // scope as the boundary bar that was clicked.
+  // What became of the jobs open when this day began, for the same scope as the
+  // tile that was clicked. Both calendars draw this on the tile -- v2 as the
+  // boundary bar, v1 as the completion fill -- and the tile has no room for
+  // the numbers, so this is where they are.
   const outcome = useMemo(
-    () => (variant === "v2" && day ? (buildDayOutcomes(dayData, filter).get(day) ?? null) : null),
-    [variant, dayData, filter, day],
+    () => (day ? (buildDayOutcomes(dayData, filter).get(day) ?? null) : null),
+    [dayData, filter, day],
   );
 
   return (
@@ -241,38 +243,19 @@ export default function DayDialog({
                   all jobs, whenever they were placed
                 </Typography>
 
-                {slice.changed === 0 && !(census?.hasData ?? false) ? (
+                {slice.changed === 0 && !(activity?.hasData ?? false) ? (
                   <Typography variant="body2" sx={{ color: "text.secondary", mt: 0.75 }}>
                     No jobs changed state.
                   </Typography>
                 ) : (
                   <>
-                    {census?.hasData && (
-                      <Box sx={{ mt: 1 }}>
-                        <DayStackedBars
-                          bins={census.bins}
-                          height={240}
-                          label={`Share of the cluster's jobs active, completed, and removed per 4-hour bin on ${formatDayLong(slice.day)}`}
-                        />
-                        {census.finishedAt !== null && (
-                          <Typography
-                            variant="caption"
-                            component="p"
-                            sx={{ color: "text.secondary", mt: 0.5, fontStyle: "italic" }}
-                          >
-                            The last job reached a final state by{" "}
-                            {census.bins[census.finishedAt].snapshotAt}, so the rest of the day
-                            is left blank rather than repeating an all-finished reading.
-                          </Typography>
-                        )}
-                      </Box>
-                    )}
                     {activity?.hasData && (
                       <Box sx={{ mt: 1 }}>
                         <DayActivityBars
                           bins={activity.bins}
-                          height={240}
-                          label={`State changes per 4-hour bin on ${formatDayLong(slice.day)}`}
+                          height={260}
+                          level={level}
+                          label={`State changes per 4-hour bin on ${formatDayLong(slice.day)}, with the number of open jobs at the close of each`}
                         />
                       </Box>
                     )}
@@ -297,7 +280,9 @@ export default function DayDialog({
                 )}
               </Box>
 
-              {/* Calendar v2's boundary bar, drawn large, with its numbers. */}
+              {/* The day's inheritance, drawn large, with its numbers: v2's
+                  boundary bar, and the population v1's completion fill is a
+                  share of. */}
               {outcome && (
                 <Box component="section">
                   <Typography

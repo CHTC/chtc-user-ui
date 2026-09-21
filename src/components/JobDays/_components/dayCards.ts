@@ -506,6 +506,11 @@ export function formatDayShort(day: string): string {
   });
 }
 
+/** "Tue, Jul 21", for a Date rather than a day key -- a projected day, say. */
+export function formatDateShort(at: Date): string {
+  return at.toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" });
+}
+
 /** "Tuesday, July 21" */
 export function formatDayLong(day: string): string {
   return parseDayKey(day).toLocaleDateString(undefined, {
