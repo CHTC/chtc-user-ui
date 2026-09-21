@@ -325,8 +325,9 @@ export function buildSliceMap(data: DayData, filter: ClusterFilter): Map<string,
 /**
  * What became, by the end of one day, of the jobs that were open when it began.
  *
- * Calendar v2's boundary bar. Placements during the day are deliberately not
- * part of it: the question is how the standing queue fared, and a day that took
+ * The calendar's completion fill and the day dialog's inheritance section.
+ * Placements during the day are deliberately not part of it: the question is
+ * how the standing queue fared, and a day that took
  * on 200 new jobs while finishing 100 of the 200 it started with is still a
  * 50/50 day for the work it inherited.
  */

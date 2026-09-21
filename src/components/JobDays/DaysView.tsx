@@ -85,9 +85,11 @@ interface DaysViewProps {
   /** The day bake: cohorts, flow edges, and the carry-over census. */
   dayData: DayData;
   /**
-   * Which calendar to draw. The two differ only at the day boundary: v1 runs a
-   * grey queue-level trace behind the bars, v2 stands a 100%-stacked bar astride
-   * each midnight saying what became of the jobs that day inherited.
+   * Which calendar to draw. The two are the same picture with one difference:
+   * v1 scales every day's bars against the busiest window in the visible
+   * month or the selected range, so heights compare across days; v2 scales
+   * each day against its own busiest window, so every day's shape fills its
+   * cell and heights compare only within the day.
    */
   variant?: CalendarVersion;
   /**
@@ -289,18 +291,12 @@ export default function DaysView({
     return out;
   }, [data, dense, bars]);
 
-  // v1: the open-jobs level behind the bars.
-  const levels = useMemo(
-    () => (variant === "v1" ? buildDayLevels(data, dense) : null),
-    [variant, data, dense],
-  );
+  // The open-jobs level behind the bars.
+  const levels = useMemo(() => buildDayLevels(data, dense), [data, dense]);
 
-  // What became of each day's inherited jobs, for whichever group is in view.
-  // Both calendars draw it, differently: v2 as the bar astride midnight, v1 as
-  // the completed share filling the tile from the floor.
-  const dayOutcomes = useMemo(() => buildDayOutcomes(dayData, filter), [dayData, filter]);
-  const outcomes = variant === "v2" ? dayOutcomes : null;
-  const fills = variant === "v1" ? dayOutcomes : null;
+  // What became of each day's inherited jobs, for whichever group is in view,
+  // drawn as the completed share filling the tile from the floor.
+  const fills = useMemo(() => buildDayOutcomes(dayData, filter), [dayData, filter]);
 
   const inVisibleMonth = (day: string) => {
     const date = parseDayKey(day);
@@ -374,10 +370,10 @@ export default function DaysView({
           while the line behind them carries the queue, jumping where jobs were placed and
           dropping where they were removed. The &ldquo;Bars show&rdquo; toggle adds placed
           or removed jobs to the bars.{" "}
+          The teal rising from the floor of each day is the share of the jobs it started with
+          that completed before it ended; a full cell cleared its backlog.{" "}
           {variant === "v2" &&
-            "The bar astride each midnight shows what became of the jobs the day started with: still open, completed, or removed, leaving out anything placed during it. "}
-          {variant === "v1" &&
-            "The teal rising from the floor of each day is the share of the jobs it started with that completed before it ended; a full cell cleared its backlog. "}
+            "On this calendar every day's bars are scaled to that day's own busiest window, so each day's shape fills its cell; heights compare within a day, not between days. "}
           Hover a bar for its numbers, or click a day for its full breakdown.
         </Typography>
       </Stack>
@@ -551,9 +547,9 @@ export default function DaysView({
           bars={bars}
           onShowBars={(state) => selectBars([...bars, state])}
           levels={levels}
-          outcomes={outcomes}
           fills={fills}
           scale={scale}
+          perDayScale={variant === "v2"}
           peakBinTotal={peak}
           levelPeak={levelPeak}
           firstDay={pageFloor}
@@ -619,7 +615,7 @@ export default function DaysView({
       />
 
       <Stack spacing={2} sx={{ mt: 4 }}>
-        <ScaleNote scale={scale} />
+        <ScaleNote scale={scale} perDay={variant === "v2"} />
 
         <Box component="section">
           <Typography
@@ -649,7 +645,7 @@ export default function DaysView({
             component="p"
             sx={{ color: "text.secondary", display: "block", mt: 0.75 }}
           >
-            {variant === "v1" ? (
+            {(
               <>
                 A{" "}
                 <Box component="span" sx={{ fontWeight: 700, color: "text.primary" }}>
@@ -666,25 +662,10 @@ export default function DaysView({
                 whole height of the cell in one window. The dot on each
                 midnight boundary gives its numbers on hover, including how
                 much of the queue arrived that day. Being a headcount it has its own scale,
-                down the right of the calendar under the stacked glyph; the axis on the left
-                belongs to the bars.
-              </>
-            ) : (
-              <>
-                Each day also ends with a{" "}
-                <Box component="span" sx={{ fontWeight: 700, color: "text.primary" }}>
-                  bar astride midnight
-                </Box>
-                : of the jobs that were already open when the day began, what share are still
-                open, completed, or removed by its end — grey, teal and red, with still open
-                on top in grey because nothing happened to those jobs. Nothing placed during
-                the day is part of it. That is the point:
-                the six bars count every change, including the day&apos;s own arrivals, while
-                this bar answers only for the work the day inherited, so a day that took on
-                a fresh batch while finishing half of its backlog still reads as a 50/50 day.
-                It is a share, read against the 0–100% scale down the right; the axis on the
-                left belongs to the bars. A star on top marks a clean sweep, a day that
-                completed every job it began with. Hover it for the counts.
+                down the right of the calendar under the stacked glyph
+                {variant === "v1"
+                  ? "; the axis on the left belongs to the bars."
+                  : ". There is no axis on the left: each day's bars are scaled to that day's own busiest window, so hover a bar for its count."}
               </>
             )}
           </Typography>

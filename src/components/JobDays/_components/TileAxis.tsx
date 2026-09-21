@@ -37,9 +37,9 @@ interface TileAxisProps {
   /** Marks the axis as the queue scale, matching the glyph under the queue bars. */
   glyph?: boolean;
   /**
-   * Span the whole tile, top edge to bottom edge, instead of the bar slot. For a
-   * mark that itself runs the full tile -- calendar v2's boundary bar -- so its
-   * 100% and 0% land on the bar's ends. `height` and `bottom` are ignored.
+   * Span the whole tile, top edge to bottom edge, instead of the bar slot, for
+   * a mark that itself runs the full tile. Nothing on the calendar uses it at
+   * present; kept for a percent-style mark. `height` and `bottom` are ignored.
    */
   fullHeight?: boolean;
 }
