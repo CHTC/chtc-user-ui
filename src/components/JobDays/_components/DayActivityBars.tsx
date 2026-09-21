@@ -21,7 +21,14 @@ import {
 import { Chart as MixedChart } from "react-chartjs-2";
 
 import type { BinActivity, BucketUnit, DayLevel } from "./binModel";
-import { ACTIVITY_ORDER, ACTIVITY_STYLES, levelSlopeColor } from "./palette";
+import {
+  ACTIVITY_STYLES,
+  describeActivity,
+  levelSlopeColor,
+  stackOrder,
+  type ActivityState,
+} from "./palette";
+import { otherChanges } from "./TileActivityBars";
 
 // The bars, plus the line the level trace needs when it is drawn over them.
 Chart.register(
@@ -54,6 +61,8 @@ interface DayActivityBarsProps {
    * chart is bars alone.
    */
   level?: DayLevel | null;
+  /** Which states the bars stack; the rest are quoted in the tooltip. */
+  shown: ActivityState[];
 }
 
 /** Axis title and tooltip nouns for each bar width. */
@@ -76,9 +85,10 @@ export const UNIT_WORDING: Record<BucketUnit, { axis: string; noun: string }> = 
  * With a level, a line runs over the bars: the queue as a standing count, read
  * at the close of each bar against the right-hand axis. Standing jobs and
  * changes are different quantities, so they never share a scale. Each stretch
- * of the line takes the colour its steepness earns -- blue flat, purple moving,
- * red for a drop or climb the height of the axis in one bar -- and each point
- * the colour of the stretch arriving at it, exactly as the tiles do.
+ * of the line takes the colour its steepness earns on the weather-radar ramp
+ * -- light blue flat, through green and yellow as it moves, red steep, purple
+ * for a drop or climb the height of the axis in one bar -- and each point the
+ * colour of the stretch arriving at it, exactly as the tiles do.
  */
 export default function DayActivityBars({
   bins,
@@ -86,9 +96,11 @@ export default function DayActivityBars({
   label,
   unit = "hours",
   level = null,
+  shown,
 }: DayActivityBarsProps) {
   const { data, options } = useMemo(() => {
     const wording = UNIT_WORDING[unit];
+    const order = stackOrder(shown);
     const trace = level && level.hasData ? level : null;
     // The line's own scale: its highest reading, so it fills the axis.
     const levelPeak = trace ? Math.max(trace.start, ...trace.ends, 1) : 1;
@@ -99,12 +111,12 @@ export default function DayActivityBars({
       const before = index === 0 ? trace.start : trace.ends[index - 1];
       return levelSlopeColor(Math.abs(trace.ends[index] - before) / levelPeak);
     };
-    const barCount = ACTIVITY_ORDER.length;
+    const barCount = order.length;
 
     const data: ChartData<"bar" | "line"> = {
       labels: bins.map((bin) => bin.label),
       datasets: [
-        ...ACTIVITY_ORDER.map((state) => ({
+        ...order.map((state) => ({
           type: "bar" as const,
           label: ACTIVITY_STYLES[state].label,
           data: bins.map((bin) => bin[state]),
@@ -135,10 +147,10 @@ export default function DayActivityBars({
                 segment: {
                   borderColor: (ctx: ScriptableLineSegmentContext) => stepColor(ctx.p1DataIndex),
                 },
-                // The legend swatch needs a fixed colour; the midpoint purple
-                // stands for the whole ramp.
-                borderColor: levelSlopeColor(0.03),
-                backgroundColor: levelSlopeColor(0.03),
+                // The legend swatch needs a fixed colour; the ramp's blue, a
+                // gently moving queue, stands for the whole line.
+                borderColor: levelSlopeColor(0.003),
+                backgroundColor: levelSlopeColor(0.003),
               },
             ]
           : []),
@@ -158,7 +170,7 @@ export default function DayActivityBars({
         y: {
           stacked: true,
           min: 0,
-          title: { display: true, text: "State changes" },
+          title: { display: true, text: `Jobs ${describeActivity(shown)}` },
           ticks: { precision: 0 },
         },
         ...(trace
@@ -187,12 +199,15 @@ export default function DayActivityBars({
                 return `${open.toLocaleString()} ${open === 1 ? "job" : "jobs"} open at the close of this ${wording.noun}`;
               }
               const bin = bins[ctx.dataIndex];
-              const state = ACTIVITY_ORDER[ctx.datasetIndex];
+              const state = order[ctx.datasetIndex];
               return `${ACTIVITY_STYLES[state].label}: ${bin[state].toLocaleString()} jobs`;
             },
             footer: (items: TooltipItem<"bar" | "line">[]) => {
               if (items.length === 0 || items[0].datasetIndex >= barCount) return "";
-              return `${bins[items[0].dataIndex].total.toLocaleString()} state changes in this ${wording.noun}`;
+              const bin = bins[items[0].dataIndex];
+              const inBar = `${bin.total.toLocaleString()} ${describeActivity(shown)} in this ${wording.noun}`;
+              const other = otherChanges(bin, shown);
+              return other ? `${inBar} · ${other}, not in the bar` : inBar;
             },
           },
         },
@@ -200,7 +215,7 @@ export default function DayActivityBars({
     };
 
     return { data, options };
-  }, [bins, unit, level]);
+  }, [bins, unit, level, shown]);
 
   return (
     <Box role="img" aria-label={label} sx={{ position: "relative", width: "100%", height }}>

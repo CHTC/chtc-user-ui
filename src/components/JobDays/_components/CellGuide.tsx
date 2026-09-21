@@ -16,10 +16,12 @@ import Close from "@mui/icons-material/Close";
 
 import { barFraction, buildScaleTicks, type DayLevel } from "./binModel";
 import { compactNumber } from "./dayCards";
+import { otherChanges } from "./TileActivityBars";
 import { daySlope, slopeLines } from "./TileLevelLine";
 import {
-  ACTIVITY_ORDER,
   ACTIVITY_STYLES,
+  DEFAULT_BARS,
+  stackOrder,
   BAR_STATE_STYLES,
   CARRIED_ACTIVE_COLOR,
   COMPLETION_FILL_COLOR,
@@ -31,6 +33,7 @@ import {
   OUTCOME_STYLES,
 } from "./palette";
 import QueueGlyph from "./QueueGlyph";
+import SlopeLegend from "./SlopeLegend";
 import type { CalendarVersion } from "./VersionSwitch";
 
 /**
@@ -76,13 +79,13 @@ const FEATURES: Feature[] = [
   {
     id: "windows",
     title: "Six bars, six 4-hour windows",
-    body: "Midnight on the left through to midnight on the right, so you can see when in the day the work landed. An empty slot is a window in which nothing moved.",
+    body: "Midnight on the left through to midnight on the right, so you can see when in the day the work got done. An empty slot is a window in which nothing completed.",
     parts: ["bars"],
   },
   {
     id: "colour",
-    title: "Colour is what happened",
-    body: "Jobs placed, completed, and removed, stacked bottom to top — so one bar can show all three at once.",
+    title: "The bars are jobs completed",
+    body: "Each bar is the jobs that completed in its window, in teal. Placements and removals are not in the bars unless you add them: a small blue + above a bar means jobs were placed in that window, a red − that some were removed, and clicking either adds that kind to every bar, as the “Bars show” toggle above the calendar does. On the line, a placement is a jump up and a removal a drop with no bar under it. Hover a bar for every count.",
     parts: ["bars"],
   },
   {
@@ -100,7 +103,7 @@ const FEATURES: Feature[] = [
   {
     id: "queue",
     title: "The line behind the bars is the queue",
-    body: "How many jobs were open at the close of each window — the queue as a level, not the changes to it. It steps down as work finishes, jumps when a batch lands, and runs straight on into the next day so a week reads as one line. Its colour says how fast it is moving: blue only where the queue is perfectly flat, purple as soon as it moves at all, and on to red where it drops or climbs steeply, whichever way. The dot on the midnight boundary is coloured by the day's average slope, and on hover gives the queue's numbers, that average rate, and when the queue would empty if it held. Being a headcount rather than a count of changes, it is measured against its own scale, down the right under the stacked glyph.",
+    body: "How many jobs were open at the close of each window — the queue as a level, not the changes to it. It steps down as work finishes, jumps when a batch lands, and runs straight on into the next day so a week reads as one line. Its colour says how fast it is moving, on the scale a rain map uses: light blue only where the queue is perfectly flat, blue and green as it starts to move, yellow and orange as it speeds up, red where it drops or climbs steeply, and purple where it moves the whole height of the cell in one window, whichever way. The dot on the midnight boundary is coloured by the day's average slope, and on hover gives the queue's numbers, that average rate, and when the queue would empty if it held. Being a headcount rather than a count of changes, it is measured against its own scale, down the right under the stacked glyph.",
     parts: ["queue", "queueAxis"],
   },
   {
@@ -151,12 +154,13 @@ const EXAMPLE_BINS = [
   { label: "20–24", placed: 0, completed: 200, removed: 0 },
 ];
 
-const EXAMPLE_TOTALS = EXAMPLE_BINS.map(
-  (bin) => bin.placed + bin.completed + bin.removed,
-);
+/** Bar heights: completions per window. Placements and removals are on the line, not in the bars. */
+const EXAMPLE_TOTALS = EXAMPLE_BINS.map((bin) => bin.completed);
 const EXAMPLE_PEAK = Math.max(...EXAMPLE_TOTALS);
-/** The bar the colour and hover features point at: the only one with all three. */
+/** The bar the colour and hover features point at: the tallest, with a removal beside it to quote. */
 const FOCUS_BIN = 3;
+/** That bar as the model would hand it to a readout, under the default pick. */
+const EXAMPLE_FOCUS_BIN = { ...EXAMPLE_BINS[FOCUS_BIN], total: EXAMPLE_TOTALS[FOCUS_BIN] };
 
 const SLOT_HEIGHT = 150;
 const GUTTER = 46;
@@ -640,7 +644,7 @@ function ExampleCell({ active, variant }: { active: Feature | null; variant: Cal
                       }}
                     >
                       {total > 0 &&
-                        ACTIVITY_ORDER.map((state) => (
+                        stackOrder(DEFAULT_BARS).map((state) => (
                           <Box
                             key={state}
                             sx={{
@@ -792,13 +796,14 @@ function ExampleCell({ active, variant }: { active: Feature | null; variant: Cal
                   {line}
                 </Typography>
               ))}
+              <SlopeLegend />
             </>
           ) : (
             <>
               <Typography variant="caption" sx={{ fontWeight: 700, display: "block" }}>
                 Wed, Aug 12 · 12–16 h
               </Typography>
-              {ACTIVITY_ORDER.filter((state) => EXAMPLE_BINS[FOCUS_BIN][state] > 0).map(
+              {stackOrder(DEFAULT_BARS).filter((state) => EXAMPLE_BINS[FOCUS_BIN][state] > 0).map(
                 (state) => (
                   <ReadoutLine
                     key={state}
@@ -806,6 +811,15 @@ function ExampleCell({ active, variant }: { active: Feature | null; variant: Cal
                     text={`${EXAMPLE_BINS[FOCUS_BIN][state].toLocaleString()} jobs ${state}`}
                   />
                 ),
+              )}
+              {/* What else moved in the window, as the real readout says it. */}
+              {otherChanges(EXAMPLE_FOCUS_BIN, DEFAULT_BARS) && (
+                <Typography
+                  variant="caption"
+                  sx={{ display: "block", opacity: 0.8, mt: 0.5, fontStyle: "italic" }}
+                >
+                  {otherChanges(EXAMPLE_FOCUS_BIN, DEFAULT_BARS)}; not in the bar.
+                </Typography>
               )}
             </>
           )}

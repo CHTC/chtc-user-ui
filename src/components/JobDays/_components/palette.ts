@@ -58,22 +58,35 @@ export const CARRIED_ACTIVE_COLOR = "#8ea3e8";
 
 /**
  * The queue level trace on the v1 calendar, drawn behind the bars and coloured
- * by its own steepness: blue where the queue is flat, through purple to red
- * where it drops or climbs the whole slot within one 4-hour window. A dual
- * encoding of the slope the line already draws, so the fast-moving windows can
- * be picked out across a month without reading each tile's shape. Direction is
- * deliberately not encoded -- a batch landing and a batch finishing are both
- * "the queue is moving fast", and the line's shape already says which.
+ * by its own steepness on a weather-radar ramp: light blue where the queue is
+ * flat, through blue and green as it starts to move, yellow and orange as it
+ * speeds up, red for steep, and bright purple where it drops or climbs the
+ * whole slot within one 4-hour window. A dual encoding of the slope the line
+ * already draws, so the fast-moving windows can be picked out across a month
+ * without reading each tile's shape -- and a ramp most readers already know
+ * how to read from rain maps: cool is calm, hot is intense, purple is extreme.
+ * Direction is deliberately not encoded -- a batch landing and a batch
+ * finishing are both "the queue is moving fast", and the line's shape already
+ * says which.
  *
  * It replaced a hatched indigo column astride each midnight, which read as one
- * more bar, and then a flat grey (#a3a6b8), which took the trace out of the
- * state vocabulary but made a busy day and a quiet one look alike. The three
- * stops sit apart from the state colours on purpose: the blue is lighter and
- * greyer than the active indigo, the red is bluer than removed.
+ * more bar; then a flat grey (#a3a6b8), which took the trace out of the state
+ * vocabulary but made a busy day and a quiet one look alike; then a three-stop
+ * blue-purple-red ramp, which had too little range to tell "moving" from
+ * "moving fast". None of the stops is a state colour: the greens and blues are
+ * lighter than the active indigo, the red is more orange than removed.
  *
- * Calendar v2's "still active" grey and the midnight dot keep the old neutral.
+ * Calendar v2's "still active" grey keeps the old neutral.
  */
-export const LEVEL_SLOPE_STOPS: [string, string, string] = ["#5b8def", "#8b5cf6", "#d63b6e"];
+export const LEVEL_SLOPE_STOPS: string[] = [
+  "#9ecae9", // light blue: flat
+  "#2b6cd9", // blue
+  "#2fa84f", // green
+  "#f2d02c", // yellow
+  "#f28c28", // orange
+  "#d62828", // red
+  "#b44bff", // bright purple: the whole slot in one window
+];
 
 /**
  * The neutral grey the midnight dot used to be, kept for v2's boundary-bar
@@ -94,28 +107,28 @@ function hexChannels(hex: string): [number, number, number] {
 /**
  * How hard the slope ramp leans toward its steep end. The ramp position is
  * log(1 + GAIN * steepness) / log(1 + GAIN), so with 1000 a move of 3% of the
- * slot in one window -- a couple of pixels on a real tile -- already reads as
- * the purple midpoint, and half the slot is most of the way to red. Blue is
- * reserved for a line that is genuinely flat: the point is to tell "nothing
- * moved" from "something moved" at a glance, and the eye can see how much.
+ * slot in one window -- a couple of pixels on a real tile -- is already into
+ * the yellow, and half the slot is red. Light blue is reserved for a line that
+ * is genuinely flat: the point is to tell "nothing moved" from "something
+ * moved" at a glance, and the eye can see how much.
  */
 export const LEVEL_SLOPE_LOG_GAIN = 1000;
 
 /**
  * The trace colour for a segment of the given steepness, 0 (flat) to 1 (the
  * whole slot's height in one window). Log-scaled (see LEVEL_SLOPE_LOG_GAIN),
- * then piecewise linear through the three stops with the purple at the
- * midpoint. Clamped, since a segment cannot move more than the slot.
+ * then piecewise linear through the stops, evenly spaced along the ramp.
+ * Clamped, since a segment cannot move more than the slot.
  */
 export function levelSlopeColor(steepness: number): string {
   const clamped = Math.min(1, Math.max(0, steepness));
   const t = Math.log1p(LEVEL_SLOPE_LOG_GAIN * clamped) / Math.log1p(LEVEL_SLOPE_LOG_GAIN);
-  const [from, to, local] =
-    t < 0.5
-      ? [LEVEL_SLOPE_STOPS[0], LEVEL_SLOPE_STOPS[1], t * 2]
-      : [LEVEL_SLOPE_STOPS[1], LEVEL_SLOPE_STOPS[2], (t - 0.5) * 2];
-  const a = hexChannels(from);
-  const b = hexChannels(to);
+  const last = LEVEL_SLOPE_STOPS.length - 1;
+  const position = t * last;
+  const index = Math.min(last - 1, Math.floor(position));
+  const local = position - index;
+  const a = hexChannels(LEVEL_SLOPE_STOPS[index]);
+  const b = hexChannels(LEVEL_SLOPE_STOPS[index + 1]);
   const mix = a.map((channel, i) => Math.round(channel + (b[i] - channel) * local));
   return `rgb(${mix[0]}, ${mix[1]}, ${mix[2]})`;
 }
@@ -196,7 +209,36 @@ export const OUTCOME_STYLES: Record<OutcomeState, { label: string; color: string
  */
 export type ActivityState = "placed" | "completed" | "removed";
 
-export const ACTIVITY_ORDER: ActivityState[] = ["placed", "completed", "removed"];
+/**
+ * Every state the bars can stack, bottom up: arrivals at the base, then the
+ * two ways out. The reader picks which of these the bars show (see
+ * DEFAULT_BARS); this is the order they stack in whatever the pick.
+ */
+export const ACTIVITY_STACK: ActivityState[] = ["placed", "completed", "removed"];
+
+/**
+ * What the bars show until the reader says otherwise: completions only. The
+ * bars then answer "how much work got done in this window", and the other two
+ * are already visible on the queue line -- a placement as a jump up, a removal
+ * as a drop with no bar under it. The toggle above the calendar adds either
+ * back, and the readouts quote the hidden counts regardless.
+ */
+export const DEFAULT_BARS: ActivityState[] = ["completed"];
+
+/** The chosen states in stacking order, whatever order they were picked in. */
+export function stackOrder(shown: ActivityState[]): ActivityState[] {
+  return ACTIVITY_STACK.filter((state) => shown.includes(state));
+}
+
+/** "completed", "completed or removed", "placed, completed or removed" -- for prose. */
+export function describeActivity(shown: ActivityState[]): string {
+  const labels = stackOrder(shown).map((state) => ACTIVITY_STYLES[state].label.toLowerCase());
+  // Nothing picked: the bars are off and only the line draws. "Jobs shown",
+  // "nothing shown in this window" still read as sentences.
+  if (labels.length === 0) return "shown";
+  if (labels.length === 1) return labels[0];
+  return `${labels.slice(0, -1).join(", ")} or ${labels[labels.length - 1]}`;
+}
 
 export const ACTIVITY_STYLES: Record<ActivityState, { label: string; color: string }> = {
   placed: { label: "Placed", color: BAR_STATE_STYLES.active.color },

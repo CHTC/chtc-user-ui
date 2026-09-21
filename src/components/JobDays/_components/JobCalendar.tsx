@@ -25,6 +25,7 @@ import {
   type DaySlice,
 } from "./dayCards";
 import TileAxis, { AXIS_WIDTH, QUEUE_OVERHANG } from "./TileAxis";
+import { describeActivity, type ActivityState } from "./palette";
 import TileActivityBars from "./TileActivityBars";
 import TileCompletionFill from "./TileCompletionFill";
 import TileLevelLine from "./TileLevelLine";
@@ -72,6 +73,10 @@ interface JobCalendarProps {
    * magnitude is the signal.
    */
   activities: Map<string, DayActivity>;
+  /** Which states the bars stack; the readouts quote the rest. */
+  bars: ActivityState[];
+  /** The reader clicked a hidden-state mark above a bar: add that state to the bars. */
+  onShowBars: (state: ActivityState) => void;
   /**
    * Calendar v1: the open-jobs level through each day, keyed like `slices`.
    * Drawn as a slope-coloured trace behind the bars. Null on v2.
@@ -138,6 +143,8 @@ interface JobCalendarProps {
 export default function JobCalendar({
   slices,
   activities,
+  bars,
+  onShowBars,
   levels,
   outcomes,
   fills,
@@ -165,9 +172,20 @@ export default function JobCalendar({
   // Set when a drag ends on the tile it started on, where the browser still
   // fires a click; that click must not open the day.
   const suppressClick = useRef(false);
+  // The range being dragged out, as state for the grid to grey against and as
+  // a ref for the release handler to commit. The release can arrive before
+  // React has re-rendered with the latest preview -- a fast flick, or a
+  // synthetic drag -- so the handler must not read it from a closure.
   const [preview, setPreview] = useState<DayRange | null>(null);
+  const previewRef = useRef<DayRange | null>(null);
+  const onRangeChangeRef = useRef(onRangeChange);
+  onRangeChangeRef.current = onRangeChange;
 
   const beginDrag = (event: React.MouseEvent) => {
+    // A new press starts fresh. If the last drag's release produced no click
+    // (it ended off its starting tile), the flag would otherwise swallow the
+    // next genuine click on a day.
+    suppressClick.current = false;
     if (event.button !== 0 || event.shiftKey) return;
     const day = dayAt(event.target);
     if (!day) return;
@@ -180,34 +198,43 @@ export default function JobCalendar({
     const day = dayAt(event.target);
     if (!day) return;
     if (day !== start) dragged.current = true;
-    if (dragged.current) setPreview(rangeOf(start, day));
-  };
-  const endDrag = () => {
-    const start = dragStart.current;
-    if (!start) return;
     if (dragged.current) {
-      if (preview) onRangeChange(preview);
-      suppressClick.current = true;
+      const next = rangeOf(start, day);
+      previewRef.current = next;
+      setPreview(next);
     }
-    dragStart.current = null;
-    dragged.current = false;
-    setPreview(null);
   };
-  // A release anywhere ends the gesture, including outside the grid.
+  // A release anywhere ends the gesture, including outside the grid. Registered
+  // once: everything it needs is in refs.
   useEffect(() => {
+    const endDrag = () => {
+      const start = dragStart.current;
+      if (!start) return;
+      if (dragged.current) {
+        if (previewRef.current) onRangeChangeRef.current(previewRef.current);
+        suppressClick.current = true;
+      }
+      dragStart.current = null;
+      dragged.current = false;
+      previewRef.current = null;
+      setPreview(null);
+    };
     window.addEventListener("mouseup", endDrag);
     return () => window.removeEventListener("mouseup", endDrag);
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- endDrag reads refs and the latest preview
-  }, [preview, onRangeChange]);
+  }, []);
   // Escape clears the selection, the way it dismisses anything else, and so
-  // does a click anywhere off the calendar. Clicks inside anything MUI floats
-  // over the page -- the day dialog, a select's menu, a tooltip -- are not "off
-  // the calendar": the reader is using something the calendar or the toolbar
-  // opened, and losing the range under them would be a surprise.
+  // does a click on empty page off the calendar. Two kinds of press are not
+  // "off the calendar": anything inside what MUI floats over the page -- the
+  // day dialog, a select's menu, a tooltip -- and any control at all, such as
+  // the bar toggles, the scale switch, or the period select. The reader is
+  // adjusting the view the range belongs to, and losing it under them would be
+  // a surprise. Only a press on nothing in particular means "done with that".
   const wrapper = useRef<HTMLDivElement>(null);
   useEffect(() => {
     if (!range) return;
     const FLOATING = ".MuiDialog-root, .MuiPopover-root, .MuiPopper-root, .MuiTooltip-popper";
+    const CONTROL =
+      "button, a, input, select, textarea, label, [role='button'], [role='tab'], [role='option'], [role='menuitem'], [role='combobox']";
     const onKey = (event: KeyboardEvent) => {
       if (event.key !== "Escape") return;
       // With a dialog or menu open, Escape belongs to it; the range goes on
@@ -219,7 +246,7 @@ export default function JobCalendar({
       const target = event.target instanceof Element ? event.target : null;
       if (!target) return;
       if (wrapper.current?.contains(target)) return;
-      if (target.closest(FLOATING)) return;
+      if (target.closest(FLOATING) || target.closest(CONTROL)) return;
       onRangeChange(null);
     };
     window.addEventListener("keydown", onKey);
@@ -513,6 +540,8 @@ export default function JobCalendar({
               <TileBody
                 slice={slice}
                 activity={activities.get(key)}
+                bars={bars}
+                onShowBars={onShowBars}
                 peakBinTotal={peakBinTotal}
                 scale={scale}
                 onHoverScale={setHoveredScale}
@@ -564,12 +593,16 @@ const TILE_CAPTION = {
 function TileBody({
   slice,
   activity,
+  bars,
+  onShowBars,
   peakBinTotal,
   scale,
   onHoverScale,
 }: {
   slice: DaySlice | undefined;
   activity: DayActivity | undefined;
+  bars: ActivityState[];
+  onShowBars: (state: ActivityState) => void;
   peakBinTotal: number;
   scale: BarScale;
   onHoverScale: (kind: ScaleKind | null) => void;
@@ -628,7 +661,9 @@ function TileBody({
               scale={scale}
               height={BARS_SLOT}
               dayLabel={dayLabel}
-              label={`${compactNumber(activity.total)} state changes`}
+              label={`${compactNumber(activity.total)} jobs ${describeActivity(bars)}`}
+              shown={bars}
+              onShow={onShowBars}
               onHoverScale={onHoverScale}
             />
           </Box>

@@ -6,7 +6,43 @@ import { Box, Tooltip } from "@mui/material";
 import type { BarScale } from "../types";
 import { barFraction, type BinActivity, type ScaleKind } from "./binModel";
 import BinReadout, { READOUT_PLACEMENT, READOUT_SLOT_PROPS, type ReadoutRow } from "./BinReadout";
-import { ACTIVITY_ORDER, ACTIVITY_STYLES } from "./palette";
+import {
+  ACTIVITY_STACK,
+  ACTIVITY_STYLES,
+  describeActivity,
+  stackOrder,
+  type ActivityState,
+} from "./palette";
+
+/**
+ * "1,200 placed and 30 removed", or null when nothing hidden happened: the
+ * states the bars are not showing, with their counts, so the readout still
+ * says what else moved in the window.
+ */
+export function otherChanges(bin: BinActivity, shown: ActivityState[]): string | null {
+  const parts = ACTIVITY_STACK.filter((state) => !shown.includes(state) && bin[state] > 0).map(
+    (state) => `${bin[state].toLocaleString()} ${ACTIVITY_STYLES[state].label.toLowerCase()}`,
+  );
+  return parts.length > 0 ? parts.join(" and ") : null;
+}
+
+/**
+ * The mark drawn above a bar for a hidden state that moved in its window: a
+ * plus for arrivals, a minus for removals. Clicking one adds that state to the
+ * bars. Completions get no mark -- they are what the bars are for, and a
+ * reader who switched them off did so on purpose.
+ */
+const HIDDEN_GLYPH: Partial<Record<ActivityState, string>> = {
+  placed: "+",
+  removed: "−",
+};
+
+/** The marked states hidden from the bars that actually moved in this bin, in stacking order. */
+function hiddenWithCounts(bin: BinActivity, shown: ActivityState[]): ActivityState[] {
+  return ACTIVITY_STACK.filter(
+    (state) => HIDDEN_GLYPH[state] !== undefined && !shown.includes(state) && bin[state] > 0,
+  );
+}
 
 interface TileActivityBarsProps {
   bins: BinActivity[];
@@ -21,6 +57,14 @@ interface TileActivityBarsProps {
   dayLabel: string;
   /** Accessible description; the graphic is one image. */
   label: string;
+  /** Which states the bars stack; the rest are quoted in the readout. */
+  shown: ActivityState[];
+  /**
+   * The reader clicked the glyph above a bar for a hidden state: add it to the
+   * bars, page-wide. The tile has no room for a toggle of its own, but a
+   * hidden count is exactly where the reader will want to turn it on.
+   */
+  onShow?: (state: ActivityState) => void;
   /**
    * Reports which of the calendar's two scales the pointer is over, so the axis
    * that governs these bars can light up while they are hovered.
@@ -30,9 +74,10 @@ interface TileActivityBarsProps {
 
 /**
  * The calendar-tile variant of the magnitude chart: six count-scaled columns,
- * colour only. Same plain-div construction as TileBars; here the column heights
- * carry the signal instead of the composition, under whichever scale the page is
- * set to (see barFraction, and ScaleInfo.tsx for what each one costs).
+ * colour only. Plain divs rather than a Chart.js canvas: a month renders ~30 of
+ * these and flexbox needs no per-tile chart lifecycle. The column heights carry
+ * the signal, under whichever scale the page is set to (see barFraction, and
+ * ScaleInfo.tsx for what each one costs).
  *
  * Each column gets a full-height hit area so an idle 4-hour window is still
  * hoverable and can say so.
@@ -44,11 +89,14 @@ export default function TileActivityBars({
   height,
   dayLabel,
   label,
+  shown,
+  onShow,
   onHoverScale,
 }: TileActivityBarsProps) {
   const [hovered, setHovered] = useState<number | null>(null);
   const bin = hovered === null ? null : bins[hovered];
   const peak = Math.max(peakBinTotal, 1);
+  const order = stackOrder(shown);
 
   const enter = (index: number) => {
     setHovered(index);
@@ -60,12 +108,14 @@ export default function TileActivityBars({
   };
 
   const rows: ReadoutRow[] = bin
-    ? ACTIVITY_ORDER.filter((state) => bin[state] > 0).map((state) => ({
-        label: `jobs ${state}`,
-        color: ACTIVITY_STYLES[state].color,
-        value: bin[state],
-        share: bin.total > 0 ? (bin[state] / bin.total) * 100 : null,
-      }))
+    ? order
+        .filter((state) => bin[state] > 0)
+        .map((state) => ({
+          label: `jobs ${state}`,
+          color: ACTIVITY_STYLES[state].color,
+          value: bin[state],
+          share: bin.total > 0 ? (bin[state] / bin.total) * 100 : null,
+        }))
     : [];
 
   return (
@@ -82,11 +132,16 @@ export default function TileActivityBars({
             title={`${dayLabel} · ${bin.label} h`}
             subtitle={
               bin.total > 0
-                ? `${bin.total.toLocaleString()} state ${bin.total === 1 ? "change" : "changes"}`
+                ? `${bin.total.toLocaleString()} ${bin.total === 1 ? "job" : "jobs"} ${describeActivity(shown)}`
                 : undefined
             }
             rows={rows}
-            footer={bin.total === 0 ? "Nothing changed state in this window." : undefined}
+            footer={[
+              ...(bin.total === 0 ? [`Nothing ${describeActivity(shown)} in this window.`] : []),
+              ...(otherChanges(bin, shown)
+                ? [`${otherChanges(bin, shown)}; not in the bar. Click the mark above it to add them.`]
+                : []),
+            ]}
           />
         ) : (
           ""
@@ -114,6 +169,49 @@ export default function TileActivityBars({
               opacity: hovered === null || hovered === i ? 1 : 0.55,
             }}
           >
+            {/* Marks for what moved here but is not in the bar, sitting just
+                above it, side by side when there is more than one. Plain
+                spans, not buttons: the tile is itself a button, and a button
+                may not contain another. The toolbar toggle is the keyboard
+                route to the same thing. */}
+            {hiddenWithCounts(entry, shown).length > 0 && (
+              <Box
+                sx={{
+                  display: "flex",
+                  justifyContent: "center",
+                  alignItems: "flex-end",
+                  gap: "2px",
+                  mb: "1px",
+                }}
+              >
+                {hiddenWithCounts(entry, shown).map((state) => (
+                  <Box
+                    key={state}
+                    component="span"
+                    title={`${entry[state].toLocaleString()} ${ACTIVITY_STYLES[state].label.toLowerCase()}, not in the bar — click to add`}
+                    onClick={(event) => {
+                      // Not a click on the day: do not open its dialog.
+                      event.stopPropagation();
+                      onShow?.(state);
+                    }}
+                    // Nor the start of a range drag.
+                    onMouseDown={(event) => event.stopPropagation()}
+                    sx={{
+                      fontSize: "11px",
+                      lineHeight: "11px",
+                      fontWeight: 700,
+                      color: ACTIVITY_STYLES[state].color,
+                      cursor: onShow ? "pointer" : "default",
+                      userSelect: "none",
+                      "&:hover": { transform: "scale(1.3)" },
+                      transition: "transform 80ms",
+                    }}
+                  >
+                    {HIDDEN_GLYPH[state]}
+                  </Box>
+                ))}
+              </Box>
+            )}
             <Box
               sx={{
                 display: "flex",
@@ -132,7 +230,7 @@ export default function TileActivityBars({
               }}
             >
               {entry.total > 0 &&
-                ACTIVITY_ORDER.map((state) => (
+                order.map((state) => (
                   <Box
                     key={state}
                     sx={{

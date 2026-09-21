@@ -8,6 +8,7 @@ import { barFraction, type DayLevel, type ScaleKind } from "./binModel";
 import BinReadout, { READOUT_PLACEMENT, READOUT_SLOT_PROPS_LIGHT, type ReadoutRow } from "./BinReadout";
 import { formatDateShort, formatDayShort, parseDayKey, type DayQueue } from "./dayCards";
 import { BAR_STATE_STYLES, CARRIED_ACTIVE_COLOR, levelSegments, levelSlopeColor } from "./palette";
+import SlopeLegend from "./SlopeLegend";
 
 /** Diameter of the midnight dot. */
 const DOT = 7;
@@ -115,9 +116,9 @@ interface TileLevelLineProps {
  * centred above it, so the two never fight for the same pixels.
  *
  * The line takes no pointer events; the dot is the hover target and carries the
- * numbers. Each of its six segments is coloured by how steeply it moves, blue
- * for flat through purple to red for a full-slot drop or climb in one window:
- * see levelSlopeColor. Steepness is measured on the drawn pixels, after the
+ * numbers. Each of its six segments is coloured by how steeply it moves, on a
+ * weather-radar ramp from light blue for flat through green, yellow and red to
+ * purple for a full-slot drop or climb in one window: see levelSlopeColor. Steepness is measured on the drawn pixels, after the
  * page's scale, so the colour matches the slope the eye sees. The dot takes
  * the day's average slope, and its readout projects from that average.
  */
@@ -230,21 +231,25 @@ export default function TileLevelLine({
         slotProps={READOUT_SLOT_PROPS_LIGHT}
         open={hovered}
         title={
-          <BinReadout
-            title={
-              nextDay
-                ? `Open jobs at midnight · ${formatDayShort(day)} → ${formatDayShort(nextDay)}`
-                : `Open jobs at the end of ${formatDayShort(day)}`
-            }
-            subtitle={`${midnight.toLocaleString()} ${midnight === 1 ? "job" : "jobs"} still open`}
-            rows={rows}
-            footer={[
-              ...slopeLines(slope, midnight),
-              ...(queue && queue.total !== midnight
-                ? [`The midnight census counted ${queue.total.toLocaleString()}; the split above is from that census.`]
-                : []),
-            ]}
-          />
+          <Box>
+            <BinReadout
+              title={
+                nextDay
+                  ? `Open jobs at midnight · ${formatDayShort(day)} → ${formatDayShort(nextDay)}`
+                  : `Open jobs at the end of ${formatDayShort(day)}`
+              }
+              subtitle={`${midnight.toLocaleString()} ${midnight === 1 ? "job" : "jobs"} still open`}
+              rows={rows}
+              footer={[
+                ...slopeLines(slope, midnight),
+                ...(queue && queue.total !== midnight
+                  ? [`The midnight census counted ${queue.total.toLocaleString()}; the split above is from that census.`]
+                  : []),
+              ]}
+            />
+            {/* What the line's colours mean, for the reader wondering right here. */}
+            <SlopeLegend />
+          </Box>
         }
       >
         <Box
