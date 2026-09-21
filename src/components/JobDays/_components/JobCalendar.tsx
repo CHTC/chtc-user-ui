@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Box, Typography } from "@mui/material";
 import Calendar from "react-calendar";
 
@@ -11,7 +11,6 @@ import {
   TILE_BARS_HEIGHT,
   buildScaleTicks,
   type DayActivity,
-  type DayCensus,
   type DayLevel,
   type ScaleKind,
   type ScaleTick,
@@ -27,7 +26,7 @@ import {
 } from "./dayCards";
 import TileAxis, { AXIS_WIDTH, QUEUE_OVERHANG } from "./TileAxis";
 import TileActivityBars from "./TileActivityBars";
-import TileBars from "./TileBars";
+import TileCompletionFill from "./TileCompletionFill";
 import TileLevelLine from "./TileLevelLine";
 import TileOutcomeBar from "./TileOutcomeBar";
 
@@ -42,23 +41,40 @@ const PERCENT_TICKS: ScaleTick[] = [
   { value: 50, fraction: 0.5 },
 ];
 
+/** A run of days, inclusive, as "YYYY-MM-DD" keys with start <= end. */
+export interface DayRange {
+  start: string;
+  end: string;
+}
+
+/** The range between two days, whichever order they were picked in. */
+function rangeOf(a: string, b: string): DayRange {
+  return a <= b ? { start: a, end: b } : { start: b, end: a };
+}
+
+/** True when the day lies inside the range. Keys sort as dates. */
+export function inRange(day: string, range: DayRange): boolean {
+  return day >= range.start && day <= range.end;
+}
+
+/** The day a pointer event landed on, read off the tile's hidden marker. */
+function dayAt(target: EventTarget | null): string | null {
+  const element = target instanceof Element ? target : null;
+  const tile = element?.closest(".react-calendar__tile");
+  return tile?.querySelector("[data-day]")?.getAttribute("data-day") ?? null;
+}
+
 interface JobCalendarProps {
   slices: Map<string, DaySlice>;
   /**
-   * Cluster mode: per-day journey censuses (cumulative, denominator = the whole
-   * cluster), keyed like `slices`. Tiles draw the ratio bars and stay alive every
-   * day the cluster has jobs, moved or not.
+   * Per-day per-bin state-change counts for whatever is selected, keyed like
+   * `slices`. Tiles draw count-scaled bars against the scope's peak bin, so
+   * magnitude is the signal.
    */
-  censuses: Map<string, DayCensus> | null;
+  activities: Map<string, DayActivity>;
   /**
-   * All-jobs mode: per-day per-bin state-change counts. Tiles draw count-scaled
-   * bars against the visible month's peak bin, so magnitude is the signal.
-   */
-  activities: Map<string, DayActivity> | null;
-  /**
-   * All-jobs mode: the open-jobs level through each day, keyed like `slices`.
-   * Drawn as a grey trace behind the bars. Null in cluster mode, whose ratio
-   * bars already show the standing state.
+   * Calendar v1: the open-jobs level through each day, keyed like `slices`.
+   * Drawn as a slope-coloured trace behind the bars. Null on v2.
    */
   levels: Map<string, DayLevel> | null;
   /**
@@ -67,6 +83,13 @@ interface JobCalendarProps {
    * the queue marker once had. Null on v1, which draws the level trace instead.
    */
   outcomes: Map<string, DayOutcome> | null;
+  /**
+   * Calendar v1: the same per-day inheritance as `outcomes`, drawn instead as a
+   * translucent teal ground rising from each tile's floor to the share of the
+   * day's opening jobs that completed. Null on v2, whose boundary bar carries
+   * the same number.
+   */
+  fills: Map<string, DayOutcome> | null;
   /** Which scale the magnitude bars and the level trace use. Ignored by the ratio bars. */
   scale: BarScale;
   /**
@@ -93,6 +116,18 @@ interface JobCalendarProps {
   activeStartDate: Date;
   onActiveStartDateChange: (date: Date) => void;
   onSelectDay: (day: string) => void;
+  /**
+   * The days the bars are scaled to, when the reader has picked some. Every
+   * other tile goes solid grey, so the scaled days are the only thing on the
+   * grid. Null means the visible month, the default scope.
+   */
+  range: DayRange | null;
+  /**
+   * The reader dragged across a run of days, shift-clicked to extend, or
+   * cleared it -- with Escape, or by clicking anywhere off the calendar. The
+   * page owns the range because the peaks are measured there.
+   */
+  onRangeChange: (range: DayRange | null) => void;
 }
 
 /**
@@ -102,10 +137,10 @@ interface JobCalendarProps {
  */
 export default function JobCalendar({
   slices,
-  censuses,
   activities,
   levels,
   outcomes,
+  fills,
   scale,
   peakBinTotal,
   levelPeak,
@@ -115,31 +150,99 @@ export default function JobCalendar({
   activeStartDate,
   onActiveStartDateChange,
   onSelectDay,
+  range,
+  onRangeChange,
 }: JobCalendarProps) {
   const minDate = parseDayKey(firstDay);
   const maxDate = parseDayKey(lastDay);
+
+  // Drag-to-select. A plain click still opens the day; a press that moves onto
+  // another tile becomes a range instead, previewed live and committed on
+  // release. Refs rather than state for the gesture itself, since nothing
+  // needs to re-render until the preview changes.
+  const dragStart = useRef<string | null>(null);
+  const dragged = useRef(false);
+  // Set when a drag ends on the tile it started on, where the browser still
+  // fires a click; that click must not open the day.
+  const suppressClick = useRef(false);
+  const [preview, setPreview] = useState<DayRange | null>(null);
+
+  const beginDrag = (event: React.MouseEvent) => {
+    if (event.button !== 0 || event.shiftKey) return;
+    const day = dayAt(event.target);
+    if (!day) return;
+    dragStart.current = day;
+    dragged.current = false;
+  };
+  const extendDrag = (event: React.MouseEvent) => {
+    const start = dragStart.current;
+    if (!start) return;
+    const day = dayAt(event.target);
+    if (!day) return;
+    if (day !== start) dragged.current = true;
+    if (dragged.current) setPreview(rangeOf(start, day));
+  };
+  const endDrag = () => {
+    const start = dragStart.current;
+    if (!start) return;
+    if (dragged.current) {
+      if (preview) onRangeChange(preview);
+      suppressClick.current = true;
+    }
+    dragStart.current = null;
+    dragged.current = false;
+    setPreview(null);
+  };
+  // A release anywhere ends the gesture, including outside the grid.
+  useEffect(() => {
+    window.addEventListener("mouseup", endDrag);
+    return () => window.removeEventListener("mouseup", endDrag);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- endDrag reads refs and the latest preview
+  }, [preview, onRangeChange]);
+  // Escape clears the selection, the way it dismisses anything else, and so
+  // does a click anywhere off the calendar. Clicks inside anything MUI floats
+  // over the page -- the day dialog, a select's menu, a tooltip -- are not "off
+  // the calendar": the reader is using something the calendar or the toolbar
+  // opened, and losing the range under them would be a surprise.
+  const wrapper = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!range) return;
+    const FLOATING = ".MuiDialog-root, .MuiPopover-root, .MuiPopper-root, .MuiTooltip-popper";
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key !== "Escape") return;
+      // With a dialog or menu open, Escape belongs to it; the range goes on
+      // the next press, once the reader is back on the page.
+      if (document.querySelector(".MuiDialog-root, .MuiPopover-root")) return;
+      onRangeChange(null);
+    };
+    const onPress = (event: MouseEvent) => {
+      const target = event.target instanceof Element ? event.target : null;
+      if (!target) return;
+      if (wrapper.current?.contains(target)) return;
+      if (target.closest(FLOATING)) return;
+      onRangeChange(null);
+    };
+    window.addEventListener("keydown", onKey);
+    window.addEventListener("mousedown", onPress);
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      window.removeEventListener("mousedown", onPress);
+    };
+  }, [range, onRangeChange]);
+
+  // What the grid greys against: the drag in progress, else the committed range.
+  const shown = preview ?? range;
 
   // Which scale the pointer is currently over. The calendar draws against two
   // of them, so hovering a mark lights up the axis that governs it -- and, just
   // as usefully, leaves the other one alone.
   const [hoveredScale, setHoveredScale] = useState<ScaleKind | null>(null);
 
-  // What the day bars' heights mean, which differs by mode: one group's ratio bars
-  // are always a 0-100% share of its cohort, while the magnitude bars are counts
-  // against this month's busiest bin under the chosen scale.
+  // What the day bars' heights mean: counts against the scope's busiest bin
+  // under the chosen scale.
   const axis = useMemo<{ ticks: ScaleTick[]; unit: "count" | "percent" }>(
-    () =>
-      censuses
-        ? {
-            ticks: [
-              { value: 100, fraction: 1 },
-              { value: 50, fraction: 0.5 },
-              { value: 0, fraction: 0 },
-            ],
-            unit: "percent",
-          }
-        : { ticks: buildScaleTicks(peakBinTotal, scale), unit: "count" },
-    [censuses, peakBinTotal, scale],
+    () => ({ ticks: buildScaleTicks(peakBinTotal, scale), unit: "count" }),
+    [peakBinTotal, scale],
   );
 
   // The right-hand scale: the level trace's own count scale on v1, built the same
@@ -157,7 +260,12 @@ export default function JobCalendar({
 
   return (
     <Box
+      ref={wrapper}
+      onMouseDown={beginDrag}
+      onMouseOver={extendDrag}
       sx={{
+        // Dragging across tiles must not select their text.
+        userSelect: "none",
         // The axis hangs off the left of the grid, so the wrapper reserves its
         // width. Padding rather than a negative margin on the labels themselves:
         // this way the numbers can never be pushed under the page's own edge, and
@@ -217,9 +325,9 @@ export default function JobCalendar({
           gap: `${TILE_GAP}px`,
           // Tall enough for the date, the bars slot, and its caption.
           minHeight: 136,
-          // No horizontal padding: the journey bars run edge to edge so one day's
-          // census meets the next day's. Everything else in the tile is centred
-          // text, which does not miss the inset.
+          // No horizontal padding: the level trace and the completion fill run
+          // edge to edge so one day's meets the next day's. Everything else in
+          // the tile is centred, which does not miss the inset.
           padding: `${TILE_PAD_Y}px 0`,
           border: "1px solid",
           borderColor: "divider",
@@ -260,7 +368,7 @@ export default function JobCalendar({
         // Dim the day, not the tile: the row axis is a sibling of the body and
         // belongs to the whole row, so it must stay legible even when the row
         // happens to start in the previous month.
-        "& .react-calendar__month-view__days__day--neighboringMonth > abbr, & .react-calendar__month-view__days__day--neighboringMonth .day-body, & .react-calendar__month-view__days__day--neighboringMonth .day-level":
+        "& .react-calendar__month-view__days__day--neighboringMonth > abbr, & .react-calendar__month-view__days__day--neighboringMonth .day-body, & .react-calendar__month-view__days__day--neighboringMonth .day-level, & .react-calendar__month-view__days__day--neighboringMonth .day-fill":
           { opacity: 0.35 },
         // The as-of day is marked instead of the browser's own current date; the
         // baked window ends whenever the data was built.
@@ -271,6 +379,15 @@ export default function JobCalendar({
           outlineColor: "primary.main",
           outlineOffset: "-2px",
         },
+        // Outside the selected range: a solid grey block. The date stays, faint,
+        // so the grid is still a calendar; everything drawn in the tile goes,
+        // so the selected days are the only marks on it. The row axes are
+        // spared -- they belong to the row, not the day.
+        "& .react-calendar__tile.day-outside, & .react-calendar__tile.day-outside:enabled:hover, & .react-calendar__tile.day-outside:enabled:focus":
+          { backgroundColor: "grey.200" },
+        "& .react-calendar__tile.day-outside > abbr": { opacity: 0.4 },
+        "& .react-calendar__tile.day-outside > *:not(abbr):not(.day-axis):not(.day-axis-right)":
+          { visibility: "hidden" },
       }}
     >
       <Calendar
@@ -284,20 +401,35 @@ export default function JobCalendar({
         minDate={minDate}
         maxDate={maxDate}
         value={null}
-        onClickDay={(date) => onSelectDay(dayKeyOf(date))}
-        tileClassName={({ date, view }) =>
-          view === "month" && dayKeyOf(date) === asOf ? "day-as-of" : null
-        }
+        onClickDay={(date, event) => {
+          // The click that follows a drag released on its starting tile.
+          if (suppressClick.current) {
+            suppressClick.current = false;
+            return;
+          }
+          const key = dayKeyOf(date);
+          // Shift-click: the keyboard-friendly way to pick a range. Extends
+          // from the current range's start, or starts one on this day.
+          if (event.shiftKey) {
+            onRangeChange(rangeOf(range?.start ?? key, key));
+            return;
+          }
+          onSelectDay(key);
+        }}
+        tileClassName={({ date, view }) => {
+          if (view !== "month") return null;
+          const key = dayKeyOf(date);
+          const classes: string[] = [];
+          if (key === asOf) classes.push("day-as-of");
+          if (shown && !inRange(key, shown)) classes.push("day-outside");
+          return classes.length > 0 ? classes : null;
+        }}
         tileDisabled={({ date }) => {
           const key = dayKeyOf(date);
           // A day with inherited work to report on is alive even if nothing
-          // moved: its outcome bar is the answer.
+          // moved: its outcome bar, or its completion fill, is the answer.
           if (outcomes?.get(key)?.hasData) return false;
-          // Cluster mode: a day is alive whenever the cluster has jobs in view,
-          // even if nothing moved -- persistence is the point.
-          if (censuses) {
-            return !censuses.get(key)?.hasData && isEmptySlice(slices.get(key));
-          }
+          if (fills?.get(key)?.hasData) return false;
           return isEmptySlice(slices.get(key));
         }}
         tileContent={({ date, view }) => {
@@ -310,6 +442,9 @@ export default function JobCalendar({
           const nextKey = dayKeyOf(next);
           return (
             <>
+              {/* Which day this tile is, for the drag gesture, which sees only
+                  DOM targets. Hidden: it is a marker, not content. */}
+              <span data-day={key} hidden />
               {/* Rendered on every tile, revealed by CSS on the first of each
                   row. See TileAxis. */}
               <TileAxis
@@ -336,6 +471,14 @@ export default function JobCalendar({
                 />
               )}
               {/*
+                Calendar v1: the completion fill, the whole tile's background.
+                First of the positioned siblings so the level trace, at the same
+                z-index, paints over it; the day body sits above both.
+              */}
+              {fills && fills.get(key)?.hasData && (
+                <TileCompletionFill outcome={fills.get(key) as DayOutcome} day={key} />
+              )}
+              {/*
                 Calendar v2: what became of the jobs open when the day began, as
                 a 100%-stacked bar astride the boundary into tomorrow. Sibling of
                 the day body for the same reason as the level trace.
@@ -349,15 +492,10 @@ export default function JobCalendar({
                 />
               )}
               {/*
-                The open-jobs level, behind the bars. Only in the all-clusters
-                view: a single cluster's tiles already show its standing state --
-                the two blues in a journey bar ARE its queue -- so a trace would
-                repeat what the tile has said, against a scale the percentage
-                axis cannot annotate.
-
-                Sibling of the day body, not a child of it: the body clips, and
-                the trace has to run edge to edge into the neighbouring day, with
-                its midnight dot astride the boundary.
+                The open-jobs level, behind the bars. Sibling of the day body,
+                not a child of it: the body clips, and the trace has to run edge
+                to edge into the neighbouring day, with its midnight dot astride
+                the boundary.
               */}
               {levels && slice && levels.get(key)?.hasData && (
                 <TileLevelLine
@@ -374,8 +512,7 @@ export default function JobCalendar({
               )}
               <TileBody
                 slice={slice}
-                census={censuses?.get(key)}
-                activity={activities?.get(key)}
+                activity={activities.get(key)}
                 peakBinTotal={peakBinTotal}
                 scale={scale}
                 onHoverScale={setHoveredScale}
@@ -389,9 +526,8 @@ export default function JobCalendar({
 }
 
 /**
- * Fixed height for every tile's bars. The ratio bars are percentages, so a
- * uniform canvas keeps the six-bin shape legible on every day; the magnitude bars
- * carry their own height inside it.
+ * Fixed height for every tile's bars: a uniform canvas keeps the six-bin shape
+ * legible on every day, and the bars carry their own height inside it.
  */
 const BARS_SLOT = TILE_BARS_HEIGHT;
 
@@ -427,35 +563,33 @@ const TILE_CAPTION = {
  */
 function TileBody({
   slice,
-  census,
   activity,
   peakBinTotal,
   scale,
   onHoverScale,
 }: {
   slice: DaySlice | undefined;
-  census: DayCensus | undefined;
   activity: DayActivity | undefined;
   peakBinTotal: number;
   scale: BarScale;
   onHoverScale: (kind: ScaleKind | null) => void;
 }) {
-  // Cluster mode shows the census whenever jobs are in view, moved or not;
-  // all-jobs mode shows the magnitude bars only when something changed.
-  const barsVisible = slice ? (census ? census.hasData : !!activity?.hasData) : false;
+  // The bars show only when something changed state.
+  const barsVisible = slice ? !!activity?.hasData : false;
   const dayLabel = slice ? formatDayShort(slice.day) : "";
 
   // The day bake counts starts, completions and removals, so a day whose only
   // event was a submission has "0 changed" -- which reads as nothing happened
-  // next to a tile full of fresh blue. In cluster mode the census knows better.
+  // next to a tile full of fresh blue. The bars' own placement count knows
+  // better.
   const caption = !slice
     ? ""
     : !barsVisible
       ? ""
       : slice.changed > 0
         ? `${compactNumber(slice.changed)} changed`
-        : census && census.placedToday > 0
-          ? `${compactNumber(census.placedToday)} placed`
+        : activity && activity.bins.some((bin) => bin.placed > 0)
+          ? `${compactNumber(activity.bins.reduce((sum, bin) => sum + bin.placed, 0))} placed`
           : `${compactNumber(slice.changed)} changed`;
 
   return (
@@ -484,33 +618,19 @@ function TileBody({
           justifyContent: "center",
         }}
       >
-        {barsVisible && slice ? (
-          // The journey bars span the tile so they butt against the neighbouring
-          // day's; the magnitude bars stay inset and centred, where a gap between
-          // days is correct -- each is its own independent total, not a series.
-          <Box sx={{ width: "100%", maxWidth: census ? "none" : 104, minWidth: 0 }}>
-            {census ? (
-              <TileBars
-                bins={census.bins}
-                height={BARS_SLOT}
-                dayLabel={dayLabel}
-                finishedAt={census.finishedAt}
-                label={`${compactNumber(slice.changed)} jobs changed state`}
-                onHoverScale={onHoverScale}
-              />
-            ) : (
-              activity && (
-                <TileActivityBars
-                  bins={activity.bins}
-                  peakBinTotal={peakBinTotal}
-                  scale={scale}
-                  height={BARS_SLOT}
-                  dayLabel={dayLabel}
-                  label={`${compactNumber(activity.total)} state changes`}
-                  onHoverScale={onHoverScale}
-                />
-              )
-            )}
+        {barsVisible && slice && activity ? (
+          // The bars stay inset and centred, where a gap between days is correct
+          // -- each is its own independent total, not a series.
+          <Box sx={{ width: "100%", maxWidth: 104, minWidth: 0 }}>
+            <TileActivityBars
+              bins={activity.bins}
+              peakBinTotal={peakBinTotal}
+              scale={scale}
+              height={BARS_SLOT}
+              dayLabel={dayLabel}
+              label={`${compactNumber(activity.total)} state changes`}
+              onHoverScale={onHoverScale}
+            />
           </Box>
         ) : (
           // Nothing to plot, but the day still has a headline worth showing.

@@ -42,6 +42,33 @@ export const READOUT_SLOT_PROPS = {
   arrow: { sx: { color: "grey.900" } },
 } as const;
 
+/**
+ * The light variant, for the midnight dot's readout: paper ground, dark text,
+ * a hairline border so it still has an edge over the tile's own paper. The
+ * dot's readout is a sentence or two about a projection rather than a table
+ * over a bar, and the dark ground read as a warning rather than a note.
+ */
+export const READOUT_SLOT_PROPS_LIGHT = {
+  tooltip: {
+    sx: {
+      backgroundColor: "background.paper",
+      color: "text.primary",
+      border: "1px solid",
+      borderColor: "divider",
+      maxWidth: 320,
+      px: 1.25,
+      py: 0.75,
+      boxShadow: 3,
+    },
+  },
+  arrow: {
+    sx: {
+      color: "background.paper",
+      "&::before": { border: "1px solid", borderColor: "divider" },
+    },
+  },
+} as const;
+
 /** One coloured line in a hover readout. */
 export interface ReadoutRow {
   label: string;
@@ -52,7 +79,7 @@ export interface ReadoutRow {
   /**
    * Which figure leads the line. Counts lead by default, because for a bar that
    * measures work done the count IS the reading. A bar that measures a share of a
-   * whole -- the 100%-stacked journey bars -- wants the percentage in front, with
+   * whole -- v2's 100%-stacked boundary bar -- wants the percentage in front, with
    * the count as the supporting detail.
    */
   lead?: "value" | "share";

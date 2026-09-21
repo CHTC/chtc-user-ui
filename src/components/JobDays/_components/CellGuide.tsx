@@ -14,15 +14,18 @@ import {
 } from "@mui/material";
 import Close from "@mui/icons-material/Close";
 
-import { barFraction, buildScaleTicks } from "./binModel";
+import { barFraction, buildScaleTicks, type DayLevel } from "./binModel";
 import { compactNumber } from "./dayCards";
+import { daySlope, slopeLines } from "./TileLevelLine";
 import {
   ACTIVITY_ORDER,
   ACTIVITY_STYLES,
   BAR_STATE_STYLES,
   CARRIED_ACTIVE_COLOR,
+  COMPLETION_FILL_COLOR,
   LEVEL_DOT_COLOR,
-  LEVEL_LINE_COLOR,
+  levelSegments,
+  levelSlopeColor,
   OUTCOME_ORDER,
   OUTCOME_ORDER_TOP_DOWN,
   OUTCOME_STYLES,
@@ -34,7 +37,7 @@ import type { CalendarVersion } from "./VersionSwitch";
  * Which part of the example cell a feature is about. Several features point at
  * the bars, so emphasis is expressed per part rather than per feature.
  */
-type Part = "date" | "axis" | "bars" | "caption" | "queue" | "queueAxis";
+type Part = "date" | "axis" | "bars" | "caption" | "queue" | "queueAxis" | "fill";
 
 type FeatureId =
   | "date"
@@ -43,8 +46,8 @@ type FeatureId =
   | "height"
   | "hover"
   | "queue"
-  | "caption"
-  | "finished";
+  | "fill"
+  | "caption";
 
 interface Feature {
   id: FeatureId;
@@ -60,8 +63,8 @@ interface Feature {
  * Orientation before structure, structure before encoding, and within the
  * encoding "what happened" before "how much" -- you have to know what you are
  * looking at before its size means anything. Then the escape hatch (hover for the
- * real numbers), then the one bar that is not a day, and finally the details and
- * the edge case, which only matter once the rest has landed.
+ * real numbers), then the marks that are not bars, and finally the caption,
+ * which only matters once the rest has landed.
  */
 const FEATURES: Feature[] = [
   {
@@ -85,7 +88,7 @@ const FEATURES: Feature[] = [
   {
     id: "height",
     title: "Height is how much happened",
-    body: "Every bar on the month is scaled against the busiest single window in it. The numbers down the left of each row say what those heights are worth in state changes.",
+    body: "Every bar on the month is scaled against the busiest single window in it. The numbers down the left of each row say what those heights are worth in state changes. One heavy day flattens the rest, so drag across a run of days — or shift-click — to scale everything to just those days; the others go grey until you press Escape.",
     parts: ["axis", "bars"],
   },
   {
@@ -96,21 +99,21 @@ const FEATURES: Feature[] = [
   },
   {
     id: "queue",
-    title: "The grey line behind the bars is the queue",
-    body: "How many jobs were open at the close of each window — the queue as a level, not the changes to it. It steps down as work finishes, jumps when a batch lands, and runs straight on into the next day so a week reads as one line. The dot on the midnight boundary gives its numbers on hover. Being a headcount rather than a count of changes, it is measured against its own scale, down the right under the stacked glyph.",
+    title: "The line behind the bars is the queue",
+    body: "How many jobs were open at the close of each window — the queue as a level, not the changes to it. It steps down as work finishes, jumps when a batch lands, and runs straight on into the next day so a week reads as one line. Its colour says how fast it is moving: blue only where the queue is perfectly flat, purple as soon as it moves at all, and on to red where it drops or climbs steeply, whichever way. The dot on the midnight boundary is coloured by the day's average slope, and on hover gives the queue's numbers, that average rate, and when the queue would empty if it held. Being a headcount rather than a count of changes, it is measured against its own scale, down the right under the stacked glyph.",
     parts: ["queue", "queueAxis"],
+  },
+  {
+    id: "fill",
+    title: "The teal ground is the day's completion rate",
+    body: "Of the jobs that were already open when this day began, the share that completed before it ended — filled up from the floor of the cell, so a day that inherited 200 jobs and finished 100 of them is half teal. Jobs placed during the day are not counted, and neither are removals: this is the backlog being cleared, nothing else. A cell filled to the top cleared everything it started with; an empty one finished none of it. Its numbers are in the day's full breakdown, one click away.",
+    parts: ["fill"],
   },
   {
     id: "caption",
     title: "The caption counts jobs",
     body: "Distinct jobs that changed state that day. A job that did two things still counts once, which is why this rarely matches the bars added up.",
     parts: ["caption"],
-  },
-  {
-    id: "finished",
-    title: "Blank bars can mean finished",
-    body: "With one cluster or batch selected the bars stop being windows and become snapshots — a census of the whole group taken every four hours — and they are cumulative. Once its last job reaches a final state the day draws that one all-finished reading and stops; the blanks after it mean the work is done, not that the data ran out.",
-    parts: ["bars"],
   },
 ];
 
@@ -125,10 +128,16 @@ const V2_QUEUE_FEATURE: Feature = {
   parts: ["queue", "queueAxis"],
 };
 
-/** The feature list for one calendar version. */
+/**
+ * The feature list for one calendar version. v2 swaps the level trace for the
+ * boundary bar and drops the completion fill, which the bar's teal segment
+ * already says.
+ */
 function featuresFor(variant: CalendarVersion): Feature[] {
   return variant === "v2"
-    ? FEATURES.map((feature) => (feature.id === "queue" ? V2_QUEUE_FEATURE : feature))
+    ? FEATURES.filter((feature) => feature.id !== "fill").map((feature) =>
+        feature.id === "queue" ? V2_QUEUE_FEATURE : feature,
+      )
     : FEATURES;
 }
 
@@ -164,9 +173,24 @@ const EXAMPLE_LEVELS = EXAMPLE_BINS.reduce<number[]>((acc, bin) => {
   return acc;
 }, []);
 const EXAMPLE_LEVEL_END = EXAMPLE_LEVELS[EXAMPLE_LEVELS.length - 1];
+/** The example day as a key, so the dot's projected empty time can be dated. */
+const EXAMPLE_DAY = "2026-08-12";
+/** The example's level in the shape the real dot reads its slope from. */
+const EXAMPLE_LEVEL: DayLevel = { start: EXAMPLE_LEVEL_START, ends: EXAMPLE_LEVELS, hasData: true };
 /** The queue scale's peak: the highest the level reached, as the calendar does per month. */
 const EXAMPLE_LEVEL_PEAK = Math.max(EXAMPLE_LEVEL_START, ...EXAMPLE_LEVELS);
 const EXAMPLE_LEVEL_TICKS = buildScaleTicks(EXAMPLE_LEVEL_PEAK, "linear");
+/**
+ * The example trace's segments, coloured by steepness exactly as a real tile
+ * colours its own. The example is linear, the page's default.
+ */
+const EXAMPLE_LEVEL_SEGMENTS = levelSegments(
+  [EXAMPLE_LEVEL_START, ...EXAMPLE_LEVELS].map(
+    (level) =>
+      Number((SLOT_HEIGHT - barFraction(level, EXAMPLE_LEVEL_PEAK, "linear") * SLOT_HEIGHT).toFixed(2)),
+  ),
+  SLOT_HEIGHT,
+);
 /** What the midnight census would say, to match the real dot's readout. */
 const EXAMPLE_QUEUE = { carried: 120, fromToday: 180 };
 
@@ -398,6 +422,26 @@ function ExampleCell({ active, variant }: { active: Feature | null; variant: Cal
             gap: 1,
           }}
         >
+          {/* Calendar v1: the completion fill, the whole cell's ground. First
+              so everything else paints over it, as on a real tile. Its height
+              is the example's completed share of the jobs the day began with. */}
+          {variant === "v1" && (
+            <Box
+              sx={{
+                position: "absolute",
+                left: 0,
+                right: 0,
+                bottom: 0,
+                height: `${((EXAMPLE_OUTCOME.completed / EXAMPLE_OUTCOME_TOTAL) * 100).toFixed(3)}%`,
+                backgroundColor: COMPLETION_FILL_COLOR,
+                zIndex: 0,
+                pointerEvents: "none",
+                ...dim("fill"),
+                ...ring("fill"),
+              }}
+            />
+          )}
+
           {/* Calendar v2: the day's inheritance, a bordered 100%-stacked bar
               astride the right border and running the whole cell, top to
               bottom -- as it does on a real tile. */}
@@ -489,8 +533,9 @@ function ExampleCell({ active, variant }: { active: Feature | null; variant: Cal
             </Box>
 
             {/* Calendar v1: the level trace, behind the bars and edge to edge,
-                with the midnight dot astride the right border. Grey, and
-                underneath: it is the ground the day's changes happen against. */}
+                with the midnight dot astride the right border. Underneath,
+                since it is the ground the day's changes happen against, and
+                coloured segment by segment by its steepness as on a real tile. */}
             {variant === "v1" && (
             <Box
               sx={{
@@ -508,21 +553,19 @@ function ExampleCell({ active, variant }: { active: Feature | null; variant: Cal
                 preserveAspectRatio="none"
                 style={{ display: "block", overflow: "visible" }}
               >
-                <polyline
-                  points={[
-                    `0,${(SLOT_HEIGHT - barFraction(EXAMPLE_LEVEL_START, EXAMPLE_LEVEL_PEAK, "linear") * SLOT_HEIGHT).toFixed(2)}`,
-                    ...EXAMPLE_LEVELS.map(
-                      (level, index) =>
-                        `${index + 1},${(SLOT_HEIGHT - barFraction(level, EXAMPLE_LEVEL_PEAK, "linear") * SLOT_HEIGHT).toFixed(2)}`,
-                    ),
-                  ].join(" ")}
-                  fill="none"
-                  stroke={LEVEL_LINE_COLOR}
-                  strokeWidth={active?.id === "queue" ? 3 : 2}
-                  strokeLinejoin="round"
-                  strokeLinecap="round"
-                  vectorEffect="non-scaling-stroke"
-                />
+                {EXAMPLE_LEVEL_SEGMENTS.map((segment) => (
+                  <line
+                    key={segment.x1}
+                    x1={segment.x1}
+                    y1={segment.y1}
+                    x2={segment.x2}
+                    y2={segment.y2}
+                    stroke={segment.color}
+                    strokeWidth={active?.id === "queue" ? 3 : 2}
+                    strokeLinecap="round"
+                    vectorEffect="non-scaling-stroke"
+                  />
+                ))}
               </svg>
               <Box
                 sx={{
@@ -533,7 +576,14 @@ function ExampleCell({ active, variant }: { active: Feature | null; variant: Cal
                   height: 10,
                   transform: "translate(50%, 50%)",
                   borderRadius: "50%",
-                  backgroundColor: LEVEL_DOT_COLOR,
+                  // The day's average slope on the segments' per-window scale,
+                  // as on a real tile.
+                  backgroundColor: levelSlopeColor(
+                    Math.abs(
+                      barFraction(EXAMPLE_LEVEL_END, EXAMPLE_LEVEL_PEAK, "linear") -
+                        barFraction(EXAMPLE_LEVEL_START, EXAMPLE_LEVEL_PEAK, "linear"),
+                    ) / EXAMPLE_BINS.length,
+                  ),
                   boxShadow: (theme) => `0 0 0 2px ${theme.palette.background.paper}`,
                 }}
               />
@@ -688,10 +738,17 @@ function ExampleCell({ active, variant }: { active: Feature | null; variant: Cal
             px: 1.25,
             py: 0.75,
             borderRadius: 1,
-            // Matches the real readout's solid dark ground; see
-            // READOUT_SLOT_PROPS in BinReadout.
-            backgroundColor: "grey.900",
-            color: "common.white",
+            // Matches the real readouts' grounds: the bars' solid dark one, and
+            // the v1 dot's light one; see READOUT_SLOT_PROPS in BinReadout.
+            ...(active?.id === "queue" && variant === "v1"
+              ? {
+                  backgroundColor: "background.paper",
+                  color: "text.primary",
+                  border: "1px solid",
+                  borderColor: "divider",
+                  boxShadow: 3,
+                }
+              : { backgroundColor: "grey.900", color: "common.white" }),
           }}
         >
           {active?.id === "queue" && variant === "v2" ? (
@@ -726,6 +783,15 @@ function ExampleCell({ active, variant }: { active: Feature | null; variant: Cal
                 color={BAR_STATE_STYLES.active.color}
                 text={`${EXAMPLE_QUEUE.fromToday.toLocaleString()} placed this day, still in flight`}
               />
+              {slopeLines(daySlope(EXAMPLE_LEVEL, EXAMPLE_DAY), EXAMPLE_LEVEL_END).map((line) => (
+                <Typography
+                  key={line}
+                  variant="caption"
+                  sx={{ display: "block", opacity: 0.8, mt: 0.5 }}
+                >
+                  {line}
+                </Typography>
+              ))}
             </>
           ) : (
             <>
