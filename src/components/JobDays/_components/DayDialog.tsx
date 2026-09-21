@@ -32,7 +32,7 @@ import {
   type GroupBy,
 } from "./grouping";
 import DayActivityBars from "./DayActivityBars";
-import { OUTCOME_ORDER_TOP_DOWN, OUTCOME_STYLES } from "./palette";
+import { OUTCOME_ORDER_TOP_DOWN, OUTCOME_STYLES, describeActivity, type ActivityState } from "./palette";
 import { ActivityRows } from "./StateRows";
 import type { CalendarVersion } from "./VersionSwitch";
 
@@ -53,6 +53,8 @@ interface DayDialogProps {
   batches?: BatchInfo[];
   /** The day everything is read as of. */
   asOf: string;
+  /** Which states the page's bars stack; the dialog's chart matches. */
+  bars: ActivityState[];
   open: boolean;
   onClose: () => void;
   /**
@@ -92,6 +94,7 @@ export default function DayDialog({
   onSelectionChange,
   batches,
   asOf,
+  bars,
   open,
   onClose,
 }: DayDialogProps) {
@@ -165,10 +168,10 @@ export default function DayDialog({
     if (dayIndex < 0) return { activity: null, level: null };
     const dense = expandSeries(barData, filter);
     return {
-      activity: buildDayActivity(barData, dense, dayIndex),
+      activity: buildDayActivity(barData, dense, dayIndex, bars),
       level: buildDayLevels(barData, dense).get(day) ?? null,
     };
-  }, [barData, filter, day]);
+  }, [barData, filter, day, bars]);
 
   // What became of the jobs open when this day began, for the same scope as the
   // tile that was clicked. Both calendars draw this on the tile -- v2 as the
@@ -255,7 +258,8 @@ export default function DayDialog({
                           bins={activity.bins}
                           height={260}
                           level={level}
-                          label={`State changes per 4-hour bin on ${formatDayLong(slice.day)}, with the number of open jobs at the close of each`}
+                          shown={bars}
+                          label={`Jobs ${describeActivity(bars)} per 4-hour bin on ${formatDayLong(slice.day)}, with the number of open jobs at the close of each`}
                         />
                       </Box>
                     )}

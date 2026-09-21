@@ -13,6 +13,7 @@
 import type { BarScale, StackedBarData } from "../types";
 import { parseDayKey } from "./dayCards";
 import { inFilter, type ClusterFilter } from "./grouping";
+import { DEFAULT_BARS, type ActivityState } from "./palette";
 
 /** The selected clusters' series, summed into dense window-long arrays. */
 export interface DenseSeries {
@@ -53,29 +54,34 @@ export interface BinActivity {
   placed: number;
   completed: number;
   removed: number;
-  /** All changes in the bin; the bar's height. */
+  /**
+   * The bar's height: the sum of whichever of the three the bars are set to
+   * show (see DEFAULT_BARS). The readouts quote the hidden ones.
+   */
   total: number;
 }
 
 export interface DayActivity {
   bins: BinActivity[];
-  /** All changes across the day. */
+  /** The shown states' sum across the day. */
   total: number;
+  /** True when anything completed, was placed, or was removed in the day. */
   hasData: boolean;
 }
 
 /**
- * The magnitude view for one day: how many state changes landed in each bin. A
- * busy bin is a tall bar, a quiet one is empty. A bin with nothing in it draws
- * nothing, so a day whose work all finished at 04:00 has five empty bins of
- * its own accord.
+ * The magnitude view for one day: how many jobs did the shown thing in each
+ * bin -- completed, by default. A busy bin is a tall bar, a quiet one is
+ * empty. A bin with nothing in it draws nothing, so a day whose work all
+ * completed by 04:00 has five empty bins of its own accord.
  */
 export function buildDayActivity(
   data: StackedBarData,
   dense: DenseSeries,
   dayIndex: number,
+  shown: ActivityState[] = DEFAULT_BARS,
 ): DayActivity {
-  return buildBucketActivity(dense, dayBuckets(data, dayIndex));
+  return buildBucketActivity(dense, dayBuckets(data, dayIndex), shown);
 }
 
 // --- Buckets: the same two derivations over spans coarser than a 4-hour bin ---
@@ -176,24 +182,30 @@ function weekLabel(first: string, last: string): string {
   return `${month(a)} ${a.getDate()} – ${month(b)} ${b.getDate()}`;
 }
 
-/** State changes per bucket: buildDayActivity over any span. */
-export function buildBucketActivity(dense: DenseSeries, buckets: Bucket[]): DayActivity {
+/** Change counts per bucket: buildDayActivity over any span. */
+export function buildBucketActivity(
+  dense: DenseSeries,
+  buckets: Bucket[],
+  shown: ActivityState[] = DEFAULT_BARS,
+): DayActivity {
   const bins: BinActivity[] = [];
   let total = 0;
+  let anyChange = 0;
   for (const bucket of buckets) {
-    let placed = 0;
-    let completed = 0;
-    let removed = 0;
+    const counts = { placed: 0, completed: 0, removed: 0 };
     for (let b = bucket.from; b < bucket.to; b++) {
-      placed += dense.placed[b] ?? 0;
-      completed += dense.completed[b] ?? 0;
-      removed += dense.removed[b] ?? 0;
+      counts.placed += dense.placed[b] ?? 0;
+      counts.completed += dense.completed[b] ?? 0;
+      counts.removed += dense.removed[b] ?? 0;
     }
-    const binTotal = placed + completed + removed;
+    const binTotal = shown.reduce((sum, state) => sum + counts[state], 0);
     total += binTotal;
-    bins.push({ label: bucket.label, placed, completed, removed, total: binTotal });
+    anyChange += counts.placed + counts.completed + counts.removed;
+    bins.push({ label: bucket.label, ...counts, total: binTotal });
   }
-  return { bins, total, hasData: total > 0 };
+  // A day where only hidden states moved still has data: its bars are empty
+  // but its tile is alive, and the readouts say what happened.
+  return { bins, total, hasData: anyChange > 0 };
 }
 
 /**
@@ -268,76 +280,22 @@ function binLabel(bin: number, binHours: number): string {
 }
 
 /**
- * Height of a calendar tile's bar slot, in pixels. Lives here rather than in the
- * calendar because the scale advice below has to reason in pixels: whether a bar
- * is still saying anything depends on how tall the slot is.
+ * Height of a calendar tile's bar slot, in pixels. Shared with the calendar,
+ * which positions the row axes against it.
  */
 export const TILE_BARS_HEIGHT = 88;
 
 /**
- * Floor TileActivityBars applies so a bin with any activity stays visible. A bar
- * this short is no longer encoding its value -- it is the floor, and every bar
- * sitting on it looks identical whatever its count.
+ * The tallest bin among the given days: what every bar in that scope is scaled
+ * against. Takes the entries already filtered to the scope, so this stays pure
+ * arithmetic over the bins and needs no notion of calendars or date keys.
  */
-export const MIN_BAR_PIXELS = 2;
-
-/**
- * What the linear scale is doing to the month on screen.
- *
- * A month holding both a 181,000-change bin and a 600-change one has a dynamic
- * range no proportional axis survives: the small bars collapse onto the 2-pixel
- * floor and a fortnight of real work reads as empty tiles. That is a property of
- * the data, not a mistake, so the page measures it and offers the log scale
- * instead of choosing for the reader.
- */
-export interface ScaleAdvice {
-  /** Tallest 4-hour bin on the month; what every bar is scaled against. */
-  peak: number;
-  /** Days with activity at all. */
-  activeDays: number;
-  /** Days whose tallest bar is held up by the floor rather than by its value. */
-  squashedDays: number;
-  /** The busiest of those days -- the largest thing linear is hiding. */
-  exampleDay: string | null;
-  /** That day's busiest bin. */
-  exampleBin: number;
-}
-
-/**
- * Measure one month's activity: the shared peak every tile scales against, and
- * how much of the month linear scaling flattens onto the floor.
- *
- * Takes the month's entries already filtered, so this stays pure arithmetic over
- * the bins and needs no notion of calendars or date keys.
- */
-export function buildScaleAdvice(entries: [string, DayActivity][]): ScaleAdvice {
+export function peakBinTotal(entries: [string, DayActivity][]): number {
   let peak = 0;
   for (const [, activity] of entries) {
     for (const bin of activity.bins) if (bin.total > peak) peak = bin.total;
   }
-
-  // Counts below this draw shorter than the floor, so they all render the same
-  // height no matter how far apart they are.
-  const floor = (MIN_BAR_PIXELS / TILE_BARS_HEIGHT) * peak;
-
-  let activeDays = 0;
-  let squashedDays = 0;
-  let exampleDay: string | null = null;
-  let exampleBin = 0;
-  for (const [day, activity] of entries) {
-    if (!activity.hasData) continue;
-    activeDays++;
-    const tallest = activity.bins.reduce((max, bin) => Math.max(max, bin.total), 0);
-    if (tallest > 0 && tallest < floor) {
-      squashedDays++;
-      if (tallest > exampleBin) {
-        exampleBin = tallest;
-        exampleDay = day;
-      }
-    }
-  }
-
-  return { peak, activeDays, squashedDays, exampleDay, exampleBin };
+  return peak;
 }
 
 /**

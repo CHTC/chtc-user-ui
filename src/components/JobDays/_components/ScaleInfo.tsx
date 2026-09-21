@@ -3,7 +3,6 @@
 import { Box, Stack, Typography } from "@mui/material";
 
 import type { BarScale } from "../types";
-import type { ScaleAdvice } from "./binModel";
 
 export const SCALE_LABELS: Record<BarScale, string> = {
   linear: "Linear",
@@ -23,9 +22,9 @@ export const SCALE_LABELS: Record<BarScale, string> = {
 export const SCALE_HELP: Record<BarScale, { good: string; bad: string }> = {
   linear: {
     good:
-      "Bar heights are proportional to the work. Twice as tall really is twice as many state changes, so you can compare days by eye and trust the answer.",
+      "Bar heights are proportional to the work. Twice as tall really is twice as many jobs completed, so you can compare days by eye and trust the answer.",
     bad:
-      "One heavy day flattens the rest of the month. Against a 900,000-change peak a 600-change bin is well under a pixel, so busy-but-ordinary days read as empty ones.",
+      "One heavy day flattens the rest of the month. Against a 900,000-job peak a 600-job bin is well under a pixel, so busy-but-ordinary days read as empty ones.",
   },
   log: {
     good:
@@ -34,30 +33,6 @@ export const SCALE_HELP: Record<BarScale, { good: string; bad: string }> = {
       "Heights are no longer proportional. A bar half as tall can be thousands of times less work, so comparisons are ordinal only — hover a bar, or open the day, for the real numbers.",
   },
 };
-
-/**
- * The nudge that sits beside the toggle when the linear scale has flattened most
- * of the month onto the 2-pixel floor.
- *
- * In the document flow rather than a popup: it is information about what the
- * reader is looking at, not an interruption, so it should not cover the thing it
- * is describing or need dismissing. One sentence -- the info tooltip and the note
- * at the foot of the page carry the full argument.
- */
-export function ScaleHint({ advice }: { advice: ScaleAdvice }) {
-  return (
-    <Typography variant="caption" component="p" sx={{ color: "text.secondary", lineHeight: 1.4 }}>
-      {advice.squashedDays} of {advice.activeDays} busy days are too short to read at this
-      scale.
-      <br />
-      Try{" "}
-      <Box component="span" sx={{ fontWeight: 700, color: "primary.main" }}>
-        Log Scale
-      </Box>{" "}
-      to increase bar sizes at the cost of easily comparable magnitudes.
-    </Typography>
-  );
-}
 
 /** Compact good/bad pair for one scale. Used inside the info tooltip. */
 function HelpEntry({ scale }: { scale: BarScale }) {
@@ -82,7 +57,7 @@ export function ScaleHelpTooltip() {
   return (
     <Stack spacing={1} sx={{ maxWidth: 320, py: 0.5 }}>
       <Typography variant="caption" sx={{ display: "block", lineHeight: 1.5 }}>
-        How the calendar turns state-change counts into bar heights. It scales every
+        How the calendar turns counts of completed jobs into bar heights. It scales every
         day against the busiest 4-hour bin on the visible month — or on the days you
         have dragged out — so heights are comparable across that scope and nowhere else.
       </Typography>
@@ -144,10 +119,8 @@ export function ScaleNote({ scale }: { scale: BarScale }) {
         component="p"
         sx={{ color: "text.secondary", display: "block", mt: 0.75, fontStyle: "italic" }}
       >
-        Neither scale distorts a single bar: the split between placed, completed, and
-        removed inside one column is always linear, and the day detail keeps a plain
-        count axis with exact totals. The scale only changes how tall one column is
-        next to another.
+        The scale only changes how tall one column is next to another; the day detail
+        keeps a plain count axis with exact totals.
       </Typography>
     </Box>
   );

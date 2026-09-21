@@ -23,15 +23,15 @@ import DayDialog from "./_components/DayDialog";
 import JobCalendar, { inRange, type DayRange } from "./_components/JobCalendar";
 import PeriodCard from "./_components/PeriodCard";
 import VersionSwitch, { type CalendarVersion } from "./_components/VersionSwitch";
-import { ScaleHelpTooltip, ScaleHint, ScaleNote, SCALE_LABELS } from "./_components/ScaleInfo";
+import { ScaleHelpTooltip, ScaleNote, SCALE_LABELS } from "./_components/ScaleInfo";
 import {
   buildBucketActivity,
   buildBucketLevel,
   buildDayActivity,
   buildDayLevels,
-  buildScaleAdvice,
   dayBuckets,
   expandSeries,
+  peakBinTotal,
   periodBuckets,
   type BucketUnit,
   type DayActivity,
@@ -60,15 +60,24 @@ import {
   CELL_GUIDE_KEY,
   CELL_GUIDE_V2_KEY,
   DEFAULT_SCALE,
+  readBarsParam,
   readGroupParams,
   readGuideDismissed,
   readRangeParam,
   readScaleParam,
+  writeBarsParam,
   writeGroupParams,
   writeGuideDismissed,
   writeRangeParam,
   writeScaleParam,
 } from "./_components/urlState";
+import {
+  ACTIVITY_STACK,
+  ACTIVITY_STYLES,
+  DEFAULT_BARS,
+  stackOrder,
+  type ActivityState,
+} from "./_components/palette";
 
 interface DaysViewProps {
   /** 4-hour transition series, for the calendar's bars. */
@@ -120,6 +129,9 @@ export default function DaysView({
   // The days the bars are scaled to, when the reader has dragged out a range on
   // the calendar. Null scales to the visible month.
   const [range, setRange] = useState<DayRange | null>(null);
+  // Which states the bars stack: completions by default, placements and
+  // removals on request. Every chart on the page follows this one pick.
+  const [bars, setBars] = useState<ActivityState[]>(DEFAULT_BARS);
   // The cell guide opens the page. Closed on the server and on first paint, then
   // opened from an effect: whether the reader has dismissed it lives in
   // localStorage, which cannot be read while rendering static HTML.
@@ -154,6 +166,8 @@ export default function DaysView({
 
     const wanted = readScaleParam(window.location.search);
     if (wanted) setScale(wanted);
+    const wantedBars = readBarsParam(window.location.search);
+    if (wantedBars) setBars(wantedBars);
 
     // A linked range also opens the calendar on the month it starts in: the
     // as-of month would show a grid of grey with the range off screen.
@@ -208,6 +222,13 @@ export default function DaysView({
     setRange(next);
     writeRangeParam(next);
   };
+  // ToggleButtonGroup hands back the picked values in click order; stored in
+  // stacking order so the state, the URL, and the legend all agree.
+  const selectBars = (next: ActivityState[]) => {
+    const ordered = stackOrder(next);
+    setBars(ordered);
+    writeBarsParam(ordered);
+  };
 
   const batchGrouping = canGroupByBatch(data.batches);
   const options = useMemo(
@@ -221,8 +242,8 @@ export default function DaysView({
     [data.series, data.batches, groupBy, selection],
   );
 
-  // One view whatever is selected: the magnitude of state changes per bin, with
-  // the queue level over it. A single cluster or batch is the same picture
+  // One view whatever is selected: how many jobs completed per bin, with the
+  // queue level over it. A single cluster or batch is the same picture
   // filtered down, so what the reader learns on everything carries over. (It
   // used to switch to a 100%-stacked census of the group's cohort; that view
   // was retired for reading differently from the one beside it.)
@@ -254,18 +275,19 @@ export default function DaysView({
       : periodBuckets(data, summary.days, period === "month" ? "weeks" : "days");
     const unit: BucketUnit = single ? "hours" : period === "month" ? "weeks" : "days";
     return {
-      activity: buildBucketActivity(dense, buckets),
+      activity: buildBucketActivity(dense, buckets, bars),
       level: buildBucketLevel(dense, buckets),
       unit,
     };
-  }, [summary, period, data, dense]);
+  }, [summary, period, data, dense, bars]);
 
-  // The calendar's inputs: each day's 4-hour change counts.
+  // The calendar's inputs: each day's 4-hour change counts, totalled over the
+  // states the bars are showing.
   const activities = useMemo(() => {
     const out = new Map<string, DayActivity>();
-    data.days.forEach((day, index) => out.set(day, buildDayActivity(data, dense, index)));
+    data.days.forEach((day, index) => out.set(day, buildDayActivity(data, dense, index, bars)));
     return out;
-  }, [data, dense]);
+  }, [data, dense, bars]);
 
   // v1: the open-jobs level behind the bars.
   const levels = useMemo(
@@ -292,15 +314,14 @@ export default function DaysView({
   // flattens everything after it; selecting the rest lets the rest be seen.
   const inScope = (day: string) => (range ? inRange(day, range) : inVisibleMonth(day));
 
-  // One measurement of the scope serves two consumers: the peak every tile
-  // scales against, and the hint that says what linear scaling costs today.
-  // Recomputed per month on purpose -- a single window-wide peak would bury
-  // every ordinary month under the one holding the 863,000-change day.
-  const advice = useMemo(() => {
-    if (!activities) return null;
-    return buildScaleAdvice([...activities].filter(([day]) => inScope(day)));
+  // The peak every tile scales against. Recomputed per scope on purpose -- a
+  // single window-wide peak would bury every ordinary month under the one
+  // holding the 863,000-change day.
+  const peak = useMemo(
+    () => peakBinTotal([...activities].filter(([day]) => inScope(day))),
     // eslint-disable-next-line react-hooks/exhaustive-deps -- inScope closes over activeStartDate and range only
-  }, [activities, activeStartDate, range]);
+    [activities, activeStartDate, range],
+  );
 
   // The level trace's own scale: the highest the queue reached in the scope.
   // Standing jobs and changes are different quantities and get different
@@ -323,14 +344,6 @@ export default function DaysView({
       ? formatDayShort(r.start)
       : `${formatDayShort(r.start)} – ${formatDayShort(r.end)} · ${days} days`;
   };
-
-  // Worth saying only when the flattening is widespread: a couple of quiet days
-  // among many is just a quiet week, not a scale problem.
-  const showScaleHint =
-    scale === "linear" &&
-    !!advice &&
-    advice.squashedDays >= 3 &&
-    advice.squashedDays >= advice.activeDays / 2;
 
   const scopeLabel = selectionLabel(options, groupBy, selection);
 
@@ -357,8 +370,10 @@ export default function DaysView({
           {batchGrouping && ` in ${data.batches?.length} batches`}, {scopeLabel}. The chart
           shows what moved over the last day, week, or month — a bar per 4-hour window, per
           day, or per week; the calendar below breaks each day into 4-hour bins: how many
-          jobs were placed, completed, or removed in each bin, so a heavy bin towers and a
-          quiet one stays empty.{" "}
+          jobs completed in each bin, so a heavy bin towers and a quiet one stays empty,
+          while the line behind them carries the queue, jumping where jobs were placed and
+          dropping where they were removed. The &ldquo;Bars show&rdquo; toggle adds placed
+          or removed jobs to the bars.{" "}
           {variant === "v2" &&
             "The bar astride each midnight shows what became of the jobs the day started with: still open, completed, or removed, leaving out anything placed during it. "}
           {variant === "v1" &&
@@ -374,6 +389,7 @@ export default function DaysView({
           onPeriodChange={setPeriod}
           onOpenDetail={() => summary?.days.length === 1 && setOpenDay(summary.days[0])}
           activity={periodChart.activity}
+          bars={bars}
           level={periodChart.level}
           unit={periodChart.unit}
         />
@@ -439,7 +455,53 @@ export default function DaysView({
             </Stack>
           </Box>
 
+          {/*
+            Which states the bars stack. Multi-select: any mix is a sensible
+            picture, including none, which leaves the queue line on its own.
+            The swatch on each button is the segment colour, so the toggle
+            doubles as the legend.
+          */}
           <Box sx={{ ml: { sm: "auto" } }}>
+            <Typography
+              variant="overline"
+              component="p"
+              id="days-bars-label"
+              sx={{ color: "text.secondary", lineHeight: 1.6 }}
+            >
+              Bars show
+            </Typography>
+            <ToggleButtonGroup
+              size="small"
+              value={bars}
+              onChange={(_, next: ActivityState[]) => selectBars(next)}
+              aria-labelledby="days-bars-label"
+              sx={{ mt: 0.5 }}
+            >
+              {ACTIVITY_STACK.map((state) => (
+                <ToggleButton
+                  key={state}
+                  value={state}
+                  aria-label={`Show ${ACTIVITY_STYLES[state].label.toLowerCase()} jobs in the bars`}
+                  sx={{ gap: 0.75 }}
+                >
+                  <Box
+                    component="span"
+                    aria-hidden
+                    sx={{
+                      width: 10,
+                      height: 10,
+                      borderRadius: "2px",
+                      backgroundColor: ACTIVITY_STYLES[state].color,
+                      flexShrink: 0,
+                    }}
+                  />
+                  {ACTIVITY_STYLES[state].label}
+                </ToggleButton>
+              ))}
+            </ToggleButtonGroup>
+          </Box>
+
+          <Box>
             <Stack direction="row" spacing={0.5} alignItems="center">
               <Typography
                 variant="overline"
@@ -478,9 +540,6 @@ export default function DaysView({
                   ))}
                 </ToggleButtonGroup>
               </Box>
-
-              {/* Beside the buttons, in flow: see ScaleHint. */}
-              {showScaleHint && advice && <ScaleHint advice={advice} />}
             </Stack>
 
           </Box>
@@ -489,11 +548,13 @@ export default function DaysView({
         <JobCalendar
           slices={slices}
           activities={activities}
+          bars={bars}
+          onShowBars={(state) => selectBars([...bars, state])}
           levels={levels}
           outcomes={outcomes}
           fills={fills}
           scale={scale}
-          peakBinTotal={advice?.peak ?? 0}
+          peakBinTotal={peak}
           levelPeak={levelPeak}
           firstDay={pageFloor}
           lastDay={asOf}
@@ -551,6 +612,7 @@ export default function DaysView({
         onSelectionChange={selectGroup}
         batches={data.batches}
         asOf={asOf}
+        bars={bars}
         open={openDay !== null}
         onClose={() => setOpenDay(null)}
         variant={variant}
@@ -572,9 +634,13 @@ export default function DaysView({
             component="p"
             sx={{ color: "text.secondary", display: "block" }}
           >
-            Each bar is a count of the transitions inside its own 4-hour window — jobs
-            placed, completed, and removed, stacked bottom to top — independent of its
-            neighbours, so the bars keep their gaps and an idle window is simply empty.
+            Each bar counts the jobs that completed inside its own 4-hour window, independent
+            of its neighbours, so the bars keep their gaps and an idle window is simply
+            empty. Placements and removals are not in the bars unless you add them, with the
+            &ldquo;Bars show&rdquo; toggle or by clicking the small blue + or red − that sits
+            above a bar when its window had some. On the line, a placement is where the queue
+            jumps up, a removal where it drops with no bar under it. Hovering a bar gives every
+            count, in the bar or not.
             Picking one cluster or batch filters the same picture down to that group rather
             than drawing a different one, so its heavy and quiet windows read the same way.
           </Typography>
@@ -594,8 +660,10 @@ export default function DaysView({
                 It is the queue as a level rather than a count of changes, which is a
                 different quantity: a day whose six bars are all empty can still be holding a
                 million jobs. It steps down as work finishes and jumps when a batch lands, and
-                its colour says how fast: blue only where it is perfectly flat, purple as soon
-                as it moves, and on to red where it drops or climbs steeply. The dot on each
+                its colour says how fast, on the scale a rain map uses: light blue where it is
+                perfectly flat, blue and green as it starts to move, yellow and orange as it
+                speeds up, red where it drops or climbs steeply, and purple where it moves the
+                whole height of the cell in one window. The dot on each
                 midnight boundary gives its numbers on hover, including how
                 much of the queue arrived that day. Being a headcount it has its own scale,
                 down the right of the calendar under the stacked glyph; the axis on the left

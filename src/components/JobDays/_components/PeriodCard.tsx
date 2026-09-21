@@ -4,6 +4,7 @@ import { Box, Button, MenuItem, Paper, Select, Stack, Typography } from "@mui/ma
 
 import type { BucketUnit, DayActivity, DayLevel } from "./binModel";
 import DayActivityBars from "./DayActivityBars";
+import { describeActivity, type ActivityState } from "./palette";
 import {
   PERIOD_OPTIONS,
   formatDayLong,
@@ -21,8 +22,10 @@ interface PeriodCardProps {
   period: PeriodKey;
   onPeriodChange: (period: PeriodKey) => void;
   onOpenDetail: () => void;
-  /** State changes per bar, for whatever is selected. */
+  /** Change counts per bar, for whatever is selected. */
   activity: DayActivity | null;
+  /** Which states the bars stack. */
+  bars: ActivityState[];
   /** The open-jobs level at the close of each bar, drawn as a line over the bars. */
   level: DayLevel | null;
   /** What one bar spans: 4 hours for a day, a day for a week, a week for a month. */
@@ -61,6 +64,7 @@ export default function PeriodCard({
   onPeriodChange,
   onOpenDetail,
   activity,
+  bars,
   level,
   unit,
 }: PeriodCardProps) {
@@ -116,7 +120,8 @@ export default function PeriodCard({
                 height={CHART_HEIGHT}
                 unit={unit}
                 level={level}
-                label={`State changes per ${BAR_NOUN[unit]} over ${rangeLabel(summary)}, with the number of open jobs at the close of each`}
+                shown={bars}
+                label={`Jobs ${describeActivity(bars)} per ${BAR_NOUN[unit]} over ${rangeLabel(summary)}, with the number of open jobs at the close of each`}
               />
             )}
 

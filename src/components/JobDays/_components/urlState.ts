@@ -1,5 +1,5 @@
-// URL-linkable view state for this page: which cluster, which bar scale, and
-// which days the bars are scaled to.
+// URL-linkable view state for this page: which cluster, which bar scale, which
+// days the bars are scaled to, and which states the bars stack.
 //
 // replaceState rather than a router push -- the site is a static export and the
 // selection is a view preference, not navigation, so it should not stack history
@@ -9,6 +9,7 @@
 import type { BarScale } from "../types";
 import { ALL_GROUPS, type GroupBy } from "./grouping";
 import type { DayRange } from "./JobCalendar";
+import { ACTIVITY_STACK, DEFAULT_BARS, stackOrder, type ActivityState } from "./palette";
 
 /** Which grouping is in force, and which group within it is selected. */
 export const GROUP_BY_PARAM = "groupBy";
@@ -16,15 +17,17 @@ export const GROUP_PARAM = "group";
 export const SCALE_PARAM = "scale";
 /** The days the bars are scaled to, as "YYYY-MM-DD..YYYY-MM-DD". */
 export const RANGE_PARAM = "range";
+/** Which states the bars stack, comma-separated: "completed,removed". */
+export const BARS_PARAM = "bars";
 
 export const DEFAULT_GROUP_BY: GroupBy = "cluster";
 
 /**
  * Linear is the default because it is the honest one: heights are proportional,
  * so a reader who never touches the toggle is not being shown a distorted
- * picture. When linear turns out to flatten the month into slivers the page says
- * so and points at the Log button (see buildScaleAdvice) rather than quietly
- * switching scales on the reader's behalf.
+ * picture. When linear flattens a month into slivers the reader has the Log
+ * button, and the range selection, rather than the page quietly switching
+ * scales on their behalf.
  */
 export const DEFAULT_SCALE: BarScale = "linear";
 
@@ -75,6 +78,30 @@ export function readScaleParam(search: string): BarScale | null {
  */
 export function writeRangeParam(range: DayRange | null): void {
   write(RANGE_PARAM, range ? `${range.start}..${range.end}` : null);
+}
+
+/**
+ * Written in stacking order so two links to the same picture read the same.
+ * The default clears the param; an empty pick -- bars off, line only -- is
+ * kept as an empty value, since it is a choice too.
+ */
+export function writeBarsParam(bars: ActivityState[]): void {
+  const canonical = stackOrder(bars);
+  const isDefault =
+    canonical.length === DEFAULT_BARS.length && canonical.every((s, i) => s === DEFAULT_BARS[i]);
+  write(BARS_PARAM, isDefault ? null : canonical.join(","));
+}
+
+/**
+ * The bar states a URL asks for, or null when it says nothing. Unknown names
+ * are dropped rather than failing the whole param.
+ */
+export function readBarsParam(search: string): ActivityState[] | null {
+  const value = new URLSearchParams(search).get(BARS_PARAM);
+  if (value === null) return null;
+  const known = new Set<string>(ACTIVITY_STACK);
+  const wanted = value.split(",").filter((s): s is ActivityState => known.has(s));
+  return stackOrder(wanted);
 }
 
 const DAY_KEY = /^\d{4}-\d{2}-\d{2}$/;
