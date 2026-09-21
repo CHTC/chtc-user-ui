@@ -79,7 +79,7 @@ export interface ReadoutRow {
   /**
    * Which figure leads the line. Counts lead by default, because for a bar that
    * measures work done the count IS the reading. A bar that measures a share of a
-   * whole -- v2's 100%-stacked boundary bar -- wants the percentage in front, with
+   * whole -- a 100%-stacked bar -- wants the percentage in front, with
    * the count as the supporting detail.
    */
   lead?: "value" | "share";

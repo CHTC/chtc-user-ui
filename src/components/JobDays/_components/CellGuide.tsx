@@ -25,12 +25,8 @@ import {
   BAR_STATE_STYLES,
   CARRIED_ACTIVE_COLOR,
   COMPLETION_FILL_COLOR,
-  LEVEL_DOT_COLOR,
   levelSegments,
   levelSlopeColor,
-  OUTCOME_ORDER,
-  OUTCOME_ORDER_TOP_DOWN,
-  OUTCOME_STYLES,
 } from "./palette";
 import QueueGlyph from "./QueueGlyph";
 import SlopeLegend from "./SlopeLegend";
@@ -121,26 +117,20 @@ const FEATURES: Feature[] = [
 ];
 
 /**
- * Calendar v2 swaps the level trace for a bar astride midnight that answers for
- * the jobs the day inherited; everything else in the cell is the same.
+ * Calendar v2 scales each day's bars to that day's own busiest window instead
+ * of the shared peak; everything else in the cell is the same.
  */
-const V2_QUEUE_FEATURE: Feature = {
-  id: "queue",
-  title: "The bar on the edge is the day's inheritance",
-  body: "It straddles midnight and answers one question: of the jobs that were already open when this day began, how many are still open, completed, or removed by its end? Top to bottom, grey is still open — nothing happened to those — then red removed and teal completed. Jobs placed during the day are not in it at all — the six bars count those — so a day that inherited 200 jobs and finished 100 is 50/50 whatever else arrived. It is a share, read against the 0–100% scale down the right. A star on top marks a clean sweep: every job the day began with completed before it ended.",
-  parts: ["queue", "queueAxis"],
+const V2_HEIGHT_FEATURE: Feature = {
+  id: "height",
+  title: "Height is how much happened — within the day",
+  body: "On this calendar every day is its own chart: its tallest bar reaches the top of the cell whatever its count. So the shape of a day is always legible, even a quiet one, but two days' bars cannot be compared by height — hover a bar for its count. There is no shared axis down the left; the one on the right still belongs to the queue line.",
+  parts: ["bars"],
 };
 
-/**
- * The feature list for one calendar version. v2 swaps the level trace for the
- * boundary bar and drops the completion fill, which the bar's teal segment
- * already says.
- */
+/** The feature list for one calendar version: v2 swaps in the per-day height card. */
 function featuresFor(variant: CalendarVersion): Feature[] {
   return variant === "v2"
-    ? FEATURES.filter((feature) => feature.id !== "fill").map((feature) =>
-        feature.id === "queue" ? V2_QUEUE_FEATURE : feature,
-      )
+    ? FEATURES.map((feature) => (feature.id === "height" ? V2_HEIGHT_FEATURE : feature))
     : FEATURES;
 }
 
@@ -211,21 +201,15 @@ const HOUR_ROW = 14;
 const EXAMPLE_ACTIVITY_TICKS = buildScaleTicks(EXAMPLE_PEAK, "linear");
 
 /**
- * Calendar v2's example: what became of the 3,800 jobs the example day began
- * with. Adds up to EXAMPLE_LEVEL_START, and squares with the bins above -- the
- * day's 4,800 completions include the 1,200 placed at 04-08, which the bar
- * leaves out.
+ * The share of the example day's opening 3,800 jobs that completed, for the
+ * fill: squares with the bins above once the 1,200 placed at 04-08 are left
+ * out of the day's 4,800 completions.
  */
 const EXAMPLE_OUTCOME = { active: 300, completed: 3200, removed: 300 };
 const EXAMPLE_OUTCOME_TOTAL = EXAMPLE_OUTCOME.active + EXAMPLE_OUTCOME.completed + EXAMPLE_OUTCOME.removed;
-const PERCENT_TICKS = [
-  { value: 100, fraction: 1 },
-  { value: 50, fraction: 0.5 },
-  { value: 0, fraction: 0 },
-];
 
 interface CellGuideDialogProps {
-  /** Which calendar the guide explains; the cells differ at the day boundary. */
+  /** Which calendar the guide explains; the cells differ only in how the bars are scaled. */
   variant?: CalendarVersion;
   open: boolean;
   /**
@@ -306,7 +290,7 @@ export default function CellGuideDialog({ variant = "v1", open, onClose }: CellG
               alignSelf: "flex-start",
             }}
           >
-            <ExampleCell active={feature} variant={variant} />
+            <ExampleCell active={feature} />
           </Box>
         </Stack>
       </DialogContent>
@@ -390,7 +374,7 @@ function FeatureCard({
  * maths as the real thing so nothing here can teach the reader something the
  * calendar does not do.
  */
-function ExampleCell({ active, variant }: { active: Feature | null; variant: CalendarVersion }) {
+function ExampleCell({ active }: { active: Feature | null }) {
   const lit = (part: Part) => !active || active.parts.includes(part);
   // Two features single out one bar; the rest treat the row as a whole.
   const focusOneBar = active?.id === "colour" || active?.id === "hover";
@@ -429,7 +413,7 @@ function ExampleCell({ active, variant }: { active: Feature | null; variant: Cal
           {/* Calendar v1: the completion fill, the whole cell's ground. First
               so everything else paints over it, as on a real tile. Its height
               is the example's completed share of the jobs the day began with. */}
-          {variant === "v1" && (
+          {(
             <Box
               sx={{
                 position: "absolute",
@@ -444,60 +428,6 @@ function ExampleCell({ active, variant }: { active: Feature | null; variant: Cal
                 ...ring("fill"),
               }}
             />
-          )}
-
-          {/* Calendar v2: the day's inheritance, a bordered 100%-stacked bar
-              astride the right border and running the whole cell, top to
-              bottom -- as it does on a real tile. */}
-          {variant === "v2" && (
-            <>
-              <Box
-                sx={{
-                  position: "absolute",
-                  left: "100%",
-                  top: 0,
-                  bottom: 0,
-                  width: 18,
-                  transform: "translateX(-50%)",
-                  display: "flex",
-                  flexDirection: "column-reverse",
-                  overflow: "hidden",
-                  zIndex: 2,
-                  border: "1px solid",
-                  borderColor: LEVEL_DOT_COLOR,
-                  boxShadow: (theme) => `0 0 0 1px ${theme.palette.background.paper}`,
-                  ...dim("queue"),
-                  ...ring("queue"),
-                }}
-              >
-                {OUTCOME_ORDER.map((state) => (
-                  <Box
-                    key={state}
-                    sx={{
-                      flexGrow: EXAMPLE_OUTCOME[state],
-                      flexBasis: 0,
-                      backgroundColor: OUTCOME_STYLES[state].color,
-                    }}
-                  />
-                ))}
-              </Box>
-              {/* Its 0-100% scale, spanning the cell with it. */}
-              <Box
-                sx={{
-                  position: "absolute",
-                  left: `calc(100% + 14px)`,
-                  top: 0,
-                  bottom: 0,
-                  width: RIGHT_GUTTER - 20,
-                  ...dim("queueAxis"),
-                  ...ring("queueAxis"),
-                }}
-              >
-                {PERCENT_TICKS.map((tick) => (
-                  <ExampleTick key={tick.value} tick={tick} side="right" unit="percent" />
-                ))}
-              </Box>
-            </>
           )}
 
           <Box sx={{ alignSelf: "center", ...dim("date"), ...ring("date") }}>
@@ -540,7 +470,7 @@ function ExampleCell({ active, variant }: { active: Feature | null; variant: Cal
                 with the midnight dot astride the right border. Underneath,
                 since it is the ground the day's changes happen against, and
                 coloured segment by segment by its steepness as on a real tile. */}
-            {variant === "v1" && (
+            {(
             <Box
               sx={{
                 position: "absolute",
@@ -662,7 +592,7 @@ function ExampleCell({ active, variant }: { active: Feature | null; variant: Cal
 
             {/* Calendar v1: the queue level's own scale, outside the cell on
                 the right, aligned to the bar slot like the trace it labels. */}
-            {variant === "v1" && (
+            {(
               <Box
                 sx={{
                   position: "absolute",
@@ -744,7 +674,7 @@ function ExampleCell({ active, variant }: { active: Feature | null; variant: Cal
             borderRadius: 1,
             // Matches the real readouts' grounds: the bars' solid dark one, and
             // the v1 dot's light one; see READOUT_SLOT_PROPS in BinReadout.
-            ...(active?.id === "queue" && variant === "v1"
+            ...(active?.id === "queue"
               ? {
                   backgroundColor: "background.paper",
                   color: "text.primary",
@@ -755,23 +685,7 @@ function ExampleCell({ active, variant }: { active: Feature | null; variant: Cal
               : { backgroundColor: "grey.900", color: "common.white" }),
           }}
         >
-          {active?.id === "queue" && variant === "v2" ? (
-            <>
-              <Typography variant="caption" sx={{ fontWeight: 700, display: "block" }}>
-                Jobs open as Wed, Aug 12 began · by midnight
-              </Typography>
-              <Typography variant="caption" sx={{ display: "block", opacity: 0.8 }}>
-                {EXAMPLE_OUTCOME_TOTAL.toLocaleString()} jobs were open at the start of the day
-              </Typography>
-              {OUTCOME_ORDER_TOP_DOWN.map((state) => (
-                <ReadoutLine
-                  key={state}
-                  color={OUTCOME_STYLES[state].color}
-                  text={`${Math.round((EXAMPLE_OUTCOME[state] / EXAMPLE_OUTCOME_TOTAL) * 100)}% ${OUTCOME_STYLES[state].label.toLowerCase()} · ${EXAMPLE_OUTCOME[state].toLocaleString()}`}
-                />
-              ))}
-            </>
-          ) : active?.id === "queue" ? (
+          {active?.id === "queue" ? (
             <>
               <Typography variant="caption" sx={{ fontWeight: 700, display: "block" }}>
                 Open jobs at midnight · Wed, Aug 12 → Thu, Aug 13

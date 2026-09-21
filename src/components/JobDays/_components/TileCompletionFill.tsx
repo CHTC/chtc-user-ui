@@ -23,10 +23,10 @@ export function completionShare(outcome: DayOutcome): number {
  * during it. A day that started with 200 jobs and finished 100 of them is filled
  * to half height, whatever else was placed meanwhile.
  *
- * It is the same population v2's boundary bar answers for (see DayOutcome), but
- * drawn as the whole cell's background so a month scans as a field of rising
- * tide marks: a full tile is a day that cleared its backlog, an empty one a day
- * where nothing it inherited finished.
+ * It is the population the day dialog's "jobs open when the day began" section
+ * breaks down (see DayOutcome), drawn as the whole cell's background so a month
+ * scans as a field of rising tide marks: a full tile is a day that cleared its
+ * backlog, an empty one a day where nothing it inherited finished.
  *
  * Non-interactive, and underneath everything: the bars and the midnight dot
  * keep the hover readouts, and the fill's own number is in the click-through

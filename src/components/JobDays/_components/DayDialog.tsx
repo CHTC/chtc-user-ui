@@ -60,8 +60,8 @@ interface DayDialogProps {
   /**
    * Which calendar opened the dialog. Accepted for the callers' sake but not
    * currently read: both calendars draw the same six-bin chart and the day's
-   * outcome for the jobs it inherited -- on v2 that section matches the
-   * boundary bar, on v1 it is where the completion fill's numbers are printed.
+   * outcome for the jobs it inherited, which is where the completion fill's
+   * numbers are printed.
    */
   variant?: CalendarVersion;
 }
@@ -174,8 +174,8 @@ export default function DayDialog({
   }, [barData, filter, day, bars]);
 
   // What became of the jobs open when this day began, for the same scope as the
-  // tile that was clicked. Both calendars draw this on the tile -- v2 as the
-  // boundary bar, v1 as the completion fill -- and the tile has no room for
+  // tile that was clicked. The tile draws this as the completion fill, and has
+  // no room for
   // the numbers, so this is where they are.
   const outcome = useMemo(
     () => (day ? (buildDayOutcomes(dayData, filter).get(day) ?? null) : null),
@@ -284,8 +284,8 @@ export default function DayDialog({
                 )}
               </Box>
 
-              {/* The day's inheritance, drawn large, with its numbers: v2's
-                  boundary bar, and the population v1's completion fill is a
+              {/* The day's inheritance, drawn large, with its numbers: the
+                  population the tile's completion fill is a
                   share of. */}
               {outcome && (
                 <Box component="section">
