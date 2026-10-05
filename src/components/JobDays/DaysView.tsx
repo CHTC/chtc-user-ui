@@ -21,31 +21,22 @@ import CellGuideDialog from "./_components/CellGuide";
 import { MAX_HISTORY_DAYS, addDays, visibleGrid } from "./_components/chunks";
 import DayDialog from "./_components/DayDialog";
 import JobCalendar, { inRange, type DayRange } from "./_components/JobCalendar";
-import PeriodCard from "./_components/PeriodCard";
 import VersionSwitch, { type CalendarVersion } from "./_components/VersionSwitch";
 import { ScaleHelpTooltip, ScaleNote, SCALE_LABELS } from "./_components/ScaleInfo";
 import {
-  buildBucketActivity,
-  buildBucketLevel,
   buildDayActivity,
   buildDayLevels,
-  dayBuckets,
   expandSeries,
   peakBinTotal,
-  periodBuckets,
-  type BucketUnit,
   type DayActivity,
-  type DayLevel,
 } from "./_components/binModel";
 import {
   asOfDay,
   buildDayOutcomes,
-  buildPeriodSummary,
   buildSliceMap,
   formatDayShort,
   parseDayKey,
   type DayData,
-  type PeriodKey,
 } from "./_components/dayCards";
 import {
   ALL_GROUPS,
@@ -101,14 +92,15 @@ interface DaysViewProps {
 }
 
 /**
- * One page for the whole question: a chart of what moved over the last day,
- * week, or month, over a calendar of the same three states binned four hours
- * at a time.
+ * One page for the whole question: a calendar of what moved -- placed,
+ * completed, removed -- binned four hours at a time, with the queue level
+ * behind the bars.
  *
- * The two halves used to be separate pages with different state models -- the
- * flow diagram carried a Placed state that the bars did not. Merging Placed into
- * Active is what lets them sit together: a job is Active from the moment it is
- * placed and leaves only by completing or being removed, top and bottom alike.
+ * It once opened with a "What happened Yesterday / Last Week / Last Month"
+ * summary card above the calendar; that card was retired, so the calendar is
+ * the page. The state model is the merged one that made the two halves agree:
+ * a job is Active from the moment it is placed and leaves only by completing or
+ * being removed.
  */
 export default function DaysView({
   data,
@@ -138,7 +130,6 @@ export default function DaysView({
   // opened from an effect: whether the reader has dismissed it lives in
   // localStorage, which cannot be read while rendering static HTML.
   const [guideOpen, setGuideOpen] = useState(false);
-  const [period, setPeriod] = useState<PeriodKey>("yesterday");
   // Open on the month containing the as-of day: the freshest part of the window.
   const [activeStartDate, setActiveStartDate] = useState<Date>(() => {
     const d = parseDayKey(asOf);
@@ -251,37 +242,9 @@ export default function DaysView({
   // was retired for reading differently from the one beside it.)
   const dense = useMemo(() => expandSeries(data, filter), [data, filter]);
 
-  // The summary's counts come from the day bake, which is the only one carrying
+  // Each day's counts come from the day bake, which is the only one carrying
   // the distinct-jobs figure and the end-of-day census.
   const slices = useMemo(() => buildSliceMap(dayData, filter), [dayData, filter]);
-  const summary = useMemo(
-    () => buildPeriodSummary(dayData, slices, period),
-    [dayData, slices, period],
-  );
-
-  // The summary's chart: the calendar's own derivations over the period's days,
-  // a bar per 4-hour window for a day, per day for a week, per week for a
-  // month, with the queue level over them.
-  const periodChart = useMemo<{
-    activity: DayActivity | null;
-    level: DayLevel | null;
-    unit: BucketUnit;
-  }>(() => {
-    if (!summary) return { activity: null, level: null, unit: "hours" };
-    const single = summary.days.length === 1;
-    const buckets = single
-      ? (() => {
-          const dayIndex = data.days.indexOf(summary.days[0]);
-          return dayIndex >= 0 ? dayBuckets(data, dayIndex) : [];
-        })()
-      : periodBuckets(data, summary.days, period === "month" ? "weeks" : "days");
-    const unit: BucketUnit = single ? "hours" : period === "month" ? "weeks" : "days";
-    return {
-      activity: buildBucketActivity(dense, buckets, bars),
-      level: buildBucketLevel(dense, buckets),
-      unit,
-    };
-  }, [summary, period, data, dense, bars]);
 
   // The calendar's inputs: each day's 4-hour change counts, totalled over the
   // states the bars are showing.
@@ -344,347 +307,306 @@ export default function DaysView({
   const scopeLabel = selectionLabel(options, groupBy, selection);
 
   return (
-    <Box
-      component="main"
-      sx={{ px: { xs: 2, md: 4 }, py: { xs: 3, md: 4 }, maxWidth: 1100, mx: "auto" }}
-    >
-      <Stack spacing={0.5} sx={{ mb: 3 }}>
-        <Stack
-          direction="row"
-          alignItems="center"
-          justifyContent="space-between"
-          spacing={2}
-          sx={{ flexWrap: "wrap" }}
-        >
-          <Typography variant="h4" component="h1" sx={{ fontWeight: 700 }}>
-            What happened to {data.owner}&apos;s jobs
-          </Typography>
-          <VersionSwitch current={variant} />
-        </Stack>
-        <Typography variant="body1" sx={{ color: "text.secondary" }}>
-          {dayData.counted.toLocaleString()} jobs across {data.series.length} clusters
-          {batchGrouping && ` in ${data.batches?.length} batches`}, {scopeLabel}. The chart
-          shows what moved over the last day, week, or month — a bar per 4-hour window, per
-          day, or per week; the calendar below breaks each day into 4-hour bins: how many
-          jobs completed in each bin, so a heavy bin towers and a quiet one stays empty,
-          while the line behind them carries the queue, jumping where jobs were placed and
-          dropping where they were removed. The &ldquo;Bars show&rdquo; toggle adds placed
-          or removed jobs to the bars.{" "}
-          The teal rising from the floor of each day is the share of the jobs it started with
-          that completed before it ended; a full cell cleared its backlog.{" "}
-          {variant === "v2" &&
-            "On this calendar every day's bars are scaled to that day's own busiest window, so each day's shape fills its cell; heights compare within a day, not between days. "}
-          Hover a bar for its numbers, or click a day for its full breakdown.
+    <Box component="main" sx={{py: {xs: 2, md: 4}}}>
+      {/* The heading runs the full width of the page; only the calendar and
+          its notes below are held to a reading width. */}
+      <Stack
+        direction="row"
+        alignItems="center"
+        justifyContent="space-between"
+        spacing={2}
+        sx={{ flexWrap: "wrap", mb: 3 }}
+      >
+        <Typography variant="h4" component="h1" sx={{ fontWeight: 700 }}>
+          What happened to {data.owner}&apos;s jobs
         </Typography>
+        <VersionSwitch current={variant} />
       </Stack>
 
-      <Stack spacing={3}>
-        <PeriodCard
-          summary={summary}
-          period={period}
-          onPeriodChange={setPeriod}
-          onOpenDetail={() => summary?.days.length === 1 && setOpenDay(summary.days[0])}
-          activity={periodChart.activity}
-          bars={bars}
-          level={periodChart.level}
-          unit={periodChart.unit}
-        />
-
-        <Stack
-          direction={{ xs: "column", sm: "row" }}
-          spacing={2}
-          alignItems={{ xs: "stretch", sm: "flex-end" }}
-        >
-          <Box>
-            <Typography
-              variant="overline"
-              component="label"
-              htmlFor="days-group-select"
-              sx={{ color: "text.secondary", display: "block", lineHeight: 1.6 }}
-            >
-              {GROUP_BY_LABELS[groupBy]}
-            </Typography>
-            <Stack direction="row" spacing={1} alignItems="center" sx={{ mt: 0.5 }}>
-              <Select
-                id="days-group-select"
-                size="small"
-                value={selection}
-                onChange={(event) => selectGroup(String(event.target.value))}
-                sx={{ minWidth: 260 }}
+      <Box sx={{ px: { xs: 2, md: 4 }, py: {xs: 1, md: 4}, maxWidth: 1000, mx: "auto" }}>
+        <Stack spacing={3}>
+          <Stack
+            direction={{ xs: "column", sm: "row" }}
+            spacing={2}
+            alignItems={{ xs: "stretch", sm: "flex-end" }}
+          >
+            <Box>
+              <Typography
+                variant="overline"
+                component="label"
+                htmlFor="days-group-select"
+                sx={{ color: "text.secondary", display: "block", lineHeight: 1.6 }}
               >
-                <MenuItem value={ALL_GROUPS}>
-                  {groupBy === "batch"
-                    ? `All batches (${options.length})`
-                    : `All clusters (${options.length})`}
-                </MenuItem>
-                {options.map((option) => (
-                  <MenuItem key={option.id} value={option.id}>
-                    {option.label} · {option.total.toLocaleString()} jobs
-                  </MenuItem>
-                ))}
-              </Select>
-
-              {/*
-                Only offered where it does something: data baked before batch
-                support carries no batches, and a single batch covering everything
-                is not a grouping.
-              */}
-              {batchGrouping && (
-                <ToggleButtonGroup
+                {GROUP_BY_LABELS[groupBy]}
+              </Typography>
+              <Stack direction="row" spacing={1} alignItems="center" sx={{ mt: 0.5 }}>
+                <Select
+                  id="days-group-select"
                   size="small"
-                  exclusive
-                  value={groupBy}
-                  onChange={(_, next: GroupBy | null) => selectGroupBy(next)}
-                  aria-label="Group jobs by"
+                  value={selection}
+                  onChange={(event) => selectGroup(String(event.target.value))}
+                  sx={{ minWidth: 260 }}
                 >
-                  {(["cluster", "batch"] as GroupBy[]).map((option) => (
-                    <ToggleButton
-                      key={option}
-                      value={option}
-                      aria-label={`Group by ${GROUP_BY_LABELS[option].toLowerCase()}`}
-                    >
-                      {GROUP_BY_LABELS[option]}
-                    </ToggleButton>
+                  <MenuItem value={ALL_GROUPS}>
+                    {groupBy === "batch"
+                      ? `All batches (${options.length})`
+                      : `All clusters (${options.length})`}
+                  </MenuItem>
+                  {options.map((option) => (
+                    <MenuItem key={option.id} value={option.id}>
+                      {option.label} · {option.total.toLocaleString()} jobs
+                    </MenuItem>
                   ))}
-                </ToggleButtonGroup>
-              )}
-            </Stack>
-          </Box>
+                </Select>
 
-          {/*
-            Which states the bars stack. Multi-select: any mix is a sensible
-            picture, including none, which leaves the queue line on its own.
-            The swatch on each button is the segment colour, so the toggle
-            doubles as the legend.
-          */}
-          <Box sx={{ ml: { sm: "auto" } }}>
-            <Typography
-              variant="overline"
-              component="p"
-              id="days-bars-label"
-              sx={{ color: "text.secondary", lineHeight: 1.6 }}
-            >
-              Bars show
-            </Typography>
-            <ToggleButtonGroup
-              size="small"
-              value={bars}
-              onChange={(_, next: ActivityState[]) => selectBars(next)}
-              aria-labelledby="days-bars-label"
-              sx={{ mt: 0.5 }}
-            >
-              {ACTIVITY_STACK.map((state) => (
-                <ToggleButton
-                  key={state}
-                  value={state}
-                  aria-label={`Show ${ACTIVITY_STYLES[state].label.toLowerCase()} jobs in the bars`}
-                  sx={{ gap: 0.75 }}
-                >
-                  <Box
-                    component="span"
-                    aria-hidden
-                    sx={{
-                      width: 10,
-                      height: 10,
-                      borderRadius: "2px",
-                      backgroundColor: ACTIVITY_STYLES[state].color,
-                      flexShrink: 0,
-                    }}
-                  />
-                  {ACTIVITY_STYLES[state].label}
-                </ToggleButton>
-              ))}
-            </ToggleButtonGroup>
-          </Box>
+                {/*
+                  Only offered where it does something: data baked before batch
+                  support carries no batches, and a single batch covering everything
+                  is not a grouping.
+                */}
+                {batchGrouping && (
+                  <ToggleButtonGroup
+                    size="small"
+                    exclusive
+                    value={groupBy}
+                    onChange={(_, next: GroupBy | null) => selectGroupBy(next)}
+                    aria-label="Group jobs by"
+                  >
+                    {(["cluster", "batch"] as GroupBy[]).map((option) => (
+                      <ToggleButton
+                        key={option}
+                        value={option}
+                        aria-label={`Group by ${GROUP_BY_LABELS[option].toLowerCase()}`}
+                      >
+                        {GROUP_BY_LABELS[option]}
+                      </ToggleButton>
+                    ))}
+                  </ToggleButtonGroup>
+                )}
+              </Stack>
+            </Box>
 
-          <Box>
-            <Stack direction="row" spacing={0.5} alignItems="center">
+            {/*
+              Which states the bars stack. Multi-select: any mix is a sensible
+              picture, including none, which leaves the queue line on its own.
+              The swatch on each button is the segment colour, so the toggle
+              doubles as the legend.
+            */}
+            <Box sx={{ ml: { sm: "auto" } }}>
               <Typography
                 variant="overline"
                 component="p"
-                id="days-scale-label"
+                id="days-bars-label"
                 sx={{ color: "text.secondary", lineHeight: 1.6 }}
               >
-                Bar scale
+                Bars show
               </Typography>
-              <Tooltip title={<ScaleHelpTooltip />} placement="top" arrow>
-                <InfoOutlined
-                  fontSize="inherit"
-                  aria-label="What the linear and log scales each cost"
-                  tabIndex={0}
-                  sx={{ color: "text.secondary", fontSize: "0.95rem", cursor: "help" }}
-                />
-              </Tooltip>
-            </Stack>
-            <Stack direction="row" spacing={1.5} alignItems="center" sx={{ mt: 0.5 }}>
-              <Box sx={{ display: "inline-flex" }}>
-                <ToggleButtonGroup
-                  size="small"
-                  exclusive
-                  value={scale}
-                  onChange={(_, next: BarScale | null) => selectScale(next)}
-                  aria-labelledby="days-scale-label"
-                >
-                  {(["linear", "log"] as BarScale[]).map((option) => (
-                    <ToggleButton
-                      key={option}
-                      value={option}
-                      aria-label={`${SCALE_LABELS[option]} bar scale`}
-                    >
-                      {SCALE_LABELS[option]}
-                    </ToggleButton>
-                  ))}
-                </ToggleButtonGroup>
-              </Box>
-            </Stack>
+              <ToggleButtonGroup
+                size="small"
+                value={bars}
+                onChange={(_, next: ActivityState[]) => selectBars(next)}
+                aria-labelledby="days-bars-label"
+                sx={{ mt: 0.5 }}
+              >
+                {ACTIVITY_STACK.map((state) => (
+                  <ToggleButton
+                    key={state}
+                    value={state}
+                    aria-label={`Show ${ACTIVITY_STYLES[state].label.toLowerCase()} jobs in the bars`}
+                    sx={{ gap: 0.75 }}
+                  >
+                    <Box
+                      component="span"
+                      aria-hidden
+                      sx={{
+                        width: 10,
+                        height: 10,
+                        borderRadius: "2px",
+                        backgroundColor: ACTIVITY_STYLES[state].color,
+                        flexShrink: 0,
+                      }}
+                    />
+                    {ACTIVITY_STYLES[state].label}
+                  </ToggleButton>
+                ))}
+              </ToggleButtonGroup>
+            </Box>
 
-          </Box>
+            <Box>
+              <Stack direction="row" spacing={0.5} alignItems="center">
+                <Typography
+                  variant="overline"
+                  component="p"
+                  id="days-scale-label"
+                  sx={{ color: "text.secondary", lineHeight: 1.6 }}
+                >
+                  Bar scale
+                </Typography>
+                <Tooltip title={<ScaleHelpTooltip />} placement="top" arrow>
+                  <InfoOutlined
+                    fontSize="inherit"
+                    aria-label="What the linear and log scales each cost"
+                    tabIndex={0}
+                    sx={{ color: "text.secondary", fontSize: "0.95rem", cursor: "help" }}
+                  />
+                </Tooltip>
+              </Stack>
+              <Stack direction="row" spacing={1.5} alignItems="center" sx={{ mt: 0.5 }}>
+                <Box sx={{ display: "inline-flex" }}>
+                  <ToggleButtonGroup
+                    size="small"
+                    exclusive
+                    value={scale}
+                    onChange={(_, next: BarScale | null) => selectScale(next)}
+                    aria-labelledby="days-scale-label"
+                  >
+                    {(["linear", "log"] as BarScale[]).map((option) => (
+                      <ToggleButton
+                        key={option}
+                        value={option}
+                        aria-label={`${SCALE_LABELS[option]} bar scale`}
+                      >
+                        {SCALE_LABELS[option]}
+                      </ToggleButton>
+                    ))}
+                  </ToggleButtonGroup>
+                </Box>
+              </Stack>
+
+            </Box>
+          </Stack>
+
+          <JobCalendar
+            slices={slices}
+            activities={activities}
+            bars={bars}
+            onShowBars={(state) => selectBars([...bars, state])}
+            levels={levels}
+            fills={fills}
+            scale={scale}
+            perDayScale={variant === "v2"}
+            peakBinTotal={peak}
+            levelPeak={levelPeak}
+            firstDay={pageFloor}
+            lastDay={asOf}
+            asOf={asOf}
+            activeStartDate={activeStartDate}
+            onActiveStartDateChange={showMonth}
+            onSelectDay={setOpenDay}
+            range={range}
+            onRangeChange={selectRange}
+          />
+
+          {/*
+            Under the calendar, not above it. The guide opens by itself on a first
+            visit, so this is the way back to it -- and a reader who wants it again
+            is one who has just been looking at the grid, not one on their way to it.
+            The range chip sits beside it for the same reason: it describes the
+            grid the reader has just been dragging on.
+          */}
+          <Stack direction="row" spacing={1.5} alignItems="center" flexWrap="wrap" useFlexGap>
+            <Button
+              size="small"
+              variant="text"
+              startIcon={<HelpOutline />}
+              onClick={() => setGuideOpen(true)}
+            >
+              How to read a day
+            </Button>
+            {range ? (
+              <Chip
+                size="small"
+                color="primary"
+                variant="outlined"
+                label={`Bars scaled to ${rangeLabel(range)}`}
+                onDelete={() => selectRange(null)}
+                deleteIcon={<span aria-hidden>×</span>}
+                sx={{ fontWeight: 600, "& .MuiChip-deleteIcon": { fontSize: "1rem", px: 0.5 } }}
+              />
+            ) : (
+              <Typography variant="caption" sx={{ color: "text.secondary" }}>
+                Drag across days, or shift-click, to scale the bars to just those days. Escape
+                or a click elsewhere clears it.
+              </Typography>
+            )}
+          </Stack>
         </Stack>
 
-        <JobCalendar
-          slices={slices}
-          activities={activities}
-          bars={bars}
-          onShowBars={(state) => selectBars([...bars, state])}
-          levels={levels}
-          fills={fills}
-          scale={scale}
-          perDayScale={variant === "v2"}
-          peakBinTotal={peak}
-          levelPeak={levelPeak}
-          firstDay={pageFloor}
-          lastDay={asOf}
+        <CellGuideDialog variant={variant} open={guideOpen} onClose={closeGuide} />
+
+        <DayDialog
+          dayData={dayData}
+          barData={data}
+          day={openDay}
+          groupBy={groupBy}
+          selection={selection}
+          onSelectionChange={selectGroup}
+          batches={data.batches}
           asOf={asOf}
-          activeStartDate={activeStartDate}
-          onActiveStartDateChange={showMonth}
-          onSelectDay={setOpenDay}
-          range={range}
-          onRangeChange={selectRange}
+          bars={bars}
+          open={openDay !== null}
+          onClose={() => setOpenDay(null)}
+          variant={variant}
         />
 
-        {/*
-          Under the calendar, not above it. The guide opens by itself on a first
-          visit, so this is the way back to it -- and a reader who wants it again
-          is one who has just been looking at the grid, not one on their way to it.
-          The range chip sits beside it for the same reason: it describes the
-          grid the reader has just been dragging on.
-        */}
-        <Stack direction="row" spacing={1.5} alignItems="center" flexWrap="wrap" useFlexGap>
-          <Button
-            size="small"
-            variant="text"
-            startIcon={<HelpOutline />}
-            onClick={() => setGuideOpen(true)}
-          >
-            How to read a day
-          </Button>
-          {range ? (
-            <Chip
-              size="small"
-              color="primary"
-              variant="outlined"
-              label={`Bars scaled to ${rangeLabel(range)}`}
-              onDelete={() => selectRange(null)}
-              deleteIcon={<span aria-hidden>×</span>}
-              sx={{ fontWeight: 600, "& .MuiChip-deleteIcon": { fontSize: "1rem", px: 0.5 } }}
-            />
-          ) : (
-            <Typography variant="caption" sx={{ color: "text.secondary" }}>
-              Drag across days, or shift-click, to scale the bars to just those days. Escape
-              or a click elsewhere clears it.
+        <Stack spacing={2} sx={{ mt: 4 }}>
+          <ScaleNote scale={scale} perDay={variant === "v2"} />
+
+          <Box component="section">
+            <Typography
+              variant="overline"
+              component="h3"
+              sx={{ color: "text.secondary", lineHeight: 1.6 }}
+            >
+              How to read the bars
             </Typography>
-          )}
+            <Typography
+              variant="caption"
+              component="p"
+              sx={{ color: "text.secondary", display: "block" }}
+            >
+              Each bar counts the jobs that completed inside its own 4-hour window, independent
+              of its neighbours, so the bars keep their gaps and an idle window is simply
+              empty. Placements and removals are not in the bars unless you add them, with the
+              &ldquo;Bars show&rdquo; toggle or by clicking the small blue + or red − that sits
+              above a bar when its window had some. On the line, a placement is where the queue
+              jumps up, a removal where it drops with no bar under it. Hovering a bar gives every
+              count, in the bar or not.
+              Picking one cluster or batch filters the same picture down to that group rather
+              than drawing a different one, so its heavy and quiet windows read the same way.
+            </Typography>
+            <Typography
+              variant="caption"
+              component="p"
+              sx={{ color: "text.secondary", display: "block", mt: 0.75 }}
+            >
+              {(
+                <>
+                  A{" "}
+                  <Box component="span" sx={{ fontWeight: 700, color: "text.primary" }}>
+                    line
+                  </Box>{" "}
+                  also runs behind the bars: how many jobs were open — queued or running — at
+                  the close of each 4-hour window, joined from one day straight into the next.
+                  It is the queue as a level rather than a count of changes, which is a
+                  different quantity: a day whose six bars are all empty can still be holding a
+                  million jobs. It steps down as work finishes and jumps when a batch lands, and
+                  its colour says how fast, on the scale a rain map uses: light blue where it is
+                  perfectly flat, blue and green as it starts to move, yellow and orange as it
+                  speeds up, red where it drops or climbs steeply, and purple where it moves the
+                  whole height of the cell in one window. The dot on each
+                  midnight boundary gives its numbers on hover, including how
+                  much of the queue arrived that day. Being a headcount it has its own scale,
+                  down the right of the calendar under the stacked glyph
+                  {variant === "v1"
+                    ? "; the axis on the left belongs to the bars."
+                    : ". There is no axis on the left: each day's bars are scaled to that day's own busiest window, so hover a bar for its count."}
+                </>
+              )}
+            </Typography>
+          </Box>
         </Stack>
-      </Stack>
-
-      <CellGuideDialog variant={variant} open={guideOpen} onClose={closeGuide} />
-
-      <DayDialog
-        dayData={dayData}
-        barData={data}
-        day={openDay}
-        groupBy={groupBy}
-        selection={selection}
-        onSelectionChange={selectGroup}
-        batches={data.batches}
-        asOf={asOf}
-        bars={bars}
-        open={openDay !== null}
-        onClose={() => setOpenDay(null)}
-        variant={variant}
-      />
-
-      <Stack spacing={2} sx={{ mt: 4 }}>
-        <ScaleNote scale={scale} perDay={variant === "v2"} />
-
-        <Box component="section">
-          <Typography
-            variant="overline"
-            component="h3"
-            sx={{ color: "text.secondary", lineHeight: 1.6 }}
-          >
-            How to read the bars
-          </Typography>
-          <Typography
-            variant="caption"
-            component="p"
-            sx={{ color: "text.secondary", display: "block" }}
-          >
-            Each bar counts the jobs that completed inside its own 4-hour window, independent
-            of its neighbours, so the bars keep their gaps and an idle window is simply
-            empty. Placements and removals are not in the bars unless you add them, with the
-            &ldquo;Bars show&rdquo; toggle or by clicking the small blue + or red − that sits
-            above a bar when its window had some. On the line, a placement is where the queue
-            jumps up, a removal where it drops with no bar under it. Hovering a bar gives every
-            count, in the bar or not.
-            Picking one cluster or batch filters the same picture down to that group rather
-            than drawing a different one, so its heavy and quiet windows read the same way.
-          </Typography>
-          <Typography
-            variant="caption"
-            component="p"
-            sx={{ color: "text.secondary", display: "block", mt: 0.75 }}
-          >
-            {(
-              <>
-                A{" "}
-                <Box component="span" sx={{ fontWeight: 700, color: "text.primary" }}>
-                  line
-                </Box>{" "}
-                also runs behind the bars: how many jobs were open — queued or running — at
-                the close of each 4-hour window, joined from one day straight into the next.
-                It is the queue as a level rather than a count of changes, which is a
-                different quantity: a day whose six bars are all empty can still be holding a
-                million jobs. It steps down as work finishes and jumps when a batch lands, and
-                its colour says how fast, on the scale a rain map uses: light blue where it is
-                perfectly flat, blue and green as it starts to move, yellow and orange as it
-                speeds up, red where it drops or climbs steeply, and purple where it moves the
-                whole height of the cell in one window. The dot on each
-                midnight boundary gives its numbers on hover, including how
-                much of the queue arrived that day. Being a headcount it has its own scale,
-                down the right of the calendar under the stacked glyph
-                {variant === "v1"
-                  ? "; the axis on the left belongs to the bars."
-                  : ". There is no axis on the left: each day's bars are scaled to that day's own busiest window, so hover a bar for its count."}
-              </>
-            )}
-          </Typography>
-        </Box>
-
-        <Typography variant="caption" component="p" sx={{ color: "text.secondary" }}>
-          Baked {new Date(data.generatedAt).toLocaleString()} ({data.timezone}) from{" "}
-          {dayData.sources.adstash.terminalRecords.toLocaleString()} Adstash terminal records
-          {dayData.queries && dayData.queries > 1
-            ? ` read across ${dayData.queries} weekly queries`
-            : ""}{" "}
-          and {dayData.sources.condorQ.stillQueued.toLocaleString()} live condor_q ads on{" "}
-          {dayData.sources.condorQ.schedd}. &ldquo;Today&rdquo; is {formatDayShort(asOf)}, the
-          last day in the loaded window; the summary period ends on the day before it, since
-          the as-of day is still in progress and would understate every count. Paging the
-          calendar to an earlier month loads that month&apos;s weeks. Hold is not shown: the
-          history records carry no hold data for these jobs.
-        </Typography>
-      </Stack>
+      </Box>
     </Box>
   );
 }
