@@ -235,24 +235,26 @@ function JobsError({ error, onRetry }: { error: unknown; onRetry: () => void }) 
  */
 function JobsSkeleton() {
   return (
-    <Box sx={{ px: { xs: 2, md: 4 }, py: { xs: 3, md: 4 }, maxWidth: 1100, mx: "auto" }}>
-      <Stack spacing={0.5} sx={{ mb: 3 }}>
-        <Skeleton variant="text" width="60%" height={48} />
-        <Skeleton variant="text" width="90%" />
-        <Skeleton variant="text" width="75%" />
+    <Box sx={{ py: { xs: 3, md: 4 } }}>
+      {/* Same shape as DaysView: a full-width heading over a constrained body. */}
+      <Stack spacing={0.5} sx={{ mb: 3, px: { xs: 2, md: 4 } }}>
+        <Skeleton variant="text" width="40%" height={48} />
       </Stack>
-      <Stack spacing={3}>
-        <Skeleton variant="rectangular" height={260} sx={{ borderRadius: 1 }} />
-        <Skeleton variant="rectangular" height={520} sx={{ borderRadius: 1 }} />
-      </Stack>
-      <Typography
-        variant="caption"
-        component="p"
-        sx={{ color: "text.secondary", mt: 2, textAlign: "center" }}
-      >
-        Reading the job history and querying the submit nodes. The first look at a window can
-        take a minute; reloading soon afterwards is fast.
-      </Typography>
+      <Box sx={{ px: { xs: 2, md: 4 }, maxWidth: 1100, mx: "auto" }}>
+        <Stack spacing={3}>
+          <Skeleton variant="rectangular" height={520} sx={{ borderRadius: 1 }} />
+          <Skeleton variant="text" width="90%" />
+          <Skeleton variant="text" width="75%" />
+        </Stack>
+        <Typography
+          variant="caption"
+          component="p"
+          sx={{ color: "text.secondary", mt: 2, textAlign: "center" }}
+        >
+          Reading the job history and querying the submit nodes. The first look at a window
+          can take a minute; reloading soon afterwards is fast.
+        </Typography>
+      </Box>
     </Box>
   );
 }
@@ -411,7 +413,7 @@ export default function JobsView({ owner = null, range = null, variant = "v1" }:
     <Box>
       {/* Widening the window in progress: the page stays, this says why the
           calendar has blank months for a moment. */}
-      <Box sx={{ height: 4, mb: 1 }}>{extending && <LinearProgress />}</Box>
+      { extending && <Box sx={{ height: 4, mb: 1 }}><LinearProgress /></Box> }
       {/* A failure while widening leaves the loaded weeks on screen and says so
           above them, rather than replacing a working page with an error. */}
       {error ? <JobsError error={error} onRetry={retry} /> : null}

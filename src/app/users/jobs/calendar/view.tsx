@@ -17,55 +17,11 @@ import { AuthGuard } from "@/src/components/AuthGuard";
 import { useAuthClient } from "@/src/components/AuthProvider";
 import JobsView from "@/src/components/JobDays/JobsView";
 import type { CalendarVersion } from "@/src/components/JobDays/_components/VersionSwitch";
-import ArrowBackIcon from "@mui/icons-material/ArrowBack";
-import { Alert, AlertTitle, Box, Button, Skeleton, Stack } from "@mui/material";
+import { Alert, AlertTitle, Skeleton, Stack } from "@mui/material";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
-/**
- * `user` is what the table links with.
- *
- * `owner` is read as well: it is the name the API's own query parameter uses and
- * what this page used before the table existed in front of it, so links already
- * sent around keep working.
- */
-const USER_PARAM = "user";
-const LEGACY_USER_PARAM = "owner";
-const START_PARAM = "start";
-const END_PARAM = "end";
-
-/** A [start, end) pair of "YYYY-MM-DD" days, as the table and the API both use. */
-export interface DayRange {
-  start: string;
-  end: string;
-}
-
-function isIsoDay(value: string | null): value is string {
-  return !!value && /^\d{4}-\d{2}-\d{2}$/.test(value);
-}
-
-/**
- * The window the table was showing when the reader clicked through, or null to
- * let the viewer use its own default of the days leading up to today.
- */
-function readRangeParams(): DayRange | null {
-  const params = new URLSearchParams(window.location.search);
-  const start = params.get(START_PARAM);
-  const end = params.get(END_PARAM);
-  return isIsoDay(start) && isIsoDay(end) && start < end ? { start, end } : null;
-}
-
-/**
- * Read on mount rather than through useSearchParams(): the site is a static
- * export, and useSearchParams() forces a Suspense boundary the rest of this
- * route does not want. The job viewer beneath reads its own deep-link params the
- * same way.
- */
-function readOwnerParam(): string | null {
-  const params = new URLSearchParams(window.location.search);
-  const value = params.get(USER_PARAM) ?? params.get(LEGACY_USER_PARAM);
-  return value?.trim() ? value.trim() : null;
-}
+import { readOwnerParam, readRangeParams, type DayRange } from "./params";
 
 function AdminJobs({ variant }: { variant: CalendarVersion }) {
   const { currentUser, loading } = useAuthClient();
@@ -92,14 +48,10 @@ function AdminJobs({ variant }: { variant: CalendarVersion }) {
     );
   }
 
+  // The way back to the table is the breadcrumb in this route's layout, drawn
+  // before the auth check resolves so it does not pop in under the reader.
   return (
     <Stack spacing={3}>
-      <Box>
-        <Button component={Link} href="/users/jobs/" size="small" startIcon={<ArrowBackIcon />}>
-          All users
-        </Button>
-      </Box>
-
       {owner ? (
         <JobsView owner={owner} range={range} variant={variant} />
       ) : ready ? (

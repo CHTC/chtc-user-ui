@@ -6,12 +6,10 @@
 //
 // Copied from app/stacked-bar/_components/binModel.ts and trimmed: the
 // 100%-stacked cohort census a single cluster used to draw is gone, so one
-// derivation serves every selection. The summary at the top of the page reuses
-// the same arithmetic over coarser buckets -- a day per bar for a week, a week
-// per bar for a month -- see periodBuckets.
+// derivation serves every selection, and the coarser day-per-bar and
+// week-per-bar buckets that fed the retired period summary are gone with it.
 
 import type { BarScale, StackedBarData } from "../types";
-import { parseDayKey } from "./dayCards";
 import { inFilter, type ClusterFilter } from "./grouping";
 import { DEFAULT_BARS, type ActivityState } from "./palette";
 
@@ -81,153 +79,29 @@ export function buildDayActivity(
   dayIndex: number,
   shown: ActivityState[] = DEFAULT_BARS,
 ): DayActivity {
-  return buildBucketActivity(dense, dayBuckets(data, dayIndex), shown);
-}
-
-// --- Buckets: the same two derivations over spans coarser than a 4-hour bin ---
-
-/**
- * A run of consecutive dense bins drawn as one bar. The calendar's bars are
- * always one bin each; the summary at the top of the page widens them to a day
- * per bar for a week and a week per bar for a month, so the same arithmetic
- * serves every period length.
- */
-export interface Bucket {
-  /** First dense bin, inclusive. */
-  from: number;
-  /** Last dense bin, exclusive. */
-  to: number;
-  /** Axis label: "00–04", "Mon 10", "Aug 2–8". */
-  label: string;
-}
-
-/** What one bar of a chart spans, for its axis title and its tooltips. */
-export type BucketUnit = "hours" | "days" | "weeks";
-
-/** One day's six 4-hour bins as buckets: what the calendar tiles draw. */
-export function dayBuckets(data: StackedBarData, dayIndex: number): Bucket[] {
   const startBin = dayIndex * data.binsPerDay;
-  const out: Bucket[] = [];
-  for (let b = 0; b < data.binsPerDay; b++) {
-    out.push({
-      from: startBin + b,
-      to: startBin + b + 1,
-      label: binLabel(b, data.binHours),
-    });
-  }
-  return out;
-}
-
-/**
- * The given days as buckets: one per day, or one per calendar week (Sunday to
- * Saturday, as the calendar grid runs). Days the series does not carry are
- * skipped, so a week the reader has not paged into yet simply has no bar. A
- * week cut short by the period's edge is labelled with the days it actually
- * covers, so a 30-day month never pretends its first bar is a whole week.
- */
-export function periodBuckets(
-  data: StackedBarData,
-  days: string[],
-  unit: "days" | "weeks",
-): Bucket[] {
-  const known = days.filter((day) => data.days.includes(day));
-  if (unit === "days") {
-    return known.map((day) => {
-      const index = data.days.indexOf(day);
-      return {
-        from: index * data.binsPerDay,
-        to: (index + 1) * data.binsPerDay,
-        // Weekday first, then the date, whatever the locale's own order is.
-        label: `${parseDayKey(day).toLocaleDateString(undefined, { weekday: "short" })} ${parseDayKey(day).getDate()}`,
-      };
-    });
-  }
-
-  // Group by the Sunday that starts each day's week; days arrive ascending, so
-  // each group is a run and its first and last members are the bucket's edges.
-  const weeks: string[][] = [];
-  let lastWeekStart: number | null = null;
-  for (const day of known) {
-    const date = parseDayKey(day);
-    const weekStart = new Date(date.getFullYear(), date.getMonth(), date.getDate() - date.getDay()).getTime();
-    if (weekStart !== lastWeekStart) {
-      weeks.push([]);
-      lastWeekStart = weekStart;
-    }
-    weeks[weeks.length - 1].push(day);
-  }
-  return weeks.map((week) => {
-    const first = week[0];
-    const last = week[week.length - 1];
-    const firstIndex = data.days.indexOf(first);
-    const lastIndex = data.days.indexOf(last);
-    return {
-      from: firstIndex * data.binsPerDay,
-      to: (lastIndex + 1) * data.binsPerDay,
-      label: weekLabel(first, last),
-    };
-  });
-}
-
-/** "Aug 2–8", or "Jul 27 – Aug 1" when the week straddles a month. */
-function weekLabel(first: string, last: string): string {
-  const a = parseDayKey(first);
-  const b = parseDayKey(last);
-  const month = (d: Date) => d.toLocaleDateString(undefined, { month: "short" });
-  if (a.getMonth() === b.getMonth()) {
-    return a.getDate() === b.getDate()
-      ? `${month(a)} ${a.getDate()}`
-      : `${month(a)} ${a.getDate()}–${b.getDate()}`;
-  }
-  return `${month(a)} ${a.getDate()} – ${month(b)} ${b.getDate()}`;
-}
-
-/** Change counts per bucket: buildDayActivity over any span. */
-export function buildBucketActivity(
-  dense: DenseSeries,
-  buckets: Bucket[],
-  shown: ActivityState[] = DEFAULT_BARS,
-): DayActivity {
   const bins: BinActivity[] = [];
   let total = 0;
   let anyChange = 0;
-  for (const bucket of buckets) {
-    const counts = { placed: 0, completed: 0, removed: 0 };
-    for (let b = bucket.from; b < bucket.to; b++) {
-      counts.placed += dense.placed[b] ?? 0;
-      counts.completed += dense.completed[b] ?? 0;
-      counts.removed += dense.removed[b] ?? 0;
-    }
+  for (let b = 0; b < data.binsPerDay; b++) {
+    const bin = startBin + b;
+    const counts = {
+      placed: dense.placed[bin] ?? 0,
+      completed: dense.completed[bin] ?? 0,
+      removed: dense.removed[bin] ?? 0,
+    };
     const binTotal = shown.reduce((sum, state) => sum + counts[state], 0);
     total += binTotal;
     anyChange += counts.placed + counts.completed + counts.removed;
-    bins.push({ label: bucket.label, ...counts, total: binTotal });
+    bins.push({ label: binLabel(b, data.binHours), ...counts, total: binTotal });
   }
   // A day where only hidden states moved still has data: its bars are empty
   // but its tile is alive, and the readouts say what happened.
   return { bins, total, hasData: anyChange > 0 };
 }
 
-/**
- * The open-jobs level through a run of buckets: what buildDayLevels does for a
- * day, over any span. `start` is the level when the first bucket opened and
- * `ends` the level at the close of each, clamped at zero the same way.
- */
-export function buildBucketLevel(dense: DenseSeries, buckets: Bucket[]): DayLevel {
-  let level = dense.openingActive;
-  const from = buckets.length > 0 ? buckets[0].from : 0;
-  for (let b = 0; b < from; b++) {
-    level = Math.max(0, level + (dense.placed[b] ?? 0) - (dense.completed[b] ?? 0) - (dense.removed[b] ?? 0));
-  }
-  const start = level;
-  const ends = buckets.map((bucket) => {
-    for (let b = bucket.from; b < bucket.to; b++) {
-      level = Math.max(0, level + (dense.placed[b] ?? 0) - (dense.completed[b] ?? 0) - (dense.removed[b] ?? 0));
-    }
-    return level;
-  });
-  return { start, ends, hasData: start > 0 || ends.some((v) => v > 0) };
-}
+/** What one bar of a chart spans, for its axis title and its tooltips. */
+export type BucketUnit = "hours" | "days" | "weeks";
 
 /**
  * How many jobs were open -- queued or running -- through one day, read at the
