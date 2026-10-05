@@ -26,7 +26,7 @@ import {
 } from "./dayCards";
 import TileAxis, { AXIS_WIDTH, QUEUE_OVERHANG } from "./TileAxis";
 import { describeActivity, type ActivityState } from "./palette";
-import TileActivityBars from "./TileActivityBars";
+import TileActivityBars, { GLYPH_HEADROOM } from "./TileActivityBars";
 import TileCompletionFill from "./TileCompletionFill";
 import TileLevelLine from "./TileLevelLine";
 
@@ -86,13 +86,14 @@ interface JobCalendarProps {
    */
   perDayScale: boolean;
   /**
-   * Tallest 4-hour bin on the visible month; every tile scales against it so bar
-   * heights compare across days. Measured by the page rather than here, because
-   * the scale hint beside the toggle reasons about the same number.
+   * Tallest 4-hour bin on the visible grid, neighbouring days included; every
+   * tile scales against it so bar heights compare across days. Measured by the
+   * page rather than here, because the scale hint beside the toggle reasons
+   * about the same number.
    */
   peakBinTotal: number;
   /**
-   * Highest open-jobs level on the visible month: the level trace's own scale,
+   * Highest open-jobs level on the visible grid: the level trace's own scale,
    * on the right. Standing jobs and changes are different quantities, so they
    * get different axes.
    */
@@ -112,7 +113,7 @@ interface JobCalendarProps {
   /**
    * The days the bars are scaled to, when the reader has picked some. Every
    * other tile goes solid grey, so the scaled days are the only thing on the
-   * grid. Null means the visible month, the default scope.
+   * grid. Null means the visible grid, the default scope.
    */
   range: DayRange | null;
   /**
@@ -408,6 +409,12 @@ export default function JobCalendar({
         view="month"
         minDetail="month"
         maxDetail="month"
+        // Weeks run Sunday to Saturday, pinned rather than left to the browser's
+        // locale: the data is fetched in Sunday-to-Saturday weeks, and the page
+        // measures its scale peaks over the grid it believes is drawn. A
+        // Monday-start locale would otherwise show a different set of
+        // neighbouring days from the ones scaled against.
+        calendarType="gregory"
         activeStartDate={activeStartDate}
         onActiveStartDateChange={({ activeStartDate: next }) => {
           if (next) onActiveStartDateChange(next);
@@ -464,7 +471,11 @@ export default function JobCalendar({
               {axis.ticks.length > 0 && (
                 <TileAxis
                   ticks={axis.ticks}
-                  height={BARS_SLOT}
+                  // The bars keep headroom for the hidden-state marks at the
+                  // top of the slot, so the tallest bar stops short of it and
+                  // the axis has to as well, or its top tick would float above
+                  // the bar it names. The queue trace keeps the whole slot.
+                  height={BARS_SLOT - GLYPH_HEADROOM}
                   bottom={AXIS_BOTTOM}
                   side="left"
                   unit={axis.unit}

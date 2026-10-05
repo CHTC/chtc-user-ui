@@ -76,16 +76,31 @@ export function weekChunks(range: DayRange, today = todayKey()): DayRange[] {
 }
 
 /**
- * The range the calendar needs loaded to draw the month containing `monthStart`:
- * the whole month, which weekChunks then widens to whole weeks. Clipped at today,
- * and never earlier than the calendar may be paged.
+ * Every day the calendar draws for the month containing `monthStart`, as a
+ * half-open range: the Sunday on or before the 1st through the Saturday on or
+ * after the last day. The grid pads a month out to whole weeks with its
+ * neighbours' days, and those tiles carry bars like any other, so anything that
+ * reasons about "what is on screen" -- the scale peaks above all -- has to see
+ * them too, not just the month's own days.
  */
-export function monthRange(monthStart: Date, today = todayKey()): DayRange | null {
+export function visibleGrid(monthStart: Date): DayRange {
   const first = dayKeyOf(new Date(monthStart.getFullYear(), monthStart.getMonth(), 1));
   const next = dayKeyOf(new Date(monthStart.getFullYear(), monthStart.getMonth() + 1, 1));
+  const last = addDays(next, -1);
+  return { start: weekStart(first), end: addDays(weekStart(last), 7) };
+}
+
+/**
+ * The range the calendar needs loaded to draw the month containing `monthStart`:
+ * the whole grid it shows, neighbouring days included, which is already whole
+ * weeks so weekChunks cuts it cleanly. Clipped at today, and never earlier than
+ * the calendar may be paged.
+ */
+export function monthRange(monthStart: Date, today = todayKey()): DayRange | null {
+  const grid = visibleGrid(monthStart);
   const floor = addDays(today, -MAX_HISTORY_DAYS);
-  const start = first < floor ? floor : first;
-  const end = next < addDays(today, 1) ? next : addDays(today, 1);
+  const start = grid.start < floor ? floor : grid.start;
+  const end = grid.end < addDays(today, 1) ? grid.end : addDays(today, 1);
   return start < end ? { start, end } : null;
 }
 
