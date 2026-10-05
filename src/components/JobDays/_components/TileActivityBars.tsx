@@ -37,6 +37,18 @@ const HIDDEN_GLYPH: Partial<Record<ActivityState, string>> = {
   removed: "−",
 };
 
+/**
+ * Headroom every column keeps above its bar for the marks, whether or not it
+ * has any to draw: the glyph's line plus the gap under it. The bar's height is
+ * a share of the column *below* this headroom, so a full-height bar with a
+ * plus over it reaches exactly as high as a full-height bar without one. Were
+ * the marks simply stacked on top, the column would have to shrink a marked
+ * bar to fit them, and the days that had the most going on would read shorter.
+ */
+const GLYPH_LINE = 11;
+const GLYPH_GAP = 1;
+export const GLYPH_HEADROOM = GLYPH_LINE + GLYPH_GAP;
+
 /** The marked states hidden from the bars that actually moved in this bin, in stacking order. */
 function hiddenWithCounts(bin: BinActivity, shown: ActivityState[]): ActivityState[] {
   return ACTIVITY_STACK.filter(
@@ -47,8 +59,9 @@ function hiddenWithCounts(bin: BinActivity, shown: ActivityState[]): ActivitySta
 interface TileActivityBarsProps {
   bins: BinActivity[];
   /**
-   * The tallest bin count on the visible month. Every tile scales against the
-   * same peak, so bar heights compare across days on one shared scale.
+   * The tallest bin count in scope: the visible grid, or the picked range, or
+   * under per-day scaling the day itself. Every bar in a tile scales against
+   * the same peak, so bar heights compare on one shared scale.
    */
   peakBinTotal: number;
   scale: BarScale;
@@ -159,63 +172,28 @@ export default function TileActivityBars({
             key={i}
             onMouseEnter={() => enter(i)}
             // Full-height hit area; the bar itself sits at the bottom of it.
+            // The top padding is the marks' reserved headroom, kept on every
+            // column: the bar's percentage height resolves against the content
+            // box, so the same share is the same pixel height on a marked and
+            // an unmarked column alike.
             sx={{
               flex: 1,
               minWidth: 0,
               height: "100%",
+              boxSizing: "border-box",
+              pt: `${GLYPH_HEADROOM}px`,
               display: "flex",
               flexDirection: "column",
               justifyContent: "flex-end",
               opacity: hovered === null || hovered === i ? 1 : 0.55,
             }}
           >
-            {/* Marks for what moved here but is not in the bar, sitting just
-                above it, side by side when there is more than one. Plain
-                spans, not buttons: the tile is itself a button, and a button
-                may not contain another. The toolbar toggle is the keyboard
-                route to the same thing. */}
-            {hiddenWithCounts(entry, shown).length > 0 && (
-              <Box
-                sx={{
-                  display: "flex",
-                  justifyContent: "center",
-                  alignItems: "flex-end",
-                  gap: "2px",
-                  mb: "1px",
-                }}
-              >
-                {hiddenWithCounts(entry, shown).map((state) => (
-                  <Box
-                    key={state}
-                    component="span"
-                    title={`${entry[state].toLocaleString()} ${ACTIVITY_STYLES[state].label.toLowerCase()}, not in the bar — click to add`}
-                    onClick={(event) => {
-                      // Not a click on the day: do not open its dialog.
-                      event.stopPropagation();
-                      onShow?.(state);
-                    }}
-                    // Nor the start of a range drag.
-                    onMouseDown={(event) => event.stopPropagation()}
-                    sx={{
-                      fontSize: "11px",
-                      lineHeight: "11px",
-                      fontWeight: 700,
-                      color: ACTIVITY_STYLES[state].color,
-                      cursor: onShow ? "pointer" : "default",
-                      userSelect: "none",
-                      "&:hover": { transform: "scale(1.3)" },
-                      transition: "transform 80ms",
-                    }}
-                  >
-                    {HIDDEN_GLYPH[state]}
-                  </Box>
-                ))}
-              </Box>
-            )}
+            {/* The bar's extent, which the marks hang off: a positioned box so
+                they can sit just above the bar's top, in the headroom, without
+                taking any of its height. */}
             <Box
               sx={{
-                display: "flex",
-                flexDirection: "column-reverse",
+                position: "relative",
                 // Rounded to three decimals on purpose. Math.log10 is only
                 // implementation-approximated, so Node and the browser can
                 // disagree in the last bits of a float -- enough to emit two
@@ -223,23 +201,81 @@ export default function TileActivityBars({
                 // mismatch. Three decimals is far finer than a pixel.
                 height: `${(barFraction(entry.total, peak, scale) * 100).toFixed(3)}%`,
                 // A bin with any activity at all stays visible even when it
-                // rounds to under a pixel against the month's peak.
+                // rounds to under a pixel against the scope's peak.
                 minHeight: entry.total > 0 ? 2 : 0,
-                borderRadius: "1px",
-                overflow: "hidden",
+                // Never squeezed to make room for anything else in the column:
+                // the headroom above already is that room.
+                flexShrink: 0,
               }}
             >
-              {entry.total > 0 &&
-                order.map((state) => (
-                  <Box
-                    key={state}
-                    sx={{
-                      flexGrow: entry[state],
-                      flexBasis: 0,
-                      backgroundColor: ACTIVITY_STYLES[state].color,
-                    }}
-                  />
-                ))}
+              {/* Marks for what moved here but is not in the bar, sitting just
+                  above it, side by side when there is more than one. Plain
+                  spans, not buttons: the tile is itself a button, and a button
+                  may not contain another. The toolbar toggle is the keyboard
+                  route to the same thing. */}
+              {hiddenWithCounts(entry, shown).length > 0 && (
+                <Box
+                  sx={{
+                    position: "absolute",
+                    left: 0,
+                    right: 0,
+                    bottom: `calc(100% + ${GLYPH_GAP}px)`,
+                    height: `${GLYPH_LINE}px`,
+                    display: "flex",
+                    justifyContent: "center",
+                    alignItems: "flex-end",
+                    gap: "2px",
+                  }}
+                >
+                  {hiddenWithCounts(entry, shown).map((state) => (
+                    <Box
+                      key={state}
+                      component="span"
+                      title={`${entry[state].toLocaleString()} ${ACTIVITY_STYLES[state].label.toLowerCase()}, not in the bar — click to add`}
+                      onClick={(event) => {
+                        // Not a click on the day: do not open its dialog.
+                        event.stopPropagation();
+                        onShow?.(state);
+                      }}
+                      // Nor the start of a range drag.
+                      onMouseDown={(event) => event.stopPropagation()}
+                      sx={{
+                        fontSize: `${GLYPH_LINE}px`,
+                        lineHeight: `${GLYPH_LINE}px`,
+                        fontWeight: 700,
+                        color: ACTIVITY_STYLES[state].color,
+                        cursor: onShow ? "pointer" : "default",
+                        userSelect: "none",
+                        "&:hover": { transform: "scale(1.3)" },
+                        transition: "transform 80ms",
+                      }}
+                    >
+                      {HIDDEN_GLYPH[state]}
+                    </Box>
+                  ))}
+                </Box>
+              )}
+              <Box
+                sx={{
+                  height: "100%",
+                  display: "flex",
+                  flexDirection: "column-reverse",
+                  borderRadius: "1px",
+                  overflow: "hidden",
+                }}
+              >
+                {entry.total > 0 &&
+                  order.map((state) => (
+                    <Box
+                      key={state}
+                      sx={{
+                        flexGrow: entry[state],
+                        flexBasis: 0,
+                        backgroundColor: ACTIVITY_STYLES[state].color,
+                      }}
+                    />
+                  ))}
+              </Box>
             </Box>
           </Box>
         ))}

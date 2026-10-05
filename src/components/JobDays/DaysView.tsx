@@ -18,7 +18,7 @@ import InfoOutlined from "@mui/icons-material/InfoOutlined";
 
 import type { BarScale, StackedBarData } from "./types";
 import CellGuideDialog from "./_components/CellGuide";
-import { MAX_HISTORY_DAYS, addDays } from "./_components/chunks";
+import { MAX_HISTORY_DAYS, addDays, visibleGrid } from "./_components/chunks";
 import DayDialog from "./_components/DayDialog";
 import JobCalendar, { inRange, type DayRange } from "./_components/JobCalendar";
 import PeriodCard from "./_components/PeriodCard";
@@ -129,7 +129,7 @@ export default function DaysView({
   const [scale, setScale] = useState<BarScale>(DEFAULT_SCALE);
   const [openDay, setOpenDay] = useState<string | null>(null);
   // The days the bars are scaled to, when the reader has dragged out a range on
-  // the calendar. Null scales to the visible month.
+  // the calendar. Null scales to the visible grid.
   const [range, setRange] = useState<DayRange | null>(null);
   // Which states the bars stack: completions by default, placements and
   // removals on request. Every chart on the page follows this one pick.
@@ -298,17 +298,17 @@ export default function DaysView({
   // drawn as the completed share filling the tile from the floor.
   const fills = useMemo(() => buildDayOutcomes(dayData, filter), [dayData, filter]);
 
-  const inVisibleMonth = (day: string) => {
-    const date = parseDayKey(day);
-    return (
-      date.getFullYear() === activeStartDate.getFullYear() &&
-      date.getMonth() === activeStartDate.getMonth()
-    );
-  };
+  // Every tile on screen, not just the month's own days: the grid pads the
+  // month out to whole weeks with its neighbours' days, and those carry bars
+  // too. Scaling to the month alone left them on a scale of their own, so a
+  // September day at the top of October's grid could tower over -- or vanish
+  // beside -- the days around it.
+  const grid = visibleGrid(activeStartDate);
+  const inVisibleGrid = (day: string) => day >= grid.start && day < grid.end;
   // The days the peaks are measured over: the reader's range when there is
-  // one, else the visible month. One heavy day at the start of a month
+  // one, else the visible grid. One heavy day at the start of a month
   // flattens everything after it; selecting the rest lets the rest be seen.
-  const inScope = (day: string) => (range ? inRange(day, range) : inVisibleMonth(day));
+  const inScope = (day: string) => (range ? inRange(day, range) : inVisibleGrid(day));
 
   // The peak every tile scales against. Recomputed per scope on purpose -- a
   // single window-wide peak would bury every ordinary month under the one
