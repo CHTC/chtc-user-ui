@@ -137,6 +137,13 @@ export const CELL_GUIDE_KEY = "days.cellGuideDismissed";
  */
 export const CELL_GUIDE_V2_KEY = "days.cellGuideV2Dismissed";
 
+/**
+ * And calendar v3 its own again: its cell swaps v1's completion fill for the
+ * two-sided end-of-day ratio bar, which is a mark the other two guides do not
+ * describe.
+ */
+export const CELL_GUIDE_V3_KEY = "days.cellGuideV3Dismissed";
+
 export function readGuideDismissed(key: string = CELL_GUIDE_KEY): boolean {
   try {
     return window.localStorage.getItem(key) === "1";

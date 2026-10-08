@@ -115,6 +115,26 @@ function hexChannels(hex: string): [number, number, number] {
 export const LEVEL_SLOPE_LOG_GAIN = 1000;
 
 /**
+ * The colour `t` of the way along a ramp, 0 to 1: piecewise linear through the
+ * stops, evenly spaced. Pulled out of levelSlopeColor so the v3 completion
+ * ratio can read the same stops on its own (linear) scale -- one ramp, two
+ * quantities, which is the point of reusing it.
+ */
+function rampChannels(stops: string[], t: number): [number, number, number] {
+  const last = stops.length - 1;
+  const position = Math.min(1, Math.max(0, t)) * last;
+  const index = Math.min(last - 1, Math.floor(position));
+  const local = position - index;
+  const a = hexChannels(stops[index]);
+  const b = hexChannels(stops[index + 1]);
+  return a.map((channel, i) => Math.round(channel + (b[i] - channel) * local)) as [
+    number,
+    number,
+    number,
+  ];
+}
+
+/**
  * The trace colour for a segment of the given steepness, 0 (flat) to 1 (the
  * whole slot's height in one window). Log-scaled (see LEVEL_SLOPE_LOG_GAIN),
  * then piecewise linear through the stops, evenly spaced along the ramp.
@@ -123,14 +143,8 @@ export const LEVEL_SLOPE_LOG_GAIN = 1000;
 export function levelSlopeColor(steepness: number): string {
   const clamped = Math.min(1, Math.max(0, steepness));
   const t = Math.log1p(LEVEL_SLOPE_LOG_GAIN * clamped) / Math.log1p(LEVEL_SLOPE_LOG_GAIN);
-  const last = LEVEL_SLOPE_STOPS.length - 1;
-  const position = t * last;
-  const index = Math.min(last - 1, Math.floor(position));
-  const local = position - index;
-  const a = hexChannels(LEVEL_SLOPE_STOPS[index]);
-  const b = hexChannels(LEVEL_SLOPE_STOPS[index + 1]);
-  const mix = a.map((channel, i) => Math.round(channel + (b[i] - channel) * local));
-  return `rgb(${mix[0]}, ${mix[1]}, ${mix[2]})`;
+  const [r, g, b] = rampChannels(LEVEL_SLOPE_STOPS, t);
+  return `rgb(${r}, ${g}, ${b})`;
 }
 
 /**
@@ -255,3 +269,57 @@ export const ACTIVITY_STYLES: Record<ActivityState, { label: string; color: stri
  * same "completed" the bars and the Sankey already use.
  */
 export const COMPLETION_FILL_COLOR = "rgba(42, 157, 143, 0.22)";
+
+/**
+ * Calendar v3's end-of-day ratio bar: the same quantity as v1's completion fill
+ * -- the share of the jobs open when the day began that completed before it
+ * ended -- but with both halves of the ratio painted, and the completed half
+ * coloured by how large that share is.
+ *
+ * The completed half reads the queue line's own ramp (LEVEL_SLOPE_STOPS), on a
+ * linear scale rather than the line's log one: 0% of the backlog cleared is the
+ * light blue at the ramp's foot, and a day that cleared essentially all of it is
+ * the brilliant purple at its head. So "purple" means the same thing on both
+ * marks -- the extreme end of this cell's scale -- and a month scans for purple
+ * tiles the way it already scans for purple line segments.
+ *
+ * The not-completed half is a highlighter yellow, flat: it is a remainder, not a
+ * measurement, so it has nothing to vary with.
+ */
+
+/**
+ * The highlighter yellow of the unfinished remainder. Held at this alpha
+ * because, unlike v1's fill, the v3 bar covers the whole tile: the date, the six
+ * bars, the queue line and the caption all sit on top of it, and none of them
+ * may lose contrast to the ground. Full-strength highlighter is unreadable
+ * underneath them; this keeps the hue unmistakable and the tile legible.
+ */
+export const RATIO_UNFINISHED_COLOR = "rgba(238, 255, 0, 0.30)";
+
+/**
+ * The hatch drawn over the unfinished remainder. The ramp passes through its
+ * own yellow near the middle of the scale, so on a half-cleared day the two
+ * halves of the bar would be close in hue; the hatch is the second encoding
+ * that keeps them apart whatever the colours do. Completed is always the solid
+ * half, not-completed always the striped one.
+ */
+export const RATIO_UNFINISHED_HATCH =
+  "repeating-linear-gradient(135deg, rgba(120, 112, 0, 0.22) 0 3px, rgba(0, 0, 0, 0) 3px 7px)";
+
+/** How opaque the completed half is, for the same legibility reason. */
+const RATIO_COMPLETED_ALPHA = 0.38;
+
+/**
+ * The completed half's colour for a ratio of 0 to 1, on the queue line's ramp
+ * read linearly. Clamped, since a share cannot leave its bounds.
+ */
+export function ratioCompletedColor(share: number): string {
+  const [r, g, b] = rampChannels(LEVEL_SLOPE_STOPS, share);
+  return `rgba(${r}, ${g}, ${b}, ${RATIO_COMPLETED_ALPHA})`;
+}
+
+/** The same ramp at full strength, for legend swatches and the guide's key. */
+export function ratioCompletedSwatch(share: number): string {
+  const [r, g, b] = rampChannels(LEVEL_SLOPE_STOPS, share);
+  return `rgb(${r}, ${g}, ${b})`;
+}

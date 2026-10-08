@@ -25,10 +25,14 @@ import {
   BAR_STATE_STYLES,
   CARRIED_ACTIVE_COLOR,
   COMPLETION_FILL_COLOR,
+  RATIO_UNFINISHED_COLOR,
+  RATIO_UNFINISHED_HATCH,
+  ratioCompletedColor,
   levelSegments,
   levelSlopeColor,
 } from "./palette";
 import QueueGlyph from "./QueueGlyph";
+import RatioLegend from "./RatioLegend";
 import SlopeLegend from "./SlopeLegend";
 import type { CalendarVersion } from "./VersionSwitch";
 
@@ -127,11 +131,38 @@ const V2_HEIGHT_FEATURE: Feature = {
   parts: ["bars"],
 };
 
-/** The feature list for one calendar version: v2 swaps in the per-day height card. */
+/**
+ * Calendar v3 is v2 -- per-day bar heights -- with the inheritance mark redrawn:
+ * both sides of the ratio are painted, and the completed side is coloured by
+ * how big it is, on the same ramp the queue line uses.
+ */
+const V3_FILL_FEATURE: Feature = {
+  id: "fill",
+  title: "The ground is the day's end-of-day ratio",
+  body:
+    "Of the jobs already open when this day began, how many had completed by the time it ended. " +
+    "The completed share rises from the floor of the cell and the rest — the jobs still not " +
+    "completed at the day's close — is the hatched highlighter yellow above it, so the whole " +
+    "cell is the day's inheritance and the waterline is the ratio. Jobs placed during the day " +
+    "are not counted. The completed share is also coloured by its own size, on the same ramp " +
+    "the queue line uses: cool blue for a day that barely touched its backlog, through green " +
+    "and orange as the share climbs, to brilliant purple for a day that finished essentially " +
+    "all of it. So a cleared day is purple to the top, and a month can be scanned for purple " +
+    "without reading any single cell. Its numbers are in the day's full breakdown, one click away.",
+  parts: ["fill"],
+};
+
+/**
+ * The feature list for one calendar version: v2 swaps in the per-day height
+ * card, and v3 takes that plus the ratio-bar card.
+ */
 function featuresFor(variant: CalendarVersion): Feature[] {
-  return variant === "v2"
-    ? FEATURES.map((feature) => (feature.id === "height" ? V2_HEIGHT_FEATURE : feature))
-    : FEATURES;
+  if (variant === "v1") return FEATURES;
+  return FEATURES.map((feature) => {
+    if (feature.id === "height") return V2_HEIGHT_FEATURE;
+    if (feature.id === "fill" && variant === "v3") return V3_FILL_FEATURE;
+    return feature;
+  });
 }
 
 /** The made-up day the example draws: a quiet morning, a busy afternoon. */
@@ -290,7 +321,10 @@ export default function CellGuideDialog({ variant = "v1", open, onClose }: CellG
               alignSelf: "flex-start",
             }}
           >
-            <ExampleCell active={feature} />
+            <ExampleCell active={feature} variant={variant} />
+            {/* v3's ground carries a scale, so it needs a key; v1's and v2's
+                single teal is explained by its card alone. */}
+            {variant === "v3" && <RatioLegend />}
           </Box>
         </Stack>
       </DialogContent>
@@ -374,7 +408,14 @@ function FeatureCard({
  * maths as the real thing so nothing here can teach the reader something the
  * calendar does not do.
  */
-function ExampleCell({ active }: { active: Feature | null }) {
+function ExampleCell({
+  active,
+  variant,
+}: {
+  active: Feature | null;
+  variant: CalendarVersion;
+}) {
+  const share = EXAMPLE_OUTCOME.completed / EXAMPLE_OUTCOME_TOTAL;
   const lit = (part: Part) => !active || active.parts.includes(part);
   // Two features single out one bar; the rest treat the row as a whole.
   const focusOneBar = active?.id === "colour" || active?.id === "hover";
@@ -410,17 +451,54 @@ function ExampleCell({ active }: { active: Feature | null }) {
             gap: 1,
           }}
         >
-          {/* Calendar v1: the completion fill, the whole cell's ground. First
-              so everything else paints over it, as on a real tile. Its height
-              is the example's completed share of the jobs the day began with. */}
-          {(
+          {/* The inheritance mark, the whole cell's ground. First so everything
+              else paints over it, as on a real tile. Its height is the
+              example's completed share of the jobs the day began with. */}
+          {variant === "v3" ? (
+            // v3: both sides of the ratio, the completed one on the queue
+            // line's ramp. Same geometry as TileRatioBar.
+            <Box
+              sx={{
+                position: "absolute",
+                inset: 0,
+                zIndex: 0,
+                pointerEvents: "none",
+                ...dim("fill"),
+                ...ring("fill"),
+              }}
+            >
+              <Box
+                sx={{
+                  position: "absolute",
+                  left: 0,
+                  right: 0,
+                  top: 0,
+                  height: `${((1 - share) * 100).toFixed(3)}%`,
+                  backgroundColor: RATIO_UNFINISHED_COLOR,
+                  backgroundImage: RATIO_UNFINISHED_HATCH,
+                }}
+              />
+              <Box
+                sx={{
+                  position: "absolute",
+                  left: 0,
+                  right: 0,
+                  bottom: 0,
+                  height: `${(share * 100).toFixed(3)}%`,
+                  backgroundColor: ratioCompletedColor(share),
+                  borderTop: "1px solid rgba(40, 40, 50, 0.35)",
+                  boxSizing: "border-box",
+                }}
+              />
+            </Box>
+          ) : (
             <Box
               sx={{
                 position: "absolute",
                 left: 0,
                 right: 0,
                 bottom: 0,
-                height: `${((EXAMPLE_OUTCOME.completed / EXAMPLE_OUTCOME_TOTAL) * 100).toFixed(3)}%`,
+                height: `${(share * 100).toFixed(3)}%`,
                 backgroundColor: COMPLETION_FILL_COLOR,
                 zIndex: 0,
                 pointerEvents: "none",
