@@ -50,6 +50,7 @@ import {
 import {
   CELL_GUIDE_KEY,
   CELL_GUIDE_V2_KEY,
+  CELL_GUIDE_V3_KEY,
   DEFAULT_SCALE,
   readBarsParam,
   readGroupParams,
@@ -111,7 +112,11 @@ export default function DaysView({
   const asOf = asOfDay(dayData);
   // Each version has its own guide, dismissed separately: a reader who has
   // learnt one cell has not learnt the other.
-  const guideKey = variant === "v2" ? CELL_GUIDE_V2_KEY : CELL_GUIDE_KEY;
+  const guideKey =
+    variant === "v3" ? CELL_GUIDE_V3_KEY : variant === "v2" ? CELL_GUIDE_V2_KEY : CELL_GUIDE_KEY;
+  // v2 and v3 both scale each day's bars to that day's own busiest window; v3
+  // additionally swaps the completion fill for the end-of-day ratio bar.
+  const perDayScale = variant !== "v1";
   // How far back the calendar may be paged: the data loads as the reader goes,
   // so this is the API's limit rather than the edge of what is loaded.
   const pageFloor = addDays(asOf, -MAX_HISTORY_DAYS);
@@ -484,7 +489,8 @@ export default function DaysView({
             levels={levels}
             fills={fills}
             scale={scale}
-            perDayScale={variant === "v2"}
+            perDayScale={perDayScale}
+            ratioRamp={variant === "v3"}
             peakBinTotal={peak}
             levelPeak={levelPeak}
             firstDay={pageFloor}
@@ -550,7 +556,7 @@ export default function DaysView({
         />
 
         <Stack spacing={2} sx={{ mt: 4 }}>
-          <ScaleNote scale={scale} perDay={variant === "v2"} />
+          <ScaleNote scale={scale} perDay={perDayScale} />
 
           <Box component="section">
             <Typography
@@ -604,6 +610,26 @@ export default function DaysView({
                 </>
               )}
             </Typography>
+            {variant === "v3" && (
+              <Typography
+                variant="caption"
+                component="p"
+                sx={{ color: "text.secondary", display: "block", mt: 0.75 }}
+              >
+                Behind both, each cell&rsquo;s ground is its{" "}
+                <Box component="span" sx={{ fontWeight: 700, color: "text.primary" }}>
+                  end-of-day ratio
+                </Box>
+                : of the jobs already open when the day began, the share that had completed by
+                the time it ended rises from the floor, and the hatched highlighter yellow above
+                it is what had not. Jobs placed during the day are not counted on either side —
+                this is the backlog being cleared, nothing else. The completed share is coloured
+                by its own size on the same ramp the queue line uses, so a day that barely
+                touched its inheritance is cool blue, one that cleared most of it runs through
+                green and orange, and a day that finished essentially all of it is brilliant
+                purple to the top. Click a day for the counts behind the ratio.
+              </Typography>
+            )}
           </Box>
         </Stack>
       </Box>

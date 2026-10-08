@@ -28,6 +28,7 @@ import TileAxis, { AXIS_WIDTH, QUEUE_OVERHANG } from "./TileAxis";
 import { describeActivity, type ActivityState } from "./palette";
 import TileActivityBars, { GLYPH_HEADROOM } from "./TileActivityBars";
 import TileCompletionFill from "./TileCompletionFill";
+import TileRatioBar from "./TileRatioBar";
 import TileLevelLine from "./TileLevelLine";
 
 /** A run of days, inclusive, as "YYYY-MM-DD" keys with start <= end. */
@@ -86,6 +87,13 @@ interface JobCalendarProps {
    */
   perDayScale: boolean;
   /**
+   * Calendar v3: the inheritance mark is the two-sided end-of-day ratio bar --
+   * completed on the queue line's colour ramp, not-completed in highlighter
+   * yellow -- rather than v1 and v2's one-sided teal fill. Same quantity,
+   * different reading. See TileRatioBar.
+   */
+  ratioRamp: boolean;
+  /**
    * Tallest 4-hour bin on the visible grid, neighbouring days included; every
    * tile scales against it so bar heights compare across days. Measured by the
    * page rather than here, because the scale hint beside the toggle reasons
@@ -138,6 +146,7 @@ export default function JobCalendar({
   fills,
   scale,
   perDayScale,
+  ratioRamp,
   peakBinTotal,
   levelPeak,
   firstDay,
@@ -496,13 +505,18 @@ export default function JobCalendar({
                 />
               )}
               {/*
-                The completion fill, the whole tile's background. First of the
+                The inheritance mark -- v1 and v2's completion fill, or v3's
+                ratio bar -- as the whole tile's background. First of the
                 positioned siblings so the level trace, at the same z-index,
                 paints over it; the day body sits above both.
               */}
-              {fills && fills.get(key)?.hasData && (
-                <TileCompletionFill outcome={fills.get(key) as DayOutcome} day={key} />
-              )}
+              {fills &&
+                fills.get(key)?.hasData &&
+                (ratioRamp ? (
+                  <TileRatioBar outcome={fills.get(key) as DayOutcome} day={key} />
+                ) : (
+                  <TileCompletionFill outcome={fills.get(key) as DayOutcome} day={key} />
+                ))}
               {/*
                 The open-jobs level, behind the bars. Sibling of the day body,
                 not a child of it: the body clips, and the trace has to run edge
@@ -520,6 +534,7 @@ export default function JobCalendar({
                   height={BARS_SLOT}
                   bottom={AXIS_BOTTOM}
                   onHoverScale={setHoveredScale}
+                  halo={ratioRamp}
                 />
               )}
               <TileBody
