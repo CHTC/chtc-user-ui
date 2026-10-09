@@ -6,27 +6,14 @@ import type { NoteCreate } from "@/types";
 import { Box, Breadcrumbs, Skeleton, Typography } from "@mui/material";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useState } from "react";
-import useSWR from "swr";
-
-const projectFetcher = async (project_id: number | null) => {
-  if (!project_id) return null;
-  const response = await apiFetch(`/projects/${project_id}`);
-  if (!response.ok) {
-    throw new Error(`Failed to fetch project with id ${project_id}: ${response.statusText}`);
-  }
-  return response.json();
-};
+import { useProject } from "@/src/utils/useProject";
 
 const CreateNoteSuspense = ({ projectId }: { projectId: number }) => {
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const { data: project } = useSWR(
-    projectId ? [`/projects/${projectId}`] : null,
-    () => projectFetcher(projectId),
-    { suspense: true }
-  );
+  const { data: project } = useProject(projectId);
 
   const handleSubmit = async (payload: NoteCreate) => {
     setError(null);

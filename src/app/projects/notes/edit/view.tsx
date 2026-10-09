@@ -6,6 +6,7 @@ import type { NoteCreate } from "@/types";
 import { Box, Breadcrumbs, Skeleton, Typography } from "@mui/material";
 import { useSearchParams } from "next/navigation";
 import { Suspense } from "react";
+import { useProject } from "@/src/utils/useProject";
 import useSWR from "swr";
 import {useAlert} from "@/src/components/AlertProvider";
 
@@ -80,11 +81,7 @@ const NoteFormSuspense = ({
     { suspense: true },
   );
 
-  const { data: project } = useSWR(
-    project_id ? `/projects/${project_id}` : null,
-    fetcher,
-    { suspense: true },
-  );
+  const { data: project } = useProject(project_id);
 
   if (!note_id || !project_id) {
     return <p>No project ID provided.</p>;
