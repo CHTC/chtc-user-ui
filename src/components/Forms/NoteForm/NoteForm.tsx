@@ -4,6 +4,7 @@ import FormErrorAlert from "@/src/components/FormErrorAlert/FormErrorAlert";
 import UserAutocompleteMultiple from "@/src/components/UserAutocompleteMultiple/UserAutocompleteMultiple";
 import { ApiError } from "@/src/utils/formErrors";
 import { useFormState } from "@/src/utils/useFormState";
+import { useProject } from "@/src/utils/useProject";
 import type { NoteCreate, User } from "@/types";
 import { Box, Button, Stack, TextField } from "@mui/material";
 import React from "react";
@@ -62,6 +63,7 @@ export const NoteForm: React.FC<NoteFormProps> = ({
   error,
 }) => {
   const { values, handleChange } = useFormState<NoteFormValues>(() => normalizeInitialValues(initialValues));
+  const { data: project } = useProject(projectId ?? null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -79,6 +81,14 @@ export const NoteForm: React.FC<NoteFormProps> = ({
     <Box component="form" onSubmit={handleSubmit} sx={{ mt: 2, maxWidth: 600 }}>
       <Stack spacing={2}>
         <FormErrorAlert error={error ?? null} fieldNameMap={FIELD_NAME_MAP} />
+
+        <TextField
+          label="Project"
+          value={project?.name ?? ""}
+          fullWidth
+          disabled={true}
+          helperText={"Automatically set to current project's name"}
+        />
 
         <TextField
           label="Note"
