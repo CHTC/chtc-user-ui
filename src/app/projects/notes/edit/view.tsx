@@ -6,6 +6,7 @@ import type { NoteCreate } from "@/types";
 import { Box, Breadcrumbs, Skeleton, Typography } from "@mui/material";
 import { useSearchParams } from "next/navigation";
 import { Suspense } from "react";
+import { useProject } from "@/src/utils/useProject";
 import useSWR from "swr";
 import {useAlert} from "@/src/components/AlertProvider";
 
@@ -32,7 +33,6 @@ function View() {
       update();
       showAlert("UPDATE_NOTE_SUCCESS")
     } catch (error) {
-      // TODO: error handling here
       console.error("Failed to update note:", error);
     }
   };
@@ -47,9 +47,6 @@ function View() {
 
   return (
     <Box>
-      <Breadcrumbs>
-        <Typography color="text.primary">Update Note</Typography>
-      </Breadcrumbs>
       <Suspense fallback={<Skeleton variant={"rectangular"} height={"100"} />}>
         <NotePage handleSubmit={handleSubmit} />
       </Suspense>
@@ -57,13 +54,9 @@ function View() {
   );
 }
 
-// Fetcher function for SWR
-const projectFetcher = async (note_id: number | null, project_id: number | null) => {
-  if (!note_id || !project_id) return null;
-  const response = await apiFetch(`/projects/${project_id}/notes/${note_id}`);
-  if (!response.ok) {
-    throw new Error(`Failed to fetch project with id ${note_id}: ${response.statusText}`);
-  }
+const fetcher = async (url: string) => {
+  const response = await apiFetch(url);
+  if (!response.ok) throw new Error("Failed to fetch");
   return response.json();
 };
 
@@ -81,23 +74,33 @@ const NoteFormSuspense = ({
     update: () => void,
   ) => Promise<void>;
 }) => {
-  const { data: project, mutate } = useSWR(
-    note_id && project_id ? [`/projects/${project_id}/notes/${note_id}`] : null,
-    () => projectFetcher(note_id, project_id),
+  // Fetch both the note (for the form) and the project (for the name)
+  const { data: note, mutate } = useSWR(
+    note_id && project_id ? `/projects/${project_id}/notes/${note_id}` : null,
+    fetcher,
     { suspense: true },
   );
+
+  const { data: project } = useProject(project_id);
 
   if (!note_id || !project_id) {
     return <p>No project ID provided.</p>;
   }
 
   return (
-    <NoteForm
-      mode="edit"
-      projectId={project_id}
-      initialValues={project}
-      onSubmit={(payload: NoteCreate) => handleSubmit(note_id, project_id, payload, mutate)}
-    />
+    <>
+      <Breadcrumbs>
+        <Typography color="text.primary">Update Note in {project?.name}</Typography>
+      </Breadcrumbs>
+      <Box my={3}>
+        <NoteForm
+          mode="edit"
+          projectId={project_id}
+          initialValues={note}
+          onSubmit={(payload: NoteCreate) => handleSubmit(note_id, project_id, payload, mutate)}
+        />
+      </Box>
+    </>
   );
 };
 
@@ -116,13 +119,9 @@ const NotePage = ({
   const project_id = Number.parseInt(searchParams.get("projectId") || "") || null;
 
   return (
-    <>
-      <Box my={3}>
-        <Suspense fallback={<Skeleton variant={"rectangular"} height={"400px"} />}>
-          <NoteFormSuspense note_id={note_id} project_id={project_id} handleSubmit={handleSubmit} />
-        </Suspense>
-      </Box>
-    </>
+    <Suspense fallback={<Skeleton variant={"rectangular"} height={"400px"} />}>
+      <NoteFormSuspense note_id={note_id} project_id={project_id} handleSubmit={handleSubmit} />
+    </Suspense>
   );
 };
 
