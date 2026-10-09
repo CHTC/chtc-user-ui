@@ -122,6 +122,7 @@ const ProjectUserTable = ({ projectId }: ProjectUserTableProps) => {
             <TableCell>Tickets Assigned</TableCell>
             <TableCell>Email</TableCell>
             <TableCell>NetID</TableCell>
+            <TableCell>Active</TableCell>
             <TableCell>Managed By</TableCell>
             <TableCell>Action</TableCell>
           </TableRow>
@@ -135,6 +136,7 @@ const ProjectUserTable = ({ projectId }: ProjectUserTableProps) => {
                 <TableCell>{user.last_note_ticket}</TableCell>
                 <TableCell>{user.email1}</TableCell>
                 <TableCell>{user.netid}</TableCell>
+                <TableCell>{user.active == null ? "" : user.active ? "Yes" : "No"}</TableCell>
                 <TableCell>
                   <ManagedBySelect
                     value={user.managed_by}
