@@ -142,6 +142,11 @@ export const NoteForm: React.FC<NoteFormProps> = ({
           <Button type="submit" variant="contained" color="primary" disabled={isSubmitting}>
             {mode === "create" ? "Create" : "Save"}
           </Button>
+          {projectId && (
+            <Button variant="outlined" href={`/projects/edit/?id=${projectId}`}>
+              Go Back
+            </Button>
+          )}
         </Box>
       </Stack>
     </Box>
