@@ -2,6 +2,7 @@ import { apiFetch } from "@/src/components/AuthProvider";
 import DeleteActionButton from "@/src/components/DeleteActionButton/DeleteActionButton";
 import EditLink from "@/src/components/EditLink/EditLink";
 import UserAutocomplete from "@/src/components/UserAutocomplete/UserAutocomplete";
+import ManagedBySelect from "@/src/components/ManagedBySelect/ManagedBySelect";
 import { useTableFetch } from "@/src/utils/useTableFetch";
 import { JoinedProjectView, RoleEnum, User } from "@/types";
 import { ArrowDropDown, ArrowDropUp } from "@mui/icons-material";
@@ -24,13 +25,14 @@ import {
   Typography,
 } from "@mui/material";
 import { useState } from "react";
+import EmptyTableMessage from "../EmptyTableMessage/EmptyTableMessage";
 
 interface ProjectUserTableProps {
   projectId: number;
 }
 
 const ProjectUserTable = ({ projectId }: ProjectUserTableProps) => {
-  const { data: users, mutate } = useTableFetch<JoinedProjectView[]>(`/projects/${projectId}/users`);
+  const { data: users, mutate } = useTableFetch<JoinedProjectView[]>(`/projects/${projectId}/users?netid=order_by.asc`);
 
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [role, setRole] = useState<RoleEnum | "">("");
@@ -115,29 +117,31 @@ const ProjectUserTable = ({ projectId }: ProjectUserTableProps) => {
       <Table>
         <TableHead>
           <TableRow>
-            <TableCell>Username</TableCell>
             <TableCell>Name</TableCell>
             <TableCell>Role</TableCell>
             <TableCell>Tickets Assigned</TableCell>
             <TableCell>Email</TableCell>
-            <TableCell>Phone</TableCell>
             <TableCell>NetID</TableCell>
+            <TableCell>Managed By</TableCell>
             <TableCell>Action</TableCell>
           </TableRow>
         </TableHead>
         <TableBody>
-          {users &&
+          {users && users.length > 0 ?
             (users || []).map((user) => (
               <TableRow key={user.id}>
-                <TableCell>
-                  <EditLink href={`/users/edit/?id=${user.id}`} ariaLabel="Go to user" />
-                </TableCell>
-                <TableCell>{user.name}</TableCell>
+                <TableCell><EditLink href={`/users/edit/?id=${user.id}`} ariaLabel="Go to user" />{" "}{user.name}</TableCell>
                 <TableCell>{user.role}</TableCell>
                 <TableCell>{user.last_note_ticket}</TableCell>
                 <TableCell>{user.email1}</TableCell>
-                <TableCell>{user.phone1}</TableCell>
                 <TableCell>{user.netid}</TableCell>
+                <TableCell>
+                  <ManagedBySelect
+                    value={user.managed_by}
+                    patchUrl={`/projects/${projectId}/users/${user.id}`}
+                    onSuccess={mutate}
+                  />
+                </TableCell>
                 <TableCell>
                   <DeleteActionButton
                     url={`/projects/${projectId}/users/${user.id}`}
@@ -146,7 +150,7 @@ const ProjectUserTable = ({ projectId }: ProjectUserTableProps) => {
                   />
                 </TableCell>
               </TableRow>
-            ))}
+            )) : <EmptyTableMessage message="No users" />}
         </TableBody>
       </Table>
     </Box>

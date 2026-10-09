@@ -4,6 +4,8 @@ export type RoleEnum = "MEMBER" | "PI";
 
 export type FormStatusEnum = "PENDING" | "APPROVED" | "DENIED";
 
+export type EntityManagerEnum = "APPLICATION" | "MANIFEST" | "MORGRIDGE_ACTIVE_DIRECTORY";
+
 export interface TokenGet {
   id: number;
   created_by: number;
@@ -41,6 +43,7 @@ export interface RouteGet {
 export interface SubmitNode {
   id: number;
   name: string;
+  group_id: number | null;
 }
 
 export interface UserSubmitNodeCreate {
@@ -48,16 +51,16 @@ export interface UserSubmitNodeCreate {
 }
 
 export interface UserSubmitGet {
-  id: number;
-  submit_node_id: number;
-  submit_node_name: string;
+  // disk_quota: number | null;
+  // hpc_diskquota: number | null;
+  // hpc_inodequota: number | null;
+  // hpc_joblimit: number | null;
+  // hpc_corelimit: number | null;
+  // hpc_fairshare: number | null;
   user_id: number;
-  disk_quota: number | null;
-  hpc_diskquota: number | null;
-  hpc_inodequota: number | null;
-  hpc_joblimit: number | null;
-  hpc_corelimit: number | null;
-  hpc_fairshare: number | null;
+  id: number;
+  name: string;
+  group_id: number | null;
 }
 
 export interface Group {
@@ -75,9 +78,25 @@ export interface GroupCreateUpdate {
   has_groupdir?: boolean | null;
 }
 
+export interface FieldsOfScience {
+  fos_id: string;
+  sed_cip_title: string | null;
+  broad_field: string | null;
+  major_field: string | null;
+  detailed_field: string | null;
+}
+
+export interface CollegeAndDepartment {
+  id: number;
+  college: string | null;
+  department: string | null;
+}
+
 export interface Project {
   id: number;
   name: string;
+  display_name: string | null;
+  description: string | null;
   pi: number | null;
   staff1: User | null;
   staff2: User | null;
@@ -88,6 +107,11 @@ export interface Project {
   date: string | null;
   ticket: number | null;
   last_contact: string | null;
+  college_and_department_id: number | null;
+  fos_id: string | null;
+  college_and_department: CollegeAndDepartment | null;
+  field_of_science: FieldsOfScience | null;
+  managed_by: EntityManagerEnum | null;
 }
 
 export interface PiProjectView {
@@ -102,6 +126,8 @@ export interface PiProjectView {
 
 export interface ProjectCreateUpdate {
   name: string;
+  display_name?: string | null;
+  description?: string | null;
   pi?: number | null;
   staff1?: number | null;
   staff2?: number | null;
@@ -112,6 +138,8 @@ export interface ProjectCreateUpdate {
   date?: string | null;
   ticket?: number | null;
   last_contact?: string | null;
+  college_and_department_id?: number | null;
+  fos_id?: string | null;
 }
 
 export interface User {
@@ -128,10 +156,12 @@ export interface User {
   date: string | null;
   unix_uid: number | null;
   position: string;
+  created_at: string;
+  updated_at: string;
   submit_nodes?: UserSubmitGet[];
   notes?: Note[];
   projects?: JoinedProjectView[];
-  groups?: Group[];
+  groups?: UserGroupView[];
   user_forms?: UserForm[];
 }
 
@@ -210,6 +240,9 @@ export interface JoinedProjectView {
   position: string;
   role: RoleEnum;
   last_note_ticket: string | null;
+  managed_by: EntityManagerEnum;
+  created_at: string;
+  updated_at: string;
 }
 
 export interface UserProjectCreate {
@@ -217,6 +250,40 @@ export interface UserProjectCreate {
   user_id?: number | null;
   role?: RoleEnum | null;
   is_primary?: boolean | null;
+  managed_by?: EntityManagerEnum;
+}
+
+export interface UserGroupCreateUpdate {
+  user_id: number | null;
+  managed_by?: EntityManagerEnum;
+}
+
+// Returned by GET /users/{user_id}/groups
+export interface UserGroupView {
+  group_id: number;
+  user_id: number;
+  managed_by: EntityManagerEnum | null;
+  created_at: string | null;
+  updated_at: string | null;
+  name: string;
+  point_of_contact: User | null;
+  unix_gid: number | null;
+  has_groupdir: boolean;
+}
+
+// Returned by GET /groups/{group_id}/users
+export interface GroupUserView {
+  group_id: number;
+  user_id: number;
+  managed_by: EntityManagerEnum | null;
+  created_at: string | null;
+  updated_at: string | null;
+  name: string;
+  netid: string | null;
+  username: string | null;
+  is_admin: boolean | null;
+  active: boolean | null;
+  unix_uid: number | null;
 }
 
 export interface BaseForm {

@@ -13,7 +13,7 @@ services:
       context: ./scripts/dev
       dockerfile: nginx.Dockerfile
     ports:
-      - "80:80"
+      - "127.0.0.1:3600:80"
     environment:
       NGINX_ENVSUBST_OUTPUT_DIR: /etc/nginx
     env_file:

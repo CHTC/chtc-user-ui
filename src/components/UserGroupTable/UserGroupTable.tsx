@@ -1,8 +1,11 @@
 import DeleteActionButton from "@/src/components/DeleteActionButton/DeleteActionButton";
 import EditLink from "@/src/components/EditLink/EditLink";
+import ManagedBySelect from "@/src/components/ManagedBySelect/ManagedBySelect";
 import { useTableFetch } from "@/src/utils/useTableFetch";
-import { Group } from "@/types";
+import { useRevalidateUserAndGroups, userGroupsKey } from "@/src/utils/userCache";
+import { UserGroupView } from "@/types";
 import { Table, TableBody, TableCell, TableHead, TableRow } from "@mui/material";
+import { EmptyTableMessage } from "../EmptyTableMessage/EmptyTableMessage";
 
 interface UserProjectTableProps {
   userId: number;
@@ -10,7 +13,9 @@ interface UserProjectTableProps {
 }
 
 const UserProjectTable = ({ userId, adminView = false }: UserProjectTableProps) => {
-  const { data: groups, mutate } = useTableFetch<Group[]>(`/users/${userId}/groups`);
+  const { data: groups, mutate } = useTableFetch<UserGroupView[]>(userGroupsKey(userId));
+  // Removing a group also removes the submit nodes it grants, so refresh the user too.
+  const revalidate = useRevalidateUserAndGroups(userId);
 
   return (
     <Table>
@@ -19,32 +24,40 @@ const UserProjectTable = ({ userId, adminView = false }: UserProjectTableProps) 
           <TableCell>Name</TableCell>
           <TableCell>Point Of Contact</TableCell>
           <TableCell>Unix GID</TableCell>
+          <TableCell>Managed By</TableCell>
           {adminView && (
             <TableCell>Action</TableCell>
           )}
         </TableRow>
       </TableHead>
       <TableBody>
-        {groups &&
+        {groups && groups.length > 0 ?
           (groups || []).map((group) => (
-            <TableRow key={group.id}>
+            <TableRow key={group.group_id}>
               <TableCell>
                 {group.name}
-                {adminView && (<EditLink href={`/groups/edit/?id=${group.id}`} ariaLabel="Go to group" /> )}
+                {adminView && (<EditLink href={`/groups/edit/?id=${group.group_id}`} ariaLabel="Go to group" /> )}
               </TableCell>
               <TableCell>{group.point_of_contact?.name ?? group.point_of_contact?.email1 ?? ""}</TableCell>
               <TableCell>{group.unix_gid}</TableCell>
+              <TableCell>
+                <ManagedBySelect
+                  value={group.managed_by ?? "APPLICATION"}
+                  patchUrl={`/groups/${group.group_id}/users/${userId}`}
+                  onSuccess={mutate}
+                />
+              </TableCell>
               {adminView && (
                 <TableCell>
                   <DeleteActionButton
-                    url={`/groups/${group.id}/users/${userId}`}
-                    onSuccess={mutate}
+                    url={`/groups/${group.group_id}/users/${userId}`}
+                    onSuccess={revalidate}
                     ariaLabel="Delete Group"
                   />
                 </TableCell>
               )}
             </TableRow>
-          ))}
+          )) : <EmptyTableMessage message="No groups" />}
       </TableBody>
     </Table>
   );

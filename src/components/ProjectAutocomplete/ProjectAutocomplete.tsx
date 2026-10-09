@@ -18,7 +18,7 @@ const ProjectAutocomplete = ({ value, onSelect, defaultFilter, required, disable
       onSelect={onSelect}
       defaultFilter={defaultFilter}
       getOptionLabel={(option) => option?.name ?? ""}
-      searchField="name"
+      searchFields={["name"]}
       required={required}
       disabled={disabled}
     />
