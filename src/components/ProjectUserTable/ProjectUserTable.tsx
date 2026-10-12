@@ -99,7 +99,7 @@ const ProjectUserTable = ({ projectId }: ProjectUserTableProps) => {
     <Box>
       <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 2 }}>
         <Typography variant="h6">Project Members</Typography>
-        <Button startIcon={showAddForm ? <ArrowDropUp /> : <ArrowDropDown />} onClick={() => setShowAddForm(!showAddForm)}>
+        <Button variant="contained" startIcon={showAddForm ? <ArrowDropUp /> : <ArrowDropDown />} onClick={() => setShowAddForm(!showAddForm)}>
           {showAddForm ? "Hide Form" : "Add Member"}
         </Button>
       </Box>
