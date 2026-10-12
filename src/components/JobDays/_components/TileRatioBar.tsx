@@ -3,7 +3,7 @@
 import { Box } from "@mui/material";
 
 import { formatDayShort, type DayOutcome } from "./dayCards";
-import { ratioCompletedColor } from "./palette";
+import { COMPLETION_FILL_HATCH, ratioCompletedColor } from "./palette";
 
 interface TileRatioBarProps {
   outcome: DayOutcome;
@@ -31,6 +31,11 @@ export function completionShare(outcome: DayOutcome): number {
  * that finished essentially all of it. Height and colour say one thing twice,
  * so a month reads for purple without reading any single waterline.
  *
+ * At 100% -- every inherited job finished -- the field also picks up a fine
+ * diagonal hatch. The top of the ramp is a gradient, so a cleared day and a
+ * nearly cleared one are neighbouring purples; the stripes give that one
+ * reading a hard edge, and v2 marks the same day with a star on its column.
+ *
  * One field and one waterline, rather than painting the remainder too: the
  * tile is already carrying six bars, a queue line and two numbers, and a second
  * field behind them costs more legibility than the explicit denominator buys.
@@ -46,14 +51,21 @@ export function completionShare(outcome: DayOutcome): number {
 export default function TileRatioBar({ outcome, day }: TileRatioBarProps) {
   const share = completionShare(outcome);
   const percent = Math.round(share * 100);
+  // Every inherited job finished. The share is clamped, so this is an exact
+  // comparison rather than a tolerance: completed === opening and nothing was
+  // removed or left open.
+  const cleared = share >= 1;
 
   return (
     <Box
       className="day-fill"
       role="img"
       aria-label={
-        `${percent}% of the ${outcome.opening.toLocaleString()} jobs open as ` +
-        `${formatDayShort(day)} began completed during it`
+        cleared
+          ? `Every one of the ${outcome.opening.toLocaleString()} jobs open as ` +
+            `${formatDayShort(day)} began completed during it`
+          : `${percent}% of the ${outcome.opening.toLocaleString()} jobs open as ` +
+            `${formatDayShort(day)} began completed during it`
       }
       sx={{
         position: "absolute",
@@ -64,6 +76,8 @@ export default function TileRatioBar({ outcome, day }: TileRatioBarProps) {
         // TileActivityBars.
         height: `${(share * 100).toFixed(3)}%`,
         backgroundColor: ratioCompletedColor(share),
+        // A cleared day is also striped; see COMPLETION_FILL_HATCH.
+        backgroundImage: cleared ? COMPLETION_FILL_HATCH : "none",
         // Below the level trace (a positioned sibling at the same z-index that
         // comes later in the DOM) and the day body above it.
         zIndex: 0,

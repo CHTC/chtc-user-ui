@@ -5,6 +5,7 @@ import {
   Box,
   Button,
   Chip,
+  IconButton,
   MenuItem,
   Select,
   Stack,
@@ -13,6 +14,8 @@ import {
   Tooltip,
   Typography,
 } from "@mui/material";
+import ChevronLeft from "@mui/icons-material/ChevronLeft";
+import ChevronRight from "@mui/icons-material/ChevronRight";
 import HelpOutline from "@mui/icons-material/HelpOutline";
 import InfoOutlined from "@mui/icons-material/InfoOutlined";
 
@@ -32,8 +35,10 @@ import {
 } from "./_components/binModel";
 import {
   asOfDay,
+  buildClusterStandings,
   buildDayOutcomes,
   buildSliceMap,
+  compactNumber,
   formatDayShort,
   parseDayKey,
   type DayData,
@@ -44,8 +49,10 @@ import {
   canGroupByBatch,
   clusterFilterFor,
   groupOptions,
+  orderClusterOptions,
   selectionLabel,
   type GroupBy,
+  type GroupOption,
 } from "./_components/grouping";
 import {
   CELL_GUIDE_KEY,
@@ -102,6 +109,48 @@ interface DaysViewProps {
  * a job is Active from the moment it is placed and leaves only by completing or
  * being removed.
  */
+/**
+ * One row of the cluster picker, as both a menu row and the closed control's
+ * own face. The same component for both so the arrows are usable without
+ * opening the menu at all: stepping to the next cluster has to show which
+ * cluster you landed on, when it was placed, and whether it still has work in
+ * flight.
+ *
+ * The placed date is subtext rather than a third item on the line, which at
+ * this width would push the counts out of view on the clusters that have the
+ * most to say.
+ */
+function GroupRow({
+  option,
+  open,
+  placed,
+}: {
+  option: GroupOption;
+  /** Jobs still in flight; 0 for a batch, which this is not ranked for. */
+  open: number;
+  /** Day the first jobs were placed, or null when the bake does not say. */
+  placed: string | null;
+}) {
+  return (
+    <Box sx={{ display: "flex", flexDirection: "column", minWidth: 0, lineHeight: 1.3 }}>
+      {/* Red is what the picker's order is built on: this cluster still has
+          jobs in flight. */}
+      <Box component="span" sx={{ color: open > 0 ? "error.main" : "inherit" }}>
+        {option.label} · {option.total.toLocaleString()} jobs
+        {open > 0 ? ` · ${compactNumber(open)} open` : ""}
+      </Box>
+      {placed && (
+        <Box
+          component="span"
+          sx={{ fontSize: "0.72rem", color: "text.secondary", lineHeight: 1.3 }}
+        >
+          Placed {formatDayShort(placed)}
+        </Box>
+      )}
+    </Box>
+  );
+}
+
 export default function DaysView({
   data,
   dayData,
@@ -236,10 +285,38 @@ export default function DaysView({
   };
 
   const batchGrouping = canGroupByBatch(data.batches);
-  const options = useMemo(
-    () => groupOptions(data.series, data.batches, groupBy),
-    [data.series, data.batches, groupBy],
-  );
+  // Where each cluster stands as of the last day of the window: what it still
+  // has open, what has settled, and when it was submitted. The picker is
+  // ordered and coloured by this, so a cluster with work left is at the top
+  // and in red.
+  const standings = useMemo(() => buildClusterStandings(dayData), [dayData]);
+  const options = useMemo(() => {
+    const all = groupOptions(data.series, data.batches, groupBy);
+    // Batches keep the bake's order. The three keys below are cluster
+    // properties -- a batch has no one submission day and no one ratio --
+    // and inventing an answer for them would be worse than leaving it alone.
+    return groupBy === "batch" ? all : orderClusterOptions(all, standings);
+  }, [data.series, data.batches, groupBy, standings]);
+
+  /** Jobs this group still has in flight; 0 for a batch, which is not ranked. */
+  const openJobs = (id: string) => standings.get(Number(id))?.open ?? 0;
+  /** The day this cluster's first jobs were placed; null for a batch. */
+  const placedOn = (id: string) => standings.get(Number(id))?.firstQueued ?? null;
+
+  /*
+   * Stepping through the picker.
+   *
+   * The order above puts whatever is worth looking at first, which only helps
+   * if there is a way to walk it -- opening a dropdown of two hundred clusters
+   * to advance by one is not that. "All" is the first stop rather than a
+   * special case, so the arrows also get the reader back out of a selection.
+   */
+  const walk = useMemo(() => [ALL_GROUPS, ...options.map((o) => o.id)], [options]);
+  const walkAt = walk.indexOf(selection);
+  const step = (by: number) => {
+    const next = walk[walkAt + by];
+    if (next !== undefined) selectGroup(next);
+  };
   // Every model below filters on cluster labels, whichever grouping is in force:
   // a batch is exactly the sum of its clusters. See grouping.ts.
   const filter = useMemo(
@@ -352,12 +429,39 @@ export default function DaysView({
                 {GROUP_BY_LABELS[groupBy]}
               </Typography>
               <Stack direction="row" spacing={1} alignItems="center" sx={{ mt: 0.5 }}>
+                <IconButton
+                  size="small"
+                  onClick={() => step(-1)}
+                  disabled={walkAt <= 0}
+                  aria-label={`Previous ${GROUP_BY_LABELS[groupBy].toLowerCase()}`}
+                >
+                  <ChevronLeft fontSize="small" />
+                </IconButton>
                 <Select
                   id="days-group-select"
                   size="small"
                   value={selection}
                   onChange={(event) => selectGroup(String(event.target.value))}
                   sx={{ minWidth: 260 }}
+                  MenuProps={{ sx: { maxHeight: 420 } }}
+                  // Rendered rather than left to the default, which copies the
+                  // chosen row's markup verbatim. Two lines of it is what the
+                  // menu wants and what the closed control wants too, but only
+                  // this way does the control keep its own padding.
+                  renderValue={(value) => {
+                    const option = options.find((o) => o.id === value);
+                    return option ? (
+                      <GroupRow
+                        option={option}
+                        open={openJobs(option.id)}
+                        placed={placedOn(option.id)}
+                      />
+                    ) : groupBy === "batch" ? (
+                      `All batches (${options.length})`
+                    ) : (
+                      `All clusters (${options.length})`
+                    );
+                  }}
                 >
                   <MenuItem value={ALL_GROUPS}>
                     {groupBy === "batch"
@@ -366,10 +470,22 @@ export default function DaysView({
                   </MenuItem>
                   {options.map((option) => (
                     <MenuItem key={option.id} value={option.id}>
-                      {option.label} · {option.total.toLocaleString()} jobs
+                      <GroupRow
+                        option={option}
+                        open={openJobs(option.id)}
+                        placed={placedOn(option.id)}
+                      />
                     </MenuItem>
                   ))}
                 </Select>
+                <IconButton
+                  size="small"
+                  onClick={() => step(1)}
+                  disabled={walkAt < 0 || walkAt >= walk.length - 1}
+                  aria-label={`Next ${GROUP_BY_LABELS[groupBy].toLowerCase()}`}
+                >
+                  <ChevronRight fontSize="small" />
+                </IconButton>
 
                 {/*
                   Only offered where it does something: data baked before batch
@@ -614,7 +730,8 @@ export default function DaysView({
                   speeds up, red where it drops or climbs steeply, and purple where it moves the
                   whole height of the cell in one window. The dot on each
                   midnight boundary gives its numbers on hover, including how
-                  much of the queue arrived that day. Being a headcount it has its own scale,
+                  much of the queue arrived that day. Where the queue empties the line stops
+                  there, and a day that ends with nothing open carries no dot. Being a headcount it has its own scale,
                   down the right of the calendar under the stacked glyph; the axis on the left
                   belongs to the bars.
                 </>
@@ -635,7 +752,7 @@ export default function DaysView({
               the backlog being cleared, nothing else.{" "}
               {inheritance === "bar"
                 ? "It is the narrow column straddling each midnight: completed at its base in bright red, and above that, in highlighter yellow, everything that had not completed when the day closed — removed and still open together. Two flat colours, so what you read is where the boundary between them sits; a star on top of a full column marks a day that cleared everything it began with. Hover it to split that yellow back out."
-                : "It is the cell's own ground: a field rising from the floor of the tile to the completed share, so a day that cleared its whole backlog is filled to the top and a day that cleared none of it is bare. It is coloured by that share too, on the same ramp the queue line uses — a day that barely touched its inheritance is cool blue, one that cleared most of it runs through green and orange, and a day that finished essentially all of it is brilliant purple, so a month can be scanned for purple without reading any single waterline. What is left undone is the plain tile above the waterline rather than a colour of its own: the cell has six bars, a queue line and two numbers to carry as well, and one field behind them is as much as stays legible."}{" "}
+                : "It is the cell's own ground: a field rising from the floor of the tile to the completed share, so a day that cleared its whole backlog is filled to the top and a day that cleared none of it is bare. It is coloured by that share too, on the same ramp the queue line uses — a day that barely touched its inheritance is cool blue, one that cleared most of it runs through green and orange, and a day that finished essentially all of it is brilliant purple, so a month can be scanned for purple without reading any single waterline. A day that cleared every job it began with is striped as well as purple — the top of that ramp is a gradient, so the stripes are what tell 100% from very nearly 100%. What is left undone is the plain tile above the waterline rather than a colour of its own: the cell has six bars, a queue line and two numbers to carry as well, and one field behind them is as much as stays legible."}{" "}
               Click a day for the counts behind the ratio.
             </Typography>
           </Box>

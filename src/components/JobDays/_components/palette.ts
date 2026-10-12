@@ -147,26 +147,43 @@ export function levelSlopeColor(steepness: number): string {
   return `rgb(${r}, ${g}, ${b})`;
 }
 
+/** One level reading: the count, and where it lands in the drawn slot. */
+export interface LevelReading {
+  /** Open jobs at this reading. */
+  value: number;
+  /** Pixels from the top of the slot. */
+  y: number;
+}
+
 /**
  * The trace segments between consecutive level readings, each with the colour
- * its steepness earns. `ys` are the drawn pixel heights from the top of a slot
- * of `height` px, so the steepness is what the eye sees after the page's
- * scale has been applied; one x unit per reading.
+ * its steepness earns. `y` is the drawn pixel height from the top of a slot of
+ * `height` px, so the steepness is what the eye sees after the page's scale
+ * has been applied; one x unit per reading.
+ *
+ * A stretch where the queue is empty at both ends is left out. An empty queue
+ * is not a level, and drawing it as one puts a flat line along the floor that
+ * looks exactly like a queue holding steady at some small number -- the two
+ * readings a reader most needs to tell apart. So the trace stops at the point
+ * the queue reaches zero and starts again when work arrives. The drop to zero
+ * is still drawn, since that is the day's most informative segment; what goes
+ * is only the nothing that follows it.
  */
 export function levelSegments(
-  ys: number[],
+  readings: LevelReading[],
   height: number,
 ): { x1: number; y1: number; x2: number; y2: number; color: string }[] {
   const out = [];
-  for (let i = 1; i < ys.length; i++) {
-    const y1 = ys[i - 1];
-    const y2 = ys[i];
+  for (let i = 1; i < readings.length; i++) {
+    const from = readings[i - 1];
+    const to = readings[i];
+    if (from.value <= 0 && to.value <= 0) continue;
     out.push({
       x1: i - 1,
-      y1,
+      y1: from.y,
       x2: i,
-      y2,
-      color: levelSlopeColor(height > 0 ? Math.abs(y2 - y1) / height : 0),
+      y2: to.y,
+      color: levelSlopeColor(height > 0 ? Math.abs(to.y - from.y) / height : 0),
     });
   }
   return out;
@@ -302,6 +319,26 @@ export function ratioCompletedColor(share: number): string {
   const [r, g, b] = rampChannels(LEVEL_SLOPE_STOPS, share);
   return `rgba(${r}, ${g}, ${b}, ${COMPLETION_FILL_ALPHA})`;
 }
+
+/**
+ * The hatch a cleared day wears: fine diagonal stripes over the v1 ground,
+ * drawn only at 100%.
+ *
+ * Clearing the whole backlog is the one reading on this scale worth finding
+ * without comparing anything, and colour alone does not give it a hard edge --
+ * the ramp's last stretch is a gradient, so 96% and 100% are neighbouring
+ * purples. The stripes are a second channel saying the same thing, and being a
+ * texture rather than a hue they survive the ground's translucency, a
+ * colour-blind reader, and a greyscale print.
+ *
+ * Lighter than the ground rather than darker: the date, the bars, the trace
+ * and the caption are all read on top of it, and lifting the stripes towards
+ * paper can only help them. The pitch is wide enough to stay a texture at tile
+ * size instead of turning into a wash.
+ */
+export const COMPLETION_FILL_HATCH =
+  "repeating-linear-gradient(45deg, rgba(255, 255, 255, 0.1) 0px, rgba(255, 255, 255, 0.1) 3px, " +
+  "rgba(255, 255, 255, 0) 3px, rgba(255, 255, 255, 0) 9px)";
 
 /**
  * The highlighter yellow of v2's unfinished remainder.

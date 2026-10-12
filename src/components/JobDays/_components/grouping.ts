@@ -112,6 +112,91 @@ export function inFilter(filter: ClusterFilter, cluster: number | string): boole
   return !filter || filter.has(String(cluster));
 }
 
+/**
+ * Where one cluster stands as of the window's last day: how much of it is
+ * still in flight, how much has left the queue, and when it was submitted.
+ *
+ * Declared here rather than imported from the day bake so this module stays a
+ * leaf -- dayCards imports from it, and the dependency cannot run both ways.
+ * dayCards.buildClusterStandings is what fills it in.
+ */
+export interface ClusterStanding {
+  /** Jobs neither completed nor removed: still queued or running. */
+  open: number;
+  /** Jobs that have left the queue, completed and removed together. */
+  settled: number;
+  /** The day this cluster's first jobs were placed, or null when unknown. */
+  firstQueued: string | null;
+}
+
+const NO_STANDING: ClusterStanding = { open: 0, settled: 0, firstQueued: null };
+
+/**
+ * How much of a cluster is left, as a share of how much has finished. Lower is
+ * further along: 0.1 is a cluster that is nearly done, 4 is one that has
+ * barely started.
+ *
+ * A cluster with nothing left ranks 0 -- it is as finished as a cluster can
+ * be. A cluster with jobs left and nothing finished ranks last of all, which
+ * is what Infinity buys: no division by zero, and no pretending that "nothing
+ * has finished yet" is a small ratio.
+ */
+function progressRatio(standing: ClusterStanding): number {
+  if (standing.open === 0) return 0;
+  return standing.settled === 0 ? Infinity : standing.open / standing.settled;
+}
+
+/** Day keys sort as dates; an unknown submission day goes last. */
+function compareFirstQueued(a: string | null, b: string | null): number {
+  if (a === b) return 0;
+  if (!a) return 1;
+  if (!b) return -1;
+  return a < b ? -1 : 1;
+}
+
+/**
+ * The cluster picker's order.
+ *
+ * Three keys, in this order:
+ *
+ *  1. Clusters still holding open jobs come first. Those are the ones there is
+ *     anything left to do about, and they are the ones drawn in red.
+ *  2. Then submission day, oldest first -- so a run that has been going for a
+ *     fortnight is above one submitted this morning.
+ *  3. Then how far along the cluster is, nearest to finished first: the ratio
+ *     of what is still open to what has already left the queue, lowest first.
+ *     Within one submission day this puts the clusters about to clear ahead of
+ *     the ones that have barely moved.
+ *
+ * Cluster label breaks any remaining tie, so the order is stable across
+ * renders rather than depending on how the options arrived.
+ */
+export function orderClusterOptions(
+  options: GroupOption[],
+  standings: Map<number, ClusterStanding>,
+): GroupOption[] {
+  const standingOf = (option: GroupOption) =>
+    standings.get(Number(option.id)) ?? NO_STANDING;
+  return [...options].sort((a, b) => {
+    const sa = standingOf(a);
+    const sb = standingOf(b);
+
+    const stillOpen = Number(sb.open > 0) - Number(sa.open > 0);
+    if (stillOpen) return stillOpen;
+
+    const submitted = compareFirstQueued(sa.firstQueued, sb.firstQueued);
+    if (submitted) return submitted;
+
+    // Compared rather than subtracted: both can be Infinity, and the
+    // difference of two infinities is NaN, which would corrupt the sort.
+    const ra = progressRatio(sa);
+    const rb = progressRatio(sb);
+    if (ra !== rb) return ra < rb ? -1 : 1;
+
+    return Number(a.id) - Number(b.id);
+  });
+}
+
 /** How the page describes the current selection in prose. */
 export function selectionLabel(
   options: GroupOption[],

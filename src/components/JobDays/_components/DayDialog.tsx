@@ -7,6 +7,7 @@ import {
   DialogContent,
   DialogTitle,
   IconButton,
+  ListSubheader,
   MenuItem,
   Select,
   Stack,
@@ -17,13 +18,21 @@ import Close from "@mui/icons-material/Close";
 import type { StackedBarData } from "../types";
 import { buildDayActivity, buildDayLevels, expandSeries } from "./binModel";
 import {
+  buildDayClusterRoles,
   buildDayOutcomes,
   buildSliceMap,
-  compactNumber,
   formatDayLong,
   formatDayShort,
+  type DayClusterRole,
   type DayData,
 } from "./dayCards";
+import {
+  activeLabel,
+  placedLabel,
+  rollUpDayGroups,
+  splitDayGroups,
+  type DayGroupEntry,
+} from "./dayGroups";
 import {
   ALL_GROUPS,
   GROUP_BY_LABELS,
@@ -66,20 +75,14 @@ interface DayDialogProps {
   variant?: CalendarVersion;
 }
 
-/** What one group did on the dialog's day, for the select's option labels. */
-interface DayGroupEntry {
-  id: string;
-  label: string;
-  placed: number;
-  changed: number;
-}
-
-function optionLabel(entry: DayGroupEntry): string {
-  const parts: string[] = [];
-  if (entry.placed > 0) parts.push(`${compactNumber(entry.placed)} placed`);
-  if (entry.changed > 0) parts.push(`${compactNumber(entry.changed)} changed`);
-  return parts.length > 0 ? `${entry.label} · ${parts.join(", ")}` : entry.label;
-}
+/** The two bin headings in the picker's menu. */
+const SUBHEADER = {
+  lineHeight: "32px",
+  fontSize: "0.7rem",
+  fontWeight: 700,
+  textTransform: "uppercase",
+  letterSpacing: "0.04em",
+} as const;
 
 /**
  * Centred per-day breakdown: where that day's cohort stands, and how the day's
@@ -98,55 +101,33 @@ export default function DayDialog({
   open,
   onClose,
 }: DayDialogProps) {
-  // Clusters that are part of this day: a cohort placed on it, or any activity.
-  const dayClusters = useMemo(() => {
-    const byId = new Map<string, { placed: number; changed: number }>();
-    if (!day) return byId;
-    const entry = (id: number) => {
-      const key = String(id);
-      let e = byId.get(key);
-      if (!e) byId.set(key, (e = { placed: 0, changed: 0 }));
-      return e;
-    };
-    for (const cohort of dayData.cohorts) {
-      if (cohort.day === day && cohort.queued > 0) entry(cohort.cluster).placed += cohort.queued;
-    }
-    for (const row of dayData.activity) {
-      if (row.day === day) entry(row.cluster).changed += row.changed;
-    }
-    return byId;
-  }, [dayData, day]);
+  // Every cluster that was part of this day, with what it placed, what it was
+  // already carrying, and what left the queue.
+  const dayClusters = useMemo<DayClusterRole[]>(
+    () => (day ? buildDayClusterRoles(dayData, day) : []),
+    [dayData, day],
+  );
 
-  // The same day's clusters, rolled up into whichever grouping the page is using.
-  // A batch appears only if at least one of its clusters took part, and carries the
-  // summed figures for the ones that did.
-  const dayGroups = useMemo<DayGroupEntry[]>(() => {
-    if (groupBy === "batch") {
-      const out: DayGroupEntry[] = [];
-      for (const batch of batches ?? []) {
-        let placed = 0;
-        let changed = 0;
-        let present = false;
-        for (const member of batch.clusters) {
-          const stats = dayClusters.get(String(member));
-          if (!stats) continue;
-          present = true;
-          placed += stats.placed;
-          changed += stats.changed;
-        }
-        if (present) out.push({ id: batch.id, label: batch.name, placed, changed });
-      }
-      return out.sort((a, b) => b.changed - a.changed || b.placed - a.placed);
-    }
-    return [...dayClusters.entries()]
-      .map(([id, stats]) => ({ id, label: `Cluster ${id}`, ...stats }))
-      .sort((a, b) => Number(a.id) - Number(b.id));
-  }, [dayClusters, groupBy, batches]);
+  // The same day's clusters under the page's grouping, split into the picker's
+  // two bins; see dayGroups.
+  const dayGroups = useMemo<DayGroupEntry[]>(
+    () => rollUpDayGroups(dayClusters, groupBy, batches),
+    [dayClusters, groupBy, batches],
+  );
+
+  const { placed: placedGroups, active: activeGroups } = useMemo(
+    () => splitDayGroups(dayGroups),
+    [dayGroups],
+  );
+
+  const listed = placedGroups.length + activeGroups.length;
 
   // A page-level selection that plays no part in this day falls back to everything
   // rather than presenting an empty breakdown.
   const effective =
-    selection !== ALL_GROUPS && !dayGroups.some((g) => g.id === selection)
+    selection !== ALL_GROUPS &&
+    !placedGroups.some((g) => g.id === selection) &&
+    !activeGroups.some((g) => g.id === selection)
       ? ALL_GROUPS
       : selection;
 
@@ -214,24 +195,53 @@ export default function DayDialog({
                 >
                   {GROUP_BY_LABELS[groupBy]}
                 </Typography>
+                {/* The bins are flattened into one list of children rather
+                    than wrapped per section: a Select resolves its value by
+                    looking through its own children, and anything nested in a
+                    fragment is invisible to that lookup. */}
                 <Select
                   id="days-day-group-select"
                   size="small"
                   value={effective}
                   onChange={(event) => onSelectionChange(String(event.target.value))}
                   sx={{ mt: 0.5, minWidth: 260 }}
+                  MenuProps={{ sx: { maxHeight: 420 } }}
                 >
                   <MenuItem value={ALL_GROUPS}>
                     {groupBy === "batch"
-                      ? `All batches on this day (${dayGroups.length})`
-                      : `All clusters on this day (${dayGroups.length})`}
+                      ? `All batches on this day (${listed})`
+                      : `All clusters on this day (${listed})`}
                   </MenuItem>
-                  {dayGroups.map((group) => (
+                  {placedGroups.length > 0 && (
+                    <ListSubheader key="placed-header" sx={SUBHEADER}>
+                      Placed this day ({placedGroups.length})
+                    </ListSubheader>
+                  )}
+                  {placedGroups.map((group) => (
                     <MenuItem key={group.id} value={group.id}>
-                      {optionLabel(group)}
+                      {placedLabel(group)}
+                    </MenuItem>
+                  ))}
+                  {activeGroups.length > 0 && (
+                    <ListSubheader key="active-header" sx={SUBHEADER}>
+                      Already open this day ({activeGroups.length})
+                    </ListSubheader>
+                  )}
+                  {activeGroups.map((group) => (
+                    <MenuItem key={group.id} value={group.id}>
+                      {activeLabel(group)}
                     </MenuItem>
                   ))}
                 </Select>
+                <Typography
+                  variant="caption"
+                  component="p"
+                  sx={{ color: "text.secondary", mt: 0.75 }}
+                >
+                  Two bins: what arrived this day, then what was already open through it.
+                  The second bin is labelled by what left the queue, and the ones where
+                  nothing did are at its top.
+                </Typography>
               </Box>
 
               <Box component="section">
