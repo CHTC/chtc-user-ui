@@ -39,27 +39,74 @@ const ProjectUserTable = ({ projectId }: ProjectUserTableProps) => {
   const [isPrimary, setIsPrimary] = useState<boolean>(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showAddForm, setShowAddForm] = useState(false);
+  const [oldPrimary, setOldPrimary] = useState<JoinedProjectView | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
-  const handleAddUser = async () => {
-    if (!selectedUser || !role) return;
+  const setPrimary = (userId: number, otherProjectId: number, value: boolean) =>
+    apiFetch(`/projects/${otherProjectId}/users/${userId}`, {
+      method: "PATCH",
+      body: JSON.stringify({ is_primary: value }),
+    });
+
+  const addUser = async (userId: number, demote: JoinedProjectView | null) => {
     setIsSubmitting(true);
+    setError(null);
     try {
-      await apiFetch(`/projects/${projectId}/users`, {
+      if (demote) {
+        const demoteResponse = await setPrimary(userId, demote.project_id, false);
+        if (!demoteResponse.ok) {
+          setError(`Failed to remove primary from ${demote.project_name}`);
+          return;
+        }
+      }
+      const addResponse = await apiFetch(`/projects/${projectId}/users`, {
         method: "POST",
         body: JSON.stringify({
-          user_id: selectedUser.id,
+          user_id: userId,
           role,
           is_primary: isPrimary,
         }),
       });
+      if (!addResponse.ok) {
+        // Put the old primary project back so the user is not left without one
+        if (demote) await setPrimary(userId, demote.project_id, true);
+        setOldPrimary(null);
+        setError("Failed to add user to project");
+        return;
+      }
       setSelectedUser(null);
       setRole("");
       setIsPrimary(false);
+      setOldPrimary(null);
       setShowAddForm(false);
       mutate();
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  const handleAddUser = async () => {
+    if (!selectedUser || !role) return;
+    if (isPrimary) {
+      setIsSubmitting(true);
+      setError(null);
+      try {
+        const response = await apiFetch(`/users/${selectedUser.id}/projects`);
+        if (!response.ok) {
+          setError("Failed to check the user's current primary project");
+          return;
+        }
+        const projects: JoinedProjectView[] = await response.json();
+        const current = projects.find((p) => p.is_primary && p.project_id !== projectId);
+        if (current) {
+          setOldPrimary(current);
+          return;
+        }
+      } finally {
+        setIsSubmitting(false);
+      }
+    }
+    await addUser(selectedUser.id, null);
   };
 
   return (
@@ -103,13 +150,32 @@ const ProjectUserTable = ({ projectId }: ProjectUserTableProps) => {
               <Button
                 variant="contained"
                 color="primary"
-                disabled={!selectedUser || !role || isSubmitting}
+                disabled={!selectedUser || !role || isSubmitting || !!oldPrimary}
                 onClick={handleAddUser}
                 sx={{ minWidth: 120 }}
               >
                 Add User
               </Button>
             </Box>
+
+            {oldPrimary && selectedUser && (
+              <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+                <Typography color="error" sx={{ flex: 1, minWidth: 0 }}>
+                  {selectedUser.name} already has a different primary project: {oldPrimary.project_name}. Make this
+                  project their primary project instead? They will stay a member of {oldPrimary.project_name}.
+                </Typography>
+                <Stack direction="row" spacing={1} sx={{ flexShrink: 0 }}>
+                  <Button variant="contained" disabled={isSubmitting} onClick={() => addUser(selectedUser.id, oldPrimary)}>
+                    Confirm
+                  </Button>
+                  <Button variant="outlined" disabled={isSubmitting} onClick={() => setOldPrimary(null)}>
+                    Cancel
+                  </Button>
+                </Stack>
+              </Box>
+            )}
+
+            {error && <Typography color="error">{error}</Typography>}
           </Stack>
         </Box>
       </Collapse>
