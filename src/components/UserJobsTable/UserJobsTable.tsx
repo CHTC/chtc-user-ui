@@ -694,11 +694,16 @@ export default function UserJobsTable() {
                       <TableCell padding="checkbox">
                         <IconButton
                           component={Link}
-                          // The range goes with the netid. Without it the
-                          // calendar falls back to the days leading up to today,
-                          // which for a range in the past is a different question
-                          // than the one the reader just asked.
-                          href={`/users/jobs/calendar/?user=${encodeURIComponent(row.owner)}&start=${data.start}&end=${data.end}`}
+                          // The netid only. The table's range used to go with
+                          // it, on the reasoning that the reader had just asked
+                          // about those days -- but the calendar loads exactly
+                          // the window it is given and only widens when the
+                          // reader pages to another month, so a week-long range
+                          // opened a month whose other three weeks were blank.
+                          // Its own default (the last five weeks) fills the
+                          // month it opens on, which is the question the
+                          // calendar is actually for.
+                          href={`/users/jobs/calendar/?user=${encodeURIComponent(row.owner)}`}
                           size="small"
                           aria-label={`Open ${row.owner}'s job calendar`}
                         >

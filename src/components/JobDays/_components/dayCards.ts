@@ -16,7 +16,7 @@
 /** Counts in the day bake's order: [queued, running, completed, removed]. */
 export type StateCounts = readonly [number, number, number, number];
 
-import { inFilter, type BatchInfo, type ClusterFilter } from "./grouping";
+import { inFilter, type BatchInfo, type ClusterFilter, type ClusterStanding } from "./grouping";
 import type { CondorQSource } from "../types";
 
 /**
@@ -385,6 +385,156 @@ export function buildDayOutcomes(data: DayData, filter: ClusterFilter): Map<stri
     out.set(day, { opening, active, completed, removed, hasData: opening > 0 });
   });
   return out;
+}
+
+/** "YYYY-MM-DD", the shape every day key in this module takes. */
+const DAY_KEY = /^\d{4}-\d{2}-\d{2}$/;
+
+/**
+ * The last reading a cohort has at or before the given day. Normally the day
+ * itself; the walk back covers a cohort whose census stops short, which a
+ * partially baked window can produce.
+ */
+function readingAt(cohort: Cohort, days: string[], day: string): StateCounts | undefined {
+  const direct = cohort.asOf[day];
+  if (direct) return direct;
+  for (let i = days.length - 1; i >= 0; i--) {
+    if (days[i] > day) continue;
+    const reading = cohort.asOf[days[i]];
+    if (reading) return reading;
+  }
+  return undefined;
+}
+
+/**
+ * Where every cluster stands as of the window's last day: what is still in
+ * flight, what has left the queue, and when it was first submitted.
+ *
+ * Summed over the cluster's cohorts, since a cluster submitted across several
+ * days has one cohort per day and its standing is all of them together. This
+ * is a running total, not a per-day figure -- the picker it feeds is asking
+ * "what is the state of this cluster now", which is a different question from
+ * anything the calendar's tiles answer.
+ *
+ * The submission day comes from the cluster record where the bake has one,
+ * since that is authoritative and can predate the window; the earliest cohort
+ * in the window is the fallback.
+ */
+export function buildClusterStandings(data: DayData): Map<number, ClusterStanding> {
+  const asOf = asOfDay(data);
+  const out = new Map<number, ClusterStanding>();
+  const at = (cluster: number): ClusterStanding => {
+    let standing = out.get(cluster);
+    if (!standing) out.set(cluster, (standing = { open: 0, settled: 0, firstQueued: null }));
+    return standing;
+  };
+
+  for (const cohort of data.cohorts) {
+    const reading = readingAt(cohort, data.days, asOf);
+    if (!reading) continue;
+    const standing = at(cohort.cluster);
+    standing.open += reading[0] + reading[1];
+    standing.settled += reading[2] + reading[3];
+    if (!standing.firstQueued || cohort.day < standing.firstQueued) {
+      standing.firstQueued = cohort.day;
+    }
+  }
+
+  for (const cluster of data.clusters) {
+    const standing = out.get(cluster.id);
+    if (!standing || !cluster.firstQueued) continue;
+    // Normalised to a day key here rather than at every reader: the bake has
+    // written this field as a plain day and as a full timestamp at different
+    // times, and parseDayKey makes an Invalid Date of the second form.
+    const day = cluster.firstQueued.slice(0, 10);
+    if (DAY_KEY.test(day)) standing.firstQueued = day;
+  }
+
+  return out;
+}
+
+/**
+ * What one cluster did on one day, and -- just as much the point -- what it did
+ * not do.
+ */
+export interface DayClusterRole {
+  cluster: number;
+  /** Jobs placed into this cluster on the day itself. */
+  placed: number;
+  /** Jobs of this cluster that were already open when the day began. */
+  opening: number;
+  /** Still open at the day's end, whenever they were placed. */
+  open: number;
+  completed: number;
+  removed: number;
+  /** Distinct jobs of this cluster that moved at all. */
+  changed: number;
+}
+
+/**
+ * Every cluster that was part of one day, with what it placed, what it was
+ * already carrying, and what finished or was removed.
+ *
+ * Two different ways of belonging to a day, which is why both are counted
+ * separately rather than summed into one "took part" number: a cluster can be
+ * placed on the day, or it can have arrived earlier and still be holding open
+ * jobs through it. A cluster in the second group with no completions and no
+ * removals is the case this exists for -- it is genuinely part of the day,
+ * contributes nothing to any of the day's counts, and is invisible in a list
+ * ordered by activity.
+ *
+ * `opening` and `open` are read from the cohort censuses the same way
+ * buildDayOutcomes reads them, so a cluster's figures here and the day's
+ * totals there are the same arithmetic. `completed` and `removed` come from
+ * the activity rows, which count transitions on the day whenever the jobs were
+ * placed.
+ *
+ * Unfiltered on purpose: this is what feeds the picker a reader chooses a
+ * filter from, so filtering it first would hide everything they might pick.
+ */
+export function buildDayClusterRoles(data: DayData, day: string): DayClusterRole[] {
+  const index = data.days.indexOf(day);
+  const previous = index > 0 ? data.days[index - 1] : null;
+  const byCluster = new Map<number, DayClusterRole>();
+  const at = (cluster: number): DayClusterRole => {
+    let role = byCluster.get(cluster);
+    if (!role) {
+      byCluster.set(
+        cluster,
+        (role = { cluster, placed: 0, opening: 0, open: 0, completed: 0, removed: 0, changed: 0 }),
+      );
+    }
+    return role;
+  };
+
+  for (const cohort of data.cohorts) {
+    if (cohort.day > day) continue;
+    const today = cohort.asOf[day];
+    if (cohort.day === day) {
+      if (cohort.queued > 0) at(cohort.cluster).placed += cohort.queued;
+      if (today) at(cohort.cluster).open += today[0] + today[1];
+      continue;
+    }
+    if (!today) continue;
+    const role = at(cohort.cluster);
+    const before = previous ? cohort.asOf[previous] : undefined;
+    // No reading for the day before means the window starts here, and the
+    // whole cohort counts as inherited -- as in buildDayOutcomes.
+    role.opening += before
+      ? before[0] + before[1]
+      : today[0] + today[1] + today[2] + today[3];
+    role.open += today[0] + today[1];
+  }
+
+  for (const row of data.activity) {
+    if (row.day !== day) continue;
+    const role = at(row.cluster);
+    role.completed += row.completed;
+    role.removed += row.removed;
+    role.changed += row.changed;
+  }
+
+  return [...byCluster.values()];
 }
 
 /** True when the day carries nothing at all -- no cohort and no transitions. */

@@ -2,11 +2,17 @@
 
 import { Box, Stack, Typography } from "@mui/material";
 
-import { LEVEL_SLOPE_STOPS, RATIO_COMPLETED_COLOR, RATIO_UNFINISHED_COLOR } from "./palette";
+import {
+  COMPLETION_FILL_HATCH,
+  LEVEL_SLOPE_STOPS,
+  ratioCompletedColor,
+  RATIO_COMPLETED_COLOR,
+  RATIO_UNFINISHED_COLOR,
+} from "./palette";
 import type { CalendarVersion } from "./VersionSwitch";
 
 /** Swatch plus caption, the shape both keys below are built from. */
-function Swatch({ color, label }: { color: string; label: string }) {
+function Swatch({ color, label, hatch }: { color: string; label: string; hatch?: boolean }) {
   return (
     <Stack direction="row" spacing={1} alignItems="center" sx={{ mt: 0.75 }}>
       <Box
@@ -17,6 +23,7 @@ function Swatch({ color, label }: { color: string; label: string }) {
           borderRadius: "2px",
           flexShrink: 0,
           backgroundColor: color,
+          backgroundImage: hatch ? COMPLETION_FILL_HATCH : "none",
           border: "1px solid",
           borderColor: "divider",
         }}
@@ -39,7 +46,9 @@ function Swatch({ color, label }: { color: string; label: string }) {
  * ramp is read linearly here, unlike the line's log scale, so the strip's stops
  * sit where their shares land: its midpoint is a day that cleared about half
  * its backlog. Drawn at full strength, though the ground is translucent: a key
- * is read on its own, not under a tile's worth of bars.
+ * is read on its own, not under a tile's worth of bars. The hatch at the top
+ * of that scale gets a swatch of its own, since a stripe is not something a
+ * gradient strip can show.
  *
  * On v2 it is a column with both sides painted, so the key names both: bright
  * red for the part that completed, highlighter yellow for the part that did
@@ -76,6 +85,11 @@ export default function RatioLegend({ variant }: { variant: CalendarVersion }) {
               </Typography>
             </Box>
           </Box>
+          <Swatch
+            color={ratioCompletedColor(1)}
+            hatch
+            label="Striped: the day cleared everything it began with"
+          />
           <Swatch color="transparent" label="Still to do: the bare cell above it" />
         </>
       ) : (

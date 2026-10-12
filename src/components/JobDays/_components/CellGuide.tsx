@@ -111,13 +111,13 @@ const FEATURES: Feature[] = [
   {
     id: "queue",
     title: "The line behind the bars is the queue",
-    body: "How many jobs were open at the close of each window — the queue as a level, not the changes to it. It steps down as work finishes, jumps when a batch lands, and runs straight on into the next day so a week reads as one line. Its colour says how fast it is moving, on the scale a rain map uses: light blue only where the queue is perfectly flat, blue and green as it starts to move, yellow and orange as it speeds up, red where it drops or climbs steeply, and purple where it moves the whole height of the cell in one window, whichever way. The dot on the midnight boundary is coloured by the day's average slope, and on hover gives the queue's numbers, that average rate, and when the queue would empty if it held. Being a headcount rather than a count of changes, it is measured against its own scale, down the right under the stacked glyph.",
+    body: "How many jobs were open at the close of each window — the queue as a level, not the changes to it. It steps down as work finishes, jumps when a batch lands, and runs straight on into the next day so a week reads as one line. Its colour says how fast it is moving, on the scale a rain map uses: light blue only where the queue is perfectly flat, blue and green as it starts to move, yellow and orange as it speeds up, red where it drops or climbs steeply, and purple where it moves the whole height of the cell in one window, whichever way. The dot on the midnight boundary is coloured by the day's average slope, and on hover gives the queue's numbers, that average rate, and when the queue would empty if it held. Where the queue reaches zero the line simply stops, and a day that ends with nothing open has no dot at all — an empty queue is not a low one, and a line along the floor would read as one. Being a headcount rather than a count of changes, it is measured against its own scale, down the right under the stacked glyph.",
     parts: ["queue", "queueAxis"],
   },
   {
     id: "fill",
     title: "The ground is the day's end-of-day ratio",
-    body: "Of the jobs that were already open when this day began, how many had completed by the time it ended. The ground rises from the floor of the cell to that share, so a day that cleared its whole backlog is filled to the top and a day that cleared none of it is bare. Jobs placed during the day are counted on neither side: this is the backlog being cleared, nothing else. The ground is also coloured by its own size, on the same ramp the queue line uses: cool blue for a day that barely touched its backlog, through green and orange as the share climbs, to brilliant purple for a day that finished essentially all of it — so a cleared day is purple to the top, and a month can be scanned for purple without reading any single cell. What is left undone is the plain cell above the waterline rather than a colour of its own: the cell is already carrying six bars, a queue line and two numbers, and one field behind them is as much as stays legible. Its numbers are in the day's full breakdown, one click away.",
+    body: "Of the jobs that were already open when this day began, how many had completed by the time it ended. The ground rises from the floor of the cell to that share, so a day that cleared its whole backlog is filled to the top and a day that cleared none of it is bare. Jobs placed during the day are counted on neither side: this is the backlog being cleared, nothing else. The ground is also coloured by its own size, on the same ramp the queue line uses: cool blue for a day that barely touched its backlog, through green and orange as the share climbs, to brilliant purple for a day that finished essentially all of it — so a cleared day is purple to the top. A day that cleared every job it began with is striped as well as purple, because the top of the ramp is a gradient and 96% and 100% are otherwise neighbouring shades. What is left undone is the plain cell above the waterline rather than a colour of its own: the cell is already carrying six bars, a queue line and two numbers, and one field behind them is as much as stays legible. Its numbers are in the day's full breakdown, one click away.",
     parts: ["fill"],
   },
   {
@@ -229,10 +229,12 @@ const EXAMPLE_LEVEL_TICKS = buildScaleTicks(EXAMPLE_LEVEL_PEAK, "linear");
  * colours its own. The example is linear, the page's default.
  */
 const EXAMPLE_LEVEL_SEGMENTS = levelSegments(
-  [EXAMPLE_LEVEL_START, ...EXAMPLE_LEVELS].map(
-    (level) =>
-      Number((SLOT_HEIGHT - barFraction(level, EXAMPLE_LEVEL_PEAK, "linear") * SLOT_HEIGHT).toFixed(2)),
-  ),
+  [EXAMPLE_LEVEL_START, ...EXAMPLE_LEVELS].map((level) => ({
+    value: level,
+    y: Number(
+      (SLOT_HEIGHT - barFraction(level, EXAMPLE_LEVEL_PEAK, "linear") * SLOT_HEIGHT).toFixed(2),
+    ),
+  })),
   SLOT_HEIGHT,
 );
 /** What the midnight census would say, to match the real dot's readout. */

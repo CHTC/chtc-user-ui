@@ -115,6 +115,11 @@ interface TileLevelLineProps {
  * as work finishes and jumping when a batch lands. The bars stay inset and
  * centred above it, so the two never fight for the same pixels.
  *
+ * Where the queue empties, the line stops. A stretch with nothing open at
+ * either end is not drawn, and a day that ends empty gets no midnight dot --
+ * see levelSegments. An empty queue is not a small queue, and a flat line
+ * along the floor is how it would otherwise read.
+ *
  * The line takes no pointer events; the dot is the hover target and carries the
  * numbers. Each of its six segments is coloured by how steeply it moves, on a
  * weather-radar ramp from light blue for flat through green, yellow and red to
@@ -143,7 +148,8 @@ export default function TileLevelLine({
   // Rounded to two decimals so server and client emit the same attribute
   // strings; see the note on Math.log10 in TileActivityBars.
   const y = (value: number) => Number((height - barFraction(value, top, scale) * height).toFixed(2));
-  const segments = levelSegments([y(level.start), ...level.ends.map(y)], height);
+  const reading = (value: number) => ({ value, y: y(value) });
+  const segments = levelSegments([reading(level.start), ...level.ends.map(reading)], height);
 
   const midnight = level.ends[bins - 1];
   const dotBottom = barFraction(midnight, top, scale) * height;
@@ -240,7 +246,14 @@ export default function TileLevelLine({
 
       {/* The midnight dot, astride the boundary: half in this day, half in the
           next. Its own element rather than an SVG circle, which the stretched
-          viewBox would squash into an ellipse. */}
+          viewBox would squash into an ellipse.
+          
+          Absent when the queue is empty at midnight. The dot marks where the
+          trace hands over to the next day, and a day that ends with nothing
+          open has nothing to hand over -- a dot sitting on the floor would
+          read as a reading rather than as the absence of one. The trace stops
+          at the same place for the same reason (see levelSegments). */}
+      {midnight > 0 && (
       <Tooltip
         arrow
         followCursor
@@ -304,6 +317,7 @@ export default function TileLevelLine({
           }}
         />
       </Tooltip>
+      )}
     </>
   );
 }
