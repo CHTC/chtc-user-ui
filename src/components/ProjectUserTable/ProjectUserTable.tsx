@@ -42,24 +42,12 @@ const ProjectUserTable = ({ projectId }: ProjectUserTableProps) => {
   const [oldPrimary, setOldPrimary] = useState<JoinedProjectView | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const setPrimary = (userId: number, otherProjectId: number, value: boolean) =>
-    apiFetch(`/projects/${otherProjectId}/users/${userId}`, {
-      method: "PATCH",
-      body: JSON.stringify({ is_primary: value }),
-    });
-
-  const addUser = async (userId: number, demote: JoinedProjectView | null) => {
+  // The API demotes the user's other primary project when this one is added as primary
+  const addUser = async (userId: number) => {
     setIsSubmitting(true);
     setError(null);
     try {
-      if (demote) {
-        const demoteResponse = await setPrimary(userId, demote.project_id, false);
-        if (!demoteResponse.ok) {
-          setError(`Failed to remove primary from ${demote.project_name}`);
-          return;
-        }
-      }
-      const addResponse = await apiFetch(`/projects/${projectId}/users`, {
+      const response = await apiFetch(`/projects/${projectId}/users`, {
         method: "POST",
         body: JSON.stringify({
           user_id: userId,
@@ -67,9 +55,7 @@ const ProjectUserTable = ({ projectId }: ProjectUserTableProps) => {
           is_primary: isPrimary,
         }),
       });
-      if (!addResponse.ok) {
-        // Put the old primary project back so the user is not left without one
-        if (demote) await setPrimary(userId, demote.project_id, true);
+      if (!response.ok) {
         setOldPrimary(null);
         setError("Failed to add user to project");
         return;
@@ -106,7 +92,7 @@ const ProjectUserTable = ({ projectId }: ProjectUserTableProps) => {
         setIsSubmitting(false);
       }
     }
-    await addUser(selectedUser.id, null);
+    await addUser(selectedUser.id);
   };
 
   return (
@@ -165,7 +151,7 @@ const ProjectUserTable = ({ projectId }: ProjectUserTableProps) => {
                   project their primary project instead? They will stay a member of {oldPrimary.project_name}.
                 </Typography>
                 <Stack direction="row" spacing={1} sx={{ flexShrink: 0 }}>
-                  <Button variant="contained" disabled={isSubmitting} onClick={() => addUser(selectedUser.id, oldPrimary)}>
+                  <Button variant="contained" disabled={isSubmitting} onClick={() => addUser(selectedUser.id)}>
                     Confirm
                   </Button>
                   <Button variant="outlined" disabled={isSubmitting} onClick={() => setOldPrimary(null)}>
