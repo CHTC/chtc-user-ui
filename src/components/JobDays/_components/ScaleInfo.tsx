@@ -75,7 +75,16 @@ export function ScaleHelpTooltip() {
  * The note at the foot of the page. Same content as the tooltip, written out as
  * prose for the reader who scrolled rather than hovered.
  */
-export function ScaleNote({ scale, perDay = false }: { scale: BarScale; perDay?: boolean }) {
+export function ScaleNote({
+  scale,
+  perDay = false,
+  line = true,
+}: {
+  scale: BarScale;
+  perDay?: boolean;
+  /** False on the calendar that draws no queue line, so the note stops naming it. */
+  line?: boolean;
+}) {
   return (
     <Box component="section">
       <Typography variant="overline" component="h3" sx={{ color: "text.secondary", lineHeight: 1.6 }}>
@@ -83,7 +92,8 @@ export function ScaleNote({ scale, perDay = false }: { scale: BarScale; perDay?:
       </Typography>
       <Typography variant="caption" component="p" sx={{ color: "text.secondary", display: "block" }}>
         {perDay
-          ? "On this calendar each day's bars are scaled against that day's own busiest 4-hour bin, so every day's shape fills its cell and heights compare within a day but not between days — hover a bar for its count. Dragging across a run of days still greys out the rest and rescales the queue line to those days. "
+          ? "On this calendar each day's bars are scaled against that day's own busiest 4-hour bin, so every day's shape fills its cell and heights compare within a day but not between days — hover a bar for its count. Dragging across a run of days still greys out the rest" +
+            (line ? " and rescales the queue line to those days. " : ". ")
           : "The calendar's magnitude bars are scaled against the busiest 4-hour bin on the month you are looking at, which means heights compare honestly within a month and not between months — paging to a quieter month rescales everything. Dragging across a run of days scales to just those days instead, greying out the rest. "}
         The toggle above picks how that scaling works, and it is currently{" "}
         <Box component="span" sx={{ fontWeight: 700, color: "text.primary" }}>

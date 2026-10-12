@@ -103,14 +103,6 @@ interface TileLevelLineProps {
   bottom: number;
   /** Lights up the queue scale down the right while the dot is hovered. */
   onHoverScale?: (kind: ScaleKind | null) => void;
-  /**
-   * Calendar v3: lay a paper-coloured underlay beneath each segment. The v3
-   * ground is drawn from this same ramp, so without it a steep red segment can
-   * sit on a red ground and vanish. The dot has carried a paper ring all
-   * along for the same reason; this gives the line one too. Off on v1 and v2,
-   * whose ground is a single pale teal the trace never matches.
-   */
-  halo?: boolean;
 }
 
 /**
@@ -140,7 +132,6 @@ export default function TileLevelLine({
   height,
   bottom,
   onHoverScale,
-  halo = false,
 }: TileLevelLineProps) {
   const [hovered, setHovered] = useState(false);
   const top = Math.max(peak, 1);
@@ -211,22 +202,26 @@ export default function TileLevelLine({
           preserveAspectRatio="none"
           style={{ display: "block", overflow: "visible" }}
         >
+          {/* A paper underlay beneath every segment. The ground this trace is
+              drawn over is the end-of-day ratio, coloured from this same ramp
+              (see ratioCompletedColor), so without it a steep red segment can
+              sit on a red ground and vanish. The midnight dot has carried a
+              paper ring all along for the same reason. */}
+          {segments.map((segment) => (
+            <line
+              key={`halo-${segment.x1}`}
+              x1={segment.x1}
+              y1={segment.y1}
+              x2={segment.x2}
+              y2={segment.y2}
+              stroke="rgba(255, 255, 255, 0.85)"
+              strokeWidth={(hovered ? 2.5 : 1.75) + 2}
+              strokeLinecap="round"
+              vectorEffect="non-scaling-stroke"
+            />
+          ))}
           {/* One <line> per window rather than a polyline, so each segment can
               carry its own steepness colour. Round caps close the joins. */}
-          {halo &&
-            segments.map((segment) => (
-              <line
-                key={`halo-${segment.x1}`}
-                x1={segment.x1}
-                y1={segment.y1}
-                x2={segment.x2}
-                y2={segment.y2}
-                stroke="rgba(255, 255, 255, 0.85)"
-                strokeWidth={(hovered ? 2.5 : 1.75) + 2}
-                strokeLinecap="round"
-                vectorEffect="non-scaling-stroke"
-              />
-            ))}
           {segments.map((segment) => (
             <line
               key={segment.x1}

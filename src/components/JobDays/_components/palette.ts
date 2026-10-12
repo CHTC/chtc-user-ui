@@ -116,8 +116,8 @@ export const LEVEL_SLOPE_LOG_GAIN = 1000;
 
 /**
  * The colour `t` of the way along a ramp, 0 to 1: piecewise linear through the
- * stops, evenly spaced. Pulled out of levelSlopeColor so the v3 completion
- * ratio can read the same stops on its own (linear) scale -- one ramp, two
+ * stops, evenly spaced. Pulled out of levelSlopeColor so v1's completion
+ * ground can read the same stops on a scale of its own -- one ramp, two
  * quantities, which is the point of reusing it.
  */
 function rampChannels(stops: string[], t: number): [number, number, number] {
@@ -260,66 +260,78 @@ export const ACTIVITY_STYLES: Record<ActivityState, { label: string; color: stri
   removed: { label: "Removed", color: BAR_STATE_STYLES.removed.color },
 };
 
-/**
- * Calendar v1's completion fill: the tile's background rises to the share of
- * the jobs open at the day's start that completed during it, in the completed
- * teal at low alpha. Translucent because it sits under everything else in the
- * tile -- the date, the six bars, the level trace, the caption -- and none of
- * them may lose contrast to it. Teal rather than a new hue so it reads as the
- * same "completed" the bars and the Sankey already use.
- */
-export const COMPLETION_FILL_COLOR = "rgba(42, 157, 143, 0.22)";
 
 /**
- * Calendar v3's end-of-day ratio bar: the same quantity as v1's completion fill
- * -- the share of the jobs open when the day began that completed before it
- * ended -- but with both halves of the ratio painted, and the completed half
- * coloured by how large that share is.
+ * The end-of-day ratio: the share of the jobs open when the day began that
+ * completed before it ended.
  *
- * The completed half reads the queue line's own ramp (LEVEL_SLOPE_STOPS), on a
- * linear scale rather than the line's log one: 0% of the backlog cleared is the
- * light blue at the ramp's foot, and a day that cleared essentially all of it is
- * the brilliant purple at its head. So "purple" means the same thing on both
- * marks -- the extreme end of this cell's scale -- and a month scans for purple
- * tiles the way it already scans for purple line segments.
+ * Drawn two ways, and -- unlike the rest of this file -- not in one colour
+ * vocabulary, because the two marks are read differently. On v1 it is the
+ * cell's ground (TileRatioBar): a translucent field rising from the tile's
+ * floor to the completed share and coloured by that share on the queue line's
+ * ramp, with the remainder left as bare paper.
+ * On v2 it is a 100%-stacked column astride midnight (TileOutcomeBar), where
+ * both sides are painted -- completed in bright red, the rest in highlighter
+ * yellow -- because an 11px column has no "bare tile" to leave: an unpainted
+ * remainder there would simply look like a short bar.
+ */
+
+/**
+ * How opaque the v1 ground is: translucent, because the whole tile -- the
+ * date, the six bars, the level trace, the caption -- is read on top of it,
+ * and none of them may lose contrast to it.
+ */
+const COMPLETION_FILL_ALPHA = 0.38;
+
+/**
+ * The completion ground on v1: the tile's background rises to the share of the
+ * jobs open at the day's start that completed during it, coloured by that same
+ * share on the queue line's own ramp (LEVEL_SLOPE_STOPS) read linearly rather
+ * than on the line's log scale. A day that barely touched its backlog is the
+ * light blue at the ramp's foot, and one that cleared essentially all of it is
+ * the brilliant purple at its head.
  *
- * The not-completed half is a highlighter yellow, flat: it is a remainder, not a
- * measurement, so it has nothing to vary with.
- */
-
-/**
- * The highlighter yellow of the unfinished remainder. Held at this alpha
- * because, unlike v1's fill, the v3 bar covers the whole tile: the date, the six
- * bars, the queue line and the caption all sit on top of it, and none of them
- * may lose contrast to the ground. Full-strength highlighter is unreadable
- * underneath them; this keeps the hue unmistakable and the tile legible.
- */
-export const RATIO_UNFINISHED_COLOR = "rgba(238, 255, 0, 0.30)";
-
-/**
- * The hatch drawn over the unfinished remainder. The ramp passes through its
- * own yellow near the middle of the scale, so on a half-cleared day the two
- * halves of the bar would be close in hue; the hatch is the second encoding
- * that keeps them apart whatever the colours do. Completed is always the solid
- * half, not-completed always the striped one.
- */
-export const RATIO_UNFINISHED_HATCH =
-  "repeating-linear-gradient(135deg, rgba(120, 112, 0, 0.22) 0 3px, rgba(0, 0, 0, 0) 3px 7px)";
-
-/** How opaque the completed half is, for the same legibility reason. */
-const RATIO_COMPLETED_ALPHA = 0.38;
-
-/**
- * The completed half's colour for a ratio of 0 to 1, on the queue line's ramp
- * read linearly. Clamped, since a share cannot leave its bounds.
+ * Height and colour therefore say the same thing, which is the point: a month
+ * can be scanned for purple tiles without reading any one waterline. It costs
+ * the tile its one fixed meaning for teal -- the ground was the completed teal
+ * the bars and the Sankey use -- and it puts the ground on the same ramp as
+ * the trace drawn over it, which is why the trace carries a paper halo (see
+ * TileLevelLine).
  */
 export function ratioCompletedColor(share: number): string {
   const [r, g, b] = rampChannels(LEVEL_SLOPE_STOPS, share);
-  return `rgba(${r}, ${g}, ${b}, ${RATIO_COMPLETED_ALPHA})`;
+  return `rgba(${r}, ${g}, ${b}, ${COMPLETION_FILL_ALPHA})`;
 }
 
-/** The same ramp at full strength, for legend swatches and the guide's key. */
-export function ratioCompletedSwatch(share: number): string {
-  const [r, g, b] = rampChannels(LEVEL_SLOPE_STOPS, share);
-  return `rgb(${r}, ${g}, ${b})`;
-}
+/**
+ * The highlighter yellow of v2's unfinished remainder.
+ *
+ * Opaque rather than a translucent brighter yellow so the value is exact: the
+ * column is drawn over paper, over a neighbouring tile's hover highlight, and
+ * over the grey of a day outside the selected range, and it has to be the same
+ * yellow in all three.
+ */
+export const RATIO_UNFINISHED_COLOR = "#f6fe9f";
+
+/**
+ * v2's completed segment: one bright red at any size.
+ *
+ * It was the queue line's ramp read linearly, so the colour said the ratio
+ * over again -- blue at the foot, purple at 100%. A flat colour says it once,
+ * in the segment's height, and leaves the column with two values to tell apart
+ * instead of eight. Red against the yellow above it is the loudest pair the
+ * calendar has, which is what an 11px mark needs.
+ *
+ * Note that it is not the red of "removed" (#ae2012, BAR_STATE_STYLES): that
+ * one is dark and desaturated and this one is not, but they do sit side by
+ * side in this bar's hover readout.
+ */
+export const RATIO_COMPLETED_COLOR = "#ff2a1f";
+
+/**
+ * The rule across the floor of every tile's bar slot: the zero of both the bars
+ * and the queue line, which otherwise has to be inferred from where the shortest
+ * bar happens to stop. Faint enough to stay out of the way of the marks standing
+ * on it, and dark rather than light so it survives the completion ground.
+ */
+export const TILE_BASELINE_COLOR = "rgba(40, 40, 50, 0.22)";

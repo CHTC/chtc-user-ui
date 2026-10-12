@@ -27,7 +27,8 @@ import {
 import TileAxis, { AXIS_WIDTH, QUEUE_OVERHANG } from "./TileAxis";
 import { describeActivity, type ActivityState } from "./palette";
 import TileActivityBars, { GLYPH_HEADROOM } from "./TileActivityBars";
-import TileCompletionFill from "./TileCompletionFill";
+import TileBaseline from "./TileBaseline";
+import TileOutcomeBar from "./TileOutcomeBar";
 import TileRatioBar from "./TileRatioBar";
 import TileLevelLine from "./TileLevelLine";
 
@@ -72,9 +73,9 @@ interface JobCalendarProps {
    */
   levels: Map<string, DayLevel> | null;
   /**
-   * What became of the jobs open when each day began, drawn as a translucent
-   * teal ground rising from each tile's floor to the share of them that
-   * completed.
+   * What became of the jobs open when each day began: the end-of-day ratio,
+   * drawn as the cell's ground or as a column astride midnight depending on
+   * `inheritance`.
    */
   fills: Map<string, DayOutcome> | null;
   /** Which scale the magnitude bars and the level trace use. */
@@ -87,12 +88,13 @@ interface JobCalendarProps {
    */
   perDayScale: boolean;
   /**
-   * Calendar v3: the inheritance mark is the two-sided end-of-day ratio bar --
-   * completed on the queue line's colour ramp, not-completed in highlighter
-   * yellow -- rather than v1 and v2's one-sided teal fill. Same quantity,
-   * different reading. See TileRatioBar.
+   * How the end-of-day ratio is drawn. "ground" is a green field rising from
+   * the cell's floor behind everything else (v1, see TileRatioBar); "bar" is a
+   * 100%-stacked column astride midnight, with its own hover readout (v2, see
+   * TileOutcomeBar). The same quantity either way; the colours differ, since
+   * only the column paints the remainder.
    */
-  ratioRamp: boolean;
+  inheritance: "ground" | "bar";
   /**
    * Tallest 4-hour bin on the visible grid, neighbouring days included; every
    * tile scales against it so bar heights compare across days. Measured by the
@@ -146,7 +148,7 @@ export default function JobCalendar({
   fills,
   scale,
   perDayScale,
-  ratioRamp,
+  inheritance,
   peakBinTotal,
   levelPeak,
   firstDay,
@@ -392,7 +394,7 @@ export default function JobCalendar({
         // Dim the day, not the tile: the row axis is a sibling of the body and
         // belongs to the whole row, so it must stay legible even when the row
         // happens to start in the previous month.
-        "& .react-calendar__month-view__days__day--neighboringMonth > abbr, & .react-calendar__month-view__days__day--neighboringMonth .day-body, & .react-calendar__month-view__days__day--neighboringMonth .day-level, & .react-calendar__month-view__days__day--neighboringMonth .day-fill":
+        "& .react-calendar__month-view__days__day--neighboringMonth > abbr, & .react-calendar__month-view__days__day--neighboringMonth .day-body, & .react-calendar__month-view__days__day--neighboringMonth .day-level, & .react-calendar__month-view__days__day--neighboringMonth .day-fill, & .react-calendar__month-view__days__day--neighboringMonth .day-baseline":
           { opacity: 0.35 },
         // The as-of day is marked instead of the browser's own current date; the
         // baked window ends whenever the data was built.
@@ -505,18 +507,20 @@ export default function JobCalendar({
                 />
               )}
               {/*
-                The inheritance mark -- v1 and v2's completion fill, or v3's
-                ratio bar -- as the whole tile's background. First of the
-                positioned siblings so the level trace, at the same z-index,
-                paints over it; the day body sits above both.
+                The end-of-day ratio as the cell's ground, on v1. First
+                of the positioned siblings so the baseline and the level trace,
+                at the same z-index, paint over it; the day body sits above
+                them all.
               */}
-              {fills &&
-                fills.get(key)?.hasData &&
-                (ratioRamp ? (
-                  <TileRatioBar outcome={fills.get(key) as DayOutcome} day={key} />
-                ) : (
-                  <TileCompletionFill outcome={fills.get(key) as DayOutcome} day={key} />
-                ))}
+              {fills && fills.get(key)?.hasData && inheritance === "ground" && (
+                <TileRatioBar outcome={fills.get(key) as DayOutcome} day={key} />
+              )}
+              {/*
+                The zero of the bar slot, on every tile and on every version.
+                After the ground so it is not buried under it; before the
+                trace, which stands on it.
+              */}
+              <TileBaseline bottom={AXIS_BOTTOM} />
               {/*
                 The open-jobs level, behind the bars. Sibling of the day body,
                 not a child of it: the body clips, and the trace has to run edge
@@ -534,7 +538,20 @@ export default function JobCalendar({
                   height={BARS_SLOT}
                   bottom={AXIS_BOTTOM}
                   onHoverScale={setHoveredScale}
-                  halo={ratioRamp}
+                />
+              )}
+              {/*
+                The same ratio as a column astride midnight, on v2. After the
+                level trace so the bar's paper ring sits over it, and a hover
+                target in its own right -- which is why it is not a child of
+                the day body, whose own click opens the day.
+              */}
+              {fills && fills.get(key)?.hasData && inheritance === "bar" && (
+                <TileOutcomeBar
+                  outcome={fills.get(key) as DayOutcome}
+                  day={key}
+                  nextDay={slices.has(nextKey) ? nextKey : null}
+                  onHoverScale={setHoveredScale}
                 />
               )}
               <TileBody

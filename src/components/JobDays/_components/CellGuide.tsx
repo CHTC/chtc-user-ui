@@ -24,10 +24,11 @@ import {
   stackOrder,
   BAR_STATE_STYLES,
   CARRIED_ACTIVE_COLOR,
-  COMPLETION_FILL_COLOR,
-  RATIO_UNFINISHED_COLOR,
-  RATIO_UNFINISHED_HATCH,
   ratioCompletedColor,
+  LEVEL_DOT_COLOR,
+  RATIO_UNFINISHED_COLOR,
+  RATIO_COMPLETED_COLOR,
+  TILE_BASELINE_COLOR,
   levelSegments,
   levelSlopeColor,
 } from "./palette";
@@ -40,12 +41,13 @@ import type { CalendarVersion } from "./VersionSwitch";
  * Which part of the example cell a feature is about. Several features point at
  * the bars, so emphasis is expressed per part rather than per feature.
  */
-type Part = "date" | "axis" | "bars" | "caption" | "queue" | "queueAxis" | "fill";
+type Part = "date" | "axis" | "bars" | "baseline" | "caption" | "queue" | "queueAxis" | "fill";
 
 type FeatureId =
   | "date"
   | "windows"
   | "colour"
+  | "baseline"
   | "height"
   | "hover"
   | "queue"
@@ -89,6 +91,12 @@ const FEATURES: Feature[] = [
     parts: ["bars"],
   },
   {
+    id: "baseline",
+    title: "The hairline is zero",
+    body: "Every bar stands on it, and it runs edge to edge across each cell at the same height on every day. It is the floor of the slot the marks are drawn in, so a short bar can be told from a tall one that happens to sit low, and the ratio can be read as it moves rather than guessed at from where the shortest bar stops.",
+    parts: ["baseline", "bars"],
+  },
+  {
     id: "height",
     title: "Height is how much happened",
     body: "Every bar on the month is scaled against the busiest single window in it. The numbers down the left of each row say what those heights are worth in state changes. One heavy day flattens the rest, so drag across a run of days — or shift-click — to scale everything to just those days; the others go grey until you press Escape.",
@@ -108,8 +116,8 @@ const FEATURES: Feature[] = [
   },
   {
     id: "fill",
-    title: "The teal ground is the day's completion rate",
-    body: "Of the jobs that were already open when this day began, the share that completed before it ended — filled up from the floor of the cell, so a day that inherited 200 jobs and finished 100 of them is half teal. Jobs placed during the day are not counted, and neither are removals: this is the backlog being cleared, nothing else. A cell filled to the top cleared everything it started with; an empty one finished none of it. Its numbers are in the day's full breakdown, one click away.",
+    title: "The ground is the day's end-of-day ratio",
+    body: "Of the jobs that were already open when this day began, how many had completed by the time it ended. The ground rises from the floor of the cell to that share, so a day that cleared its whole backlog is filled to the top and a day that cleared none of it is bare. Jobs placed during the day are counted on neither side: this is the backlog being cleared, nothing else. The ground is also coloured by its own size, on the same ramp the queue line uses: cool blue for a day that barely touched its backlog, through green and orange as the share climbs, to brilliant purple for a day that finished essentially all of it — so a cleared day is purple to the top, and a month can be scanned for purple without reading any single cell. What is left undone is the plain cell above the waterline rather than a colour of its own: the cell is already carrying six bars, a queue line and two numbers, and one field behind them is as much as stays legible. Its numbers are in the day's full breakdown, one click away.",
     parts: ["fill"],
   },
   {
@@ -121,46 +129,57 @@ const FEATURES: Feature[] = [
 ];
 
 /**
- * Calendar v2 scales each day's bars to that day's own busiest window instead
- * of the shared peak; everything else in the cell is the same.
+ * Calendar v2 scales each day's bars to that day's own busiest window, drops
+ * the queue line, and redraws the inheritance mark: a column with both sides
+ * of the ratio painted, in two flat colours.
  */
-const V2_HEIGHT_FEATURE: Feature = {
-  id: "height",
-  title: "Height is how much happened — within the day",
-  body: "On this calendar every day is its own chart: its tallest bar reaches the top of the cell whatever its count. So the shape of a day is always legible, even a quiet one, but two days' bars cannot be compared by height — hover a bar for its count. There is no shared axis down the left; the one on the right still belongs to the queue line.",
-  parts: ["bars"],
-};
-
-/**
- * Calendar v3 is v2 -- per-day bar heights -- with the inheritance mark redrawn:
- * both sides of the ratio are painted, and the completed side is coloured by
- * how big it is, on the same ramp the queue line uses.
- */
-const V3_FILL_FEATURE: Feature = {
+const V2_FILL_FEATURE: Feature = {
   id: "fill",
-  title: "The ground is the day's end-of-day ratio",
+  title: "The column on midnight is the day's end-of-day ratio",
   body:
-    "Of the jobs already open when this day began, how many had completed by the time it ended. " +
-    "The completed share rises from the floor of the cell and the rest — the jobs still not " +
-    "completed at the day's close — is the hatched highlighter yellow above it, so the whole " +
-    "cell is the day's inheritance and the waterline is the ratio. Jobs placed during the day " +
-    "are not counted. The completed share is also coloured by its own size, on the same ramp " +
-    "the queue line uses: cool blue for a day that barely touched its backlog, through green " +
-    "and orange as the share climbs, to brilliant purple for a day that finished essentially " +
-    "all of it. So a cleared day is purple to the top, and a month can be scanned for purple " +
-    "without reading any single cell. Its numbers are in the day's full breakdown, one click away.",
+    "Of the jobs already open when this day began, how many had completed by the time it ended " +
+    "— as a single stacked column straddling the midnight boundary, so it reads as the close of " +
+    "the day rather than a seventh bar. Completed is at its base, in bright red; above that, in " +
+    "highlighter yellow, is everything that had not completed when the day closed, removed and " +
+    "still open together. Jobs placed during the day are in neither part. Two flat colours and " +
+    "nothing else: at this width the reading is where the boundary between them falls, and red " +
+    "on yellow is the loudest pair on the calendar to find it by — a star on top of a full " +
+    "column marks a clean sweep. Hover it for the counts, including the yellow split back into " +
+    "removed and still active.",
   parts: ["fill"],
 };
 
 /**
- * The feature list for one calendar version: v2 swaps in the per-day height
- * card, and v3 takes that plus the ratio-bar card.
+ * v2 draws no queue line, so the two cards that lean on it are rewritten and
+ * the card about the line itself is dropped. Its height card sends the reader
+ * to the hover readout rather than to an axis, there being neither: the left
+ * one goes with the shared scale and the right one with the line.
+ */
+const V2_HEIGHT_FEATURE: Feature = {
+  id: "height",
+  title: "Height is how much happened — within the day",
+  body: "On this calendar every day is its own chart: its tallest bar reaches the top of the cell whatever its count. So the shape of a day is always legible, even a quiet one, but two days' bars cannot be compared by height — hover a bar for its count. There is no axis down either side; what a height is worth is in the hover readout.",
+  parts: ["bars"],
+};
+
+const V2_COLOUR_FEATURE: Feature = {
+  id: "colour",
+  title: "The bars are jobs completed",
+  body: "Each bar is the jobs that completed in its window, in teal. Placements and removals are not in the bars unless you add them: a small blue + above a bar means jobs were placed in that window, a red − that some were removed, and clicking either adds that kind to every bar, as the “Bars show” toggle above the calendar does. Hover a bar for every count, whether it is in the bar or not.",
+  parts: ["bars"],
+};
+
+/**
+ * The feature list for one calendar version: v2 takes its own height and
+ * bar-colour cards, swaps the ratio card for the column's, and drops the queue
+ * line's card along with the line.
  */
 function featuresFor(variant: CalendarVersion): Feature[] {
   if (variant === "v1") return FEATURES;
-  return FEATURES.map((feature) => {
+  return FEATURES.filter((feature) => feature.id !== "queue").map((feature) => {
     if (feature.id === "height") return V2_HEIGHT_FEATURE;
-    if (feature.id === "fill" && variant === "v3") return V3_FILL_FEATURE;
+    if (feature.id === "colour") return V2_COLOUR_FEATURE;
+    if (feature.id === "fill") return V2_FILL_FEATURE;
     return feature;
   });
 }
@@ -322,9 +341,9 @@ export default function CellGuideDialog({ variant = "v1", open, onClose }: CellG
             }}
           >
             <ExampleCell active={feature} variant={variant} />
-            {/* v3's ground carries a scale, so it needs a key; v1's and v2's
-                single teal is explained by its card alone. */}
-            {variant === "v3" && <RatioLegend />}
+            {/* Every version reports the ratio, so every version needs its
+                key -- one colour on v1, a scale on v2. */}
+            <RatioLegend variant={variant} />
           </Box>
         </Stack>
       </DialogContent>
@@ -416,6 +435,9 @@ function ExampleCell({
   variant: CalendarVersion;
 }) {
   const share = EXAMPLE_OUTCOME.completed / EXAMPLE_OUTCOME_TOTAL;
+  // v2 draws no queue line, so the example drops the trace, its dot and the
+  // scale that labels them -- and the gutter it all hung in.
+  const showLine = variant === "v1";
   const lit = (part: Part) => !active || active.parts.includes(part);
   // Two features single out one bar; the rest treat the row as a whole.
   const focusOneBar = active?.id === "colour" || active?.id === "hover";
@@ -437,7 +459,7 @@ function ExampleCell({
     <Box>
       {/* Both scales hang outside the cell, as they do on a real row, so the
           wrapper reserves their width on either side. */}
-      <Box sx={{ pl: `${GUTTER}px`, pr: `${RIGHT_GUTTER}px` }}>
+      <Box sx={{ pl: `${GUTTER}px`, pr: `${showLine ? RIGHT_GUTTER : 16}px` }}>
         <Box
           sx={{
             position: "relative",
@@ -451,43 +473,44 @@ function ExampleCell({
             gap: 1,
           }}
         >
-          {/* The inheritance mark, the whole cell's ground. First so everything
-              else paints over it, as on a real tile. Its height is the
+          {/* The end-of-day ratio. On v1 it is the cell's ground, drawn first
+              so everything else paints over it, as on a real tile; on v2 it is
+              the column astride the right-hand boundary. Its height is the
               example's completed share of the jobs the day began with. */}
-          {variant === "v3" ? (
-            // v3: both sides of the ratio, the completed one on the queue
-            // line's ramp. Same geometry as TileRatioBar.
+          {variant === "v2" ? (
             <Box
               sx={{
                 position: "absolute",
-                inset: 0,
-                zIndex: 0,
-                pointerEvents: "none",
+                right: 0,
+                top: 0,
+                bottom: 0,
+                transform: "translateX(50%)",
+                width: 16,
+                display: "flex",
+                flexDirection: "column-reverse",
+                // borderRadius comes from ring(), which spreads after this.
+                overflow: "hidden",
+                border: "1px solid",
+                borderColor: LEVEL_DOT_COLOR,
+                boxSizing: "content-box",
+                boxShadow: (theme) => `0 0 0 1px ${theme.palette.background.paper}`,
+                zIndex: 2,
                 ...dim("fill"),
                 ...ring("fill"),
               }}
             >
               <Box
                 sx={{
-                  position: "absolute",
-                  left: 0,
-                  right: 0,
-                  top: 0,
-                  height: `${((1 - share) * 100).toFixed(3)}%`,
-                  backgroundColor: RATIO_UNFINISHED_COLOR,
-                  backgroundImage: RATIO_UNFINISHED_HATCH,
+                  flexGrow: EXAMPLE_OUTCOME.completed,
+                  flexBasis: 0,
+                  backgroundColor: RATIO_COMPLETED_COLOR,
                 }}
               />
               <Box
                 sx={{
-                  position: "absolute",
-                  left: 0,
-                  right: 0,
-                  bottom: 0,
-                  height: `${(share * 100).toFixed(3)}%`,
-                  backgroundColor: ratioCompletedColor(share),
-                  borderTop: "1px solid rgba(40, 40, 50, 0.35)",
-                  boxSizing: "border-box",
+                  flexGrow: EXAMPLE_OUTCOME_TOTAL - EXAMPLE_OUTCOME.completed,
+                  flexBasis: 0,
+                  backgroundColor: RATIO_UNFINISHED_COLOR,
                 }}
               />
             </Box>
@@ -499,7 +522,7 @@ function ExampleCell({
                 right: 0,
                 bottom: 0,
                 height: `${(share * 100).toFixed(3)}%`,
-                backgroundColor: COMPLETION_FILL_COLOR,
+                backgroundColor: ratioCompletedColor(share),
                 zIndex: 0,
                 pointerEvents: "none",
                 ...dim("fill"),
@@ -527,6 +550,22 @@ function ExampleCell({
             edge exactly as it straddles a real day boundary.
           */}
           <Box sx={{ position: "relative", height: SLOT_HEIGHT, mx: `-${CELL_PAD}px` }}>
+            {/* The zero of the slot, edge to edge, exactly as on a real tile.
+                First in the slot so the bars and the trace stand on it. */}
+            <Box
+              sx={{
+                position: "absolute",
+                left: 0,
+                right: 0,
+                bottom: 0,
+                height: "1px",
+                backgroundColor: TILE_BASELINE_COLOR,
+                zIndex: 0,
+                ...dim("baseline"),
+                ...ring("baseline"),
+              }}
+            />
+
             {/* The row axis, outside the cell on the left. */}
             <Box
               sx={{
@@ -544,11 +583,11 @@ function ExampleCell({
               ))}
             </Box>
 
-            {/* Calendar v1: the level trace, behind the bars and edge to edge,
-                with the midnight dot astride the right border. Underneath,
-                since it is the ground the day's changes happen against, and
-                coloured segment by segment by its steepness as on a real tile. */}
-            {(
+            {/* The level trace, behind the bars and edge to edge, with the
+                midnight dot astride the right border. Underneath, since it is
+                the ground the day's changes happen against, and coloured
+                segment by segment by its steepness as on a real tile. */}
+            {showLine && (
             <Box
               sx={{
                 position: "absolute",
@@ -668,9 +707,9 @@ function ExampleCell({
               })}
             </Box>
 
-            {/* Calendar v1: the queue level's own scale, outside the cell on
-                the right, aligned to the bar slot like the trace it labels. */}
-            {(
+            {/* The queue level's own scale, outside the cell on the right,
+                aligned to the bar slot like the trace it labels. */}
+            {showLine && (
               <Box
                 sx={{
                   position: "absolute",
