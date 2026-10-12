@@ -133,16 +133,15 @@ export const CELL_GUIDE_KEY = "days.cellGuideDismissed";
 
 /**
  * Calendar v2 has its own guide, and its own dismissal: a reader who has learnt
- * the v1 cell has not learnt the v2 one.
+ * the v1 cell has not learnt the v2 one -- it drops the queue line and swaps
+ * v1's completion ground for the ratio column astride midnight.
+ *
+ * Deliberately not the key the earlier v2 used ("days.cellGuideV2Dismissed").
+ * That v2 was v1 with its bars rescaled, and the cell now under this number is
+ * a different drawing altogether; reusing the key would leave everyone who
+ * dismissed the old guide with no introduction to the new cell.
  */
-export const CELL_GUIDE_V2_KEY = "days.cellGuideV2Dismissed";
-
-/**
- * And calendar v3 its own again: its cell swaps v1's completion fill for the
- * two-sided end-of-day ratio bar, which is a mark the other two guides do not
- * describe.
- */
-export const CELL_GUIDE_V3_KEY = "days.cellGuideV3Dismissed";
+export const CELL_GUIDE_V2_KEY = "days.cellGuideRatioDismissed";
 
 export function readGuideDismissed(key: string = CELL_GUIDE_KEY): boolean {
   try {

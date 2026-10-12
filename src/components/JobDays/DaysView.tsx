@@ -50,7 +50,6 @@ import {
 import {
   CELL_GUIDE_KEY,
   CELL_GUIDE_V2_KEY,
-  CELL_GUIDE_V3_KEY,
   DEFAULT_SCALE,
   readBarsParam,
   readGroupParams,
@@ -112,11 +111,19 @@ export default function DaysView({
   const asOf = asOfDay(dayData);
   // Each version has its own guide, dismissed separately: a reader who has
   // learnt one cell has not learnt the other.
-  const guideKey =
-    variant === "v3" ? CELL_GUIDE_V3_KEY : variant === "v2" ? CELL_GUIDE_V2_KEY : CELL_GUIDE_KEY;
-  // v2 and v3 both scale each day's bars to that day's own busiest window; v3
-  // additionally swaps the completion fill for the end-of-day ratio bar.
+  const guideKey = variant === "v2" ? CELL_GUIDE_V2_KEY : CELL_GUIDE_KEY;
+  // v2 scales each day's bars to that day's own busiest window rather than to
+  // the shared peak.
   const perDayScale = variant !== "v1";
+  // Both report the same end-of-day ratio; v2 draws it as a column astride
+  // midnight rather than as the cell's ground. See TileRatioBar/TileOutcomeBar.
+  const inheritance = variant === "v2" ? "bar" : "ground";
+  // v2 drops the queue line, and with it the queue's scale down the right: its
+  // cell is the six bars and the ratio column, and nothing else. Withheld by
+  // passing no levels rather than by a flag of its own, so the calendar's two
+  // queue marks -- the trace and the axis that labels it -- come and go
+  // together and cannot disagree.
+  const showLine = variant !== "v2";
   // How far back the calendar may be paged: the data loads as the reader goes,
   // so this is the API's limit rather than the edge of what is loaded.
   const pageFloor = addDays(asOf, -MAX_HISTORY_DAYS);
@@ -486,11 +493,11 @@ export default function DaysView({
             activities={activities}
             bars={bars}
             onShowBars={(state) => selectBars([...bars, state])}
-            levels={levels}
+            levels={showLine ? levels : null}
             fills={fills}
             scale={scale}
             perDayScale={perDayScale}
-            ratioRamp={variant === "v3"}
+            inheritance={inheritance}
             peakBinTotal={peak}
             levelPeak={levelPeak}
             firstDay={pageFloor}
@@ -556,7 +563,7 @@ export default function DaysView({
         />
 
         <Stack spacing={2} sx={{ mt: 4 }}>
-          <ScaleNote scale={scale} perDay={perDayScale} />
+          <ScaleNote scale={scale} perDay={perDayScale} line={showLine} />
 
           <Box component="section">
             <Typography
@@ -575,12 +582,17 @@ export default function DaysView({
               of its neighbours, so the bars keep their gaps and an idle window is simply
               empty. Placements and removals are not in the bars unless you add them, with the
               &ldquo;Bars show&rdquo; toggle or by clicking the small blue + or red − that sits
-              above a bar when its window had some. On the line, a placement is where the queue
-              jumps up, a removal where it drops with no bar under it. Hovering a bar gives every
-              count, in the bar or not.
+              above a bar when its window had some.{" "}
+              {showLine
+                ? "On the line, a placement is where the queue jumps up, a removal where it drops with no bar under it. "
+                : ""}
+              Hovering a bar gives every count, in the bar or not. Every bar stands on the
+              hairline ruled across each cell: the zero everything in the bar slot is measured
+              from, drawn so a mark near the floor can be told from one near the top.
               Picking one cluster or batch filters the same picture down to that group rather
               than drawing a different one, so its heavy and quiet windows read the same way.
             </Typography>
+            {showLine && (
             <Typography
               variant="caption"
               component="p"
@@ -603,33 +615,29 @@ export default function DaysView({
                   whole height of the cell in one window. The dot on each
                   midnight boundary gives its numbers on hover, including how
                   much of the queue arrived that day. Being a headcount it has its own scale,
-                  down the right of the calendar under the stacked glyph
-                  {variant === "v1"
-                    ? "; the axis on the left belongs to the bars."
-                    : ". There is no axis on the left: each day's bars are scaled to that day's own busiest window, so hover a bar for its count."}
+                  down the right of the calendar under the stacked glyph; the axis on the left
+                  belongs to the bars.
                 </>
               )}
             </Typography>
-            {variant === "v3" && (
-              <Typography
-                variant="caption"
-                component="p"
-                sx={{ color: "text.secondary", display: "block", mt: 0.75 }}
-              >
-                Behind both, each cell&rsquo;s ground is its{" "}
-                <Box component="span" sx={{ fontWeight: 700, color: "text.primary" }}>
-                  end-of-day ratio
-                </Box>
-                : of the jobs already open when the day began, the share that had completed by
-                the time it ended rises from the floor, and the hatched highlighter yellow above
-                it is what had not. Jobs placed during the day are not counted on either side —
-                this is the backlog being cleared, nothing else. The completed share is coloured
-                by its own size on the same ramp the queue line uses, so a day that barely
-                touched its inheritance is cool blue, one that cleared most of it runs through
-                green and orange, and a day that finished essentially all of it is brilliant
-                purple to the top. Click a day for the counts behind the ratio.
-              </Typography>
             )}
+            <Typography
+              variant="caption"
+              component="p"
+              sx={{ color: "text.secondary", display: "block", mt: 0.75 }}
+            >
+              Each day also reports its{" "}
+              <Box component="span" sx={{ fontWeight: 700, color: "text.primary" }}>
+                end-of-day ratio
+              </Box>
+              : of the jobs already open when the day began, how many had completed by the time
+              it ended. Jobs placed during the day are counted on neither side of it — this is
+              the backlog being cleared, nothing else.{" "}
+              {inheritance === "bar"
+                ? "It is the narrow column straddling each midnight: completed at its base in bright red, and above that, in highlighter yellow, everything that had not completed when the day closed — removed and still open together. Two flat colours, so what you read is where the boundary between them sits; a star on top of a full column marks a day that cleared everything it began with. Hover it to split that yellow back out."
+                : "It is the cell's own ground: a field rising from the floor of the tile to the completed share, so a day that cleared its whole backlog is filled to the top and a day that cleared none of it is bare. It is coloured by that share too, on the same ramp the queue line uses — a day that barely touched its inheritance is cool blue, one that cleared most of it runs through green and orange, and a day that finished essentially all of it is brilliant purple, so a month can be scanned for purple without reading any single waterline. What is left undone is the plain tile above the waterline rather than a colour of its own: the cell has six bars, a queue line and two numbers to carry as well, and one field behind them is as much as stays legible."}{" "}
+              Click a day for the counts behind the ratio.
+            </Typography>
           </Box>
         </Stack>
       </Box>

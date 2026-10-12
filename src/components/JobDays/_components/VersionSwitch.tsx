@@ -5,51 +5,41 @@ import { Box, ButtonGroup, Button, Typography } from "@mui/material";
 import Link from "next/link";
 
 /** The calendar models the job pages can draw. */
-export type CalendarVersion = "v1" | "v2" | "v3";
+export type CalendarVersion = "v1" | "v2";
 
 /** The route segment each version lives under, relative to its route's base. */
 const SEGMENTS: Record<CalendarVersion, string> = {
   v1: "",
   v2: "v2/",
-  v3: "v3/",
 };
 
 /** What each button says, and what it promises. */
 const LABELS: Record<CalendarVersion, { short: string; title: string }> = {
-  v1: { short: "v1", title: "Bars scaled to the whole month; teal completion ground" },
-  v2: { short: "v2", title: "Bars scaled to each day; teal completion ground" },
-  v3: { short: "v3", title: "Bars scaled to each day; end-of-day ratio bar on the queue ramp" },
+  v1: { short: "v1", title: "Bars scaled to the whole month; queue line; teal completion ground" },
+  v2: { short: "v2", title: "Bars scaled to each day; end-of-day ratio bar on the queue ramp" },
 };
 
 /**
- * The base of the current route with any version segment removed: the path v1
- * lives at, which every other version hangs off.
+ * The base of the current route with the version segment removed: the path v1
+ * lives at, which v2 hangs off.
  */
 function basePathOf(pathname: string): string {
   const path = pathname.endsWith("/") ? pathname : `${pathname}/`;
-  for (const segment of [SEGMENTS.v2, SEGMENTS.v3]) {
-    if (path.endsWith(segment)) return path.slice(0, -segment.length);
-  }
+  if (path.endsWith(SEGMENTS.v2)) return path.slice(0, -SEGMENTS.v2.length);
   return path;
 }
 
-/**
- * Which versions exist at a given base. v1 and v2 are mirrored on both job
- * routes; v3 was built for the admin calendar only, so offering it under
- * /users/me/jobs/ would link to a 404.
- */
-function versionsAt(base: string): CalendarVersion[] {
-  return base.endsWith("/users/jobs/calendar/") ? ["v1", "v2", "v3"] : ["v1", "v2"];
-}
+/** Both versions exist on both job routes. */
+const VERSIONS: CalendarVersion[] = ["v1", "v2"];
 
 /**
- * A link from the calendar version on screen to each of the others, on the same
+ * A link from the calendar version on screen to the other one, on the same
  * route and for the same user and window.
  *
- * The versions live at parallel paths -- /users/jobs/calendar/, .../v2/,
- * .../v3/ -- and take the same query parameters, so another version is the
- * current URL with its version segment swapped. Computed in an effect: the site
- * is a static export, and the URL cannot be read while rendering server HTML.
+ * The versions live at parallel paths -- /users/jobs/calendar/ and .../v2/ --
+ * and take the same query parameters, so the other version is the current URL
+ * with its version segment swapped. Computed in an effect: the site is a static
+ * export, and the URL cannot be read while rendering server HTML.
  */
 export default function VersionSwitch({ current }: { current: CalendarVersion }) {
   const [links, setLinks] = useState<{ version: CalendarVersion; href: string }[] | null>(null);
@@ -58,7 +48,7 @@ export default function VersionSwitch({ current }: { current: CalendarVersion })
     const url = new URL(window.location.href);
     const base = basePathOf(url.pathname);
     setLinks(
-      versionsAt(base).map((version) => ({
+      VERSIONS.map((version) => ({
         version,
         href: `${base}${SEGMENTS[version]}${url.search}`,
       })),

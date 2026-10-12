@@ -68,9 +68,8 @@ function AdminJobs({ variant }: { variant: CalendarVersion }) {
 }
 
 /**
- * `variant` picks the calendar: /users/jobs/calendar/ draws v1,
- * /users/jobs/calendar/v2/ draws v2 and /users/jobs/calendar/v3/ draws v3, for
- * the same user and window.
+ * `variant` picks the calendar: /users/jobs/calendar/ draws v1 and
+ * /users/jobs/calendar/v2/ draws v2, for the same user and window.
  */
 function View({ variant = "v1" }: { variant?: CalendarVersion }) {
   return (
