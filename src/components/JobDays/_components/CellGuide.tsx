@@ -142,7 +142,8 @@ const V2_FILL_FEATURE: Feature = {
     "straddling the midnight boundary, so it reads as the close of the day rather than a " +
     "seventh bar. Completed is at its base, in bright red; above that, in highlighter yellow, " +
     "is everything that had not completed when the day closed, removed and still open " +
-    "together. A day with nothing in hand has no column at all. Two flat colours and " +
+    "together. A day with nothing in hand — or nothing at all happening — has no " +
+    "column. Two flat colours and " +
     "nothing else: at this width the reading is where the boundary between them falls, and red " +
     "on yellow is the loudest pair on the calendar to find it by — a star on top of a full " +
     "column marks a clean sweep. Hover it for the counts, including the yellow split back into " +
