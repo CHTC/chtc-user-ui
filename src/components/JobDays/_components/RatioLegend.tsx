@@ -44,8 +44,8 @@ function Swatch({ color, label, hatch }: { color: string; label: string; hatch?:
  * share on the queue line's own ramp (LEVEL_SLOPE_STOPS), so the ground and the
  * trace over it agree on what purple means -- the far end of the scale. The
  * ramp is read linearly here, unlike the line's log scale, so the strip's stops
- * sit where their shares land: its midpoint is a day that cleared about half
- * its backlog. Drawn at full strength, though the ground is translucent: a key
+ * sit where their shares land: its midpoint is a day that finished about half
+ * the jobs it had in hand. Drawn at full strength, though the ground is translucent: a key
  * is read on its own, not under a tile's worth of bars. The hatch at the top
  * of that scale gets a swatch of its own, since a stripe is not something a
  * gradient strip can show.
@@ -88,7 +88,7 @@ export default function RatioLegend({ variant }: { variant: CalendarVersion }) {
           <Swatch
             color={ratioCompletedColor(1)}
             hatch
-            label="Striped: the day cleared everything it began with"
+            label="Striped: the day finished every job it held"
           />
           <Swatch color="transparent" label="Still to do: the bare cell above it" />
         </>

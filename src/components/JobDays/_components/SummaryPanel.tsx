@@ -70,9 +70,9 @@ export default function SummaryPanel({
             )}
             {yesterday.outcome && (
               <Row
-                label="Inherited queue finished"
-                value={`${Math.round((yesterday.outcome.completed / yesterday.outcome.opening) * 100)}%`}
-                note={`${compactNumber(yesterday.outcome.completed)} of ${compactNumber(yesterday.outcome.opening)} open at the start`}
+                label="Day's jobs finished"
+                value={`${Math.round((yesterday.outcome.completed / yesterday.outcome.inPlay) * 100)}%`}
+                note={`${compactNumber(yesterday.outcome.completed)} of ${compactNumber(yesterday.outcome.inPlay)} open at the start or placed that day`}
               />
             )}
             <DayLink day={yesterday.day} onOpenDay={onOpenDay}>

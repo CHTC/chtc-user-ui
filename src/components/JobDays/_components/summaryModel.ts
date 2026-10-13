@@ -52,7 +52,7 @@ export interface YesterdaySummary {
   changed: number;
   /** The queue at the day's close, split into arrived-today and carried. */
   queue: DayQueue | null;
-  /** How the jobs open at the day's start fared by its end. */
+  /** How the jobs the day had in hand fared by its end. */
   outcome: DayOutcome | null;
 }
 

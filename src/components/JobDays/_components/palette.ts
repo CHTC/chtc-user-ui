@@ -190,10 +190,11 @@ export function levelSegments(
 }
 
 /**
- * Calendar v2's boundary bar: what became of the jobs open when the day began.
- * Three states, since placements are not part of it: the two terminal colours,
- * and grey for what is still open -- grey because nothing happened to those
- * jobs, and the bar is about what happened.
+ * Calendar v2's boundary bar: what became of every job the day had in hand --
+ * open when it began, or placed into it during the day. Three states, since
+ * every job in the population is in exactly one of them at midnight: the two
+ * terminal colours, and grey for what is still open -- grey because nothing
+ * happened to those jobs, and the bar is about what happened.
  */
 export type OutcomeState = "active" | "completed" | "removed";
 
@@ -219,17 +220,17 @@ export const OUTCOME_STYLES: Record<OutcomeState, { label: string; color: string
   active: {
     label: "Still active",
     color: OUTCOME_ACTIVE_COLOR,
-    description: "open when the day began and still open at its end; nothing happened to these",
+    description: "in the day's hands and still open at its end; nothing happened to these",
   },
   completed: {
     label: "Completed",
     color: BAR_STATE_STYLES.completed.color,
-    description: "open when the day began and completed during it",
+    description: "in the day's hands and completed during it",
   },
   removed: {
     label: "Removed",
     color: BAR_STATE_STYLES.removed.color,
-    description: "open when the day began and removed during it",
+    description: "in the day's hands and removed during it",
   },
 };
 
@@ -279,8 +280,8 @@ export const ACTIVITY_STYLES: Record<ActivityState, { label: string; color: stri
 
 
 /**
- * The end-of-day ratio: the share of the jobs open when the day began that
- * completed before it ended.
+ * The end-of-day ratio: the share of the jobs the day had in hand -- open when
+ * it began, plus placed during it -- that completed before it ended.
  *
  * Drawn two ways, and -- unlike the rest of this file -- not in one colour
  * vocabulary, because the two marks are read differently. On v1 it is the

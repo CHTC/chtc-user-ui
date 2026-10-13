@@ -323,66 +323,80 @@ export function buildSliceMap(data: DayData, filter: ClusterFilter): Map<string,
 }
 
 /**
- * What became, by the end of one day, of the jobs that were open when it began.
+ * What became, by the end of one day, of every job the day had in hand.
  *
- * The calendar's completion fill and the day dialog's inheritance section.
- * Placements during the day are deliberately not part of it: the question is
- * how the standing queue fared, and a day that took
- * on 200 new jobs while finishing 100 of the 200 it started with is still a
- * 50/50 day for the work it inherited.
+ * The calendar's completion ratio -- v1's cell ground, v2's column astride
+ * midnight -- and the day dialog's section of the same name. The population is
+ * everything that could have finished during the day: the jobs already open
+ * when it began, plus the jobs placed into it during the day itself. A day that
+ * inherited 200 jobs, took on 200 more and finished 100 of the 400 is a 25% day;
+ * work that arrived in the morning and finished by the evening counts, because
+ * it was there to be finished.
  */
 export interface DayOutcome {
-  /** Jobs open -- queued or running -- when the day began. */
-  opening: number;
+  /**
+   * Jobs the day could have finished: open -- queued or running -- when it
+   * began, plus everything placed during it.
+   */
+  inPlay: number;
   /** Of those, still open at the day's end. */
   active: number;
   /** Of those, completed during the day. */
   completed: number;
   /** Of those, removed during the day. */
   removed: number;
-  /** True when anything was open when the day began. */
+  /**
+   * True when the day had anything in hand at all. False means there was no job
+   * that could have been completed or removed, and the ratio is not drawn: an
+   * empty day has no share to report, and a bar standing for nothing reads as a
+   * day that finished nothing.
+   */
   hasData: boolean;
 }
 
 /**
  * The day outcomes for every day, from the cohort censuses.
  *
- * A cohort placed before day D is part of D's opening population; reading it at
- * the end of D-1 gives how many were still open, and the growth of its terminal
- * counts from D-1 to D gives how many finished during D. Exact, not inferred:
- * the cohort rows attribute every completion to the day its job was placed, so
- * nothing placed on D can leak in.
+ * A cohort placed before day D is part of D's population; reading it at the end
+ * of D-1 gives how many were still open, and the growth of its terminal counts
+ * from D-1 to D gives how many finished during D. D's own cohort joins it with
+ * no prior reading at all: everything it holds at the end of D was placed and
+ * settled (or not) inside the day. Exact, not inferred: the cohort rows
+ * attribute every transition to the day its job was placed.
  *
- * On the first loaded day there is no D-1 reading. A cohort placed before the
- * window counts only its survivors at the window's start, and its terminal
- * counts on that first day are the day's own, so the day-one reading stands in
- * for both.
+ * On the first loaded day there is no D-1 reading for the earlier cohorts
+ * either. A cohort placed before the window counts only its survivors at the
+ * window's start, and its terminal counts on that first day are the day's own,
+ * so the day-one reading stands in for both.
  */
 export function buildDayOutcomes(data: DayData, filter: ClusterFilter): Map<string, DayOutcome> {
   const out = new Map<string, DayOutcome>();
   data.days.forEach((day, index) => {
     const previous = index > 0 ? data.days[index - 1] : null;
-    let opening = 0;
+    let inPlay = 0;
     let active = 0;
     let completed = 0;
     let removed = 0;
     for (const cohort of data.cohorts) {
-      if (!inFilter(filter, cohort.cluster) || cohort.day >= day) continue;
+      if (!inFilter(filter, cohort.cluster) || cohort.day > day) continue;
       const today = cohort.asOf[day];
       if (!today) continue;
-      const before = previous ? cohort.asOf[previous] : undefined;
+      // The day's own cohort never has a reading for the day before -- it did
+      // not exist yet -- so it takes the same branch as a cohort whose history
+      // starts here, and its whole census counts as placed into this day.
+      const before = cohort.day < day && previous ? cohort.asOf[previous] : undefined;
       if (before) {
-        opening += before[0] + before[1];
+        inPlay += before[0] + before[1];
         completed += Math.max(0, today[2] - before[2]);
         removed += Math.max(0, today[3] - before[3]);
       } else {
-        opening += today[0] + today[1] + today[2] + today[3];
+        inPlay += today[0] + today[1] + today[2] + today[3];
         completed += today[2];
         removed += today[3];
       }
       active += today[0] + today[1];
     }
-    out.set(day, { opening, active, completed, removed, hasData: opening > 0 });
+    out.set(day, { inPlay, active, completed, removed, hasData: inPlay > 0 });
   });
   return out;
 }
@@ -519,7 +533,9 @@ export function buildDayClusterRoles(data: DayData, day: string): DayClusterRole
     const role = at(cohort.cluster);
     const before = previous ? cohort.asOf[previous] : undefined;
     // No reading for the day before means the window starts here, and the
-    // whole cohort counts as inherited -- as in buildDayOutcomes.
+    // whole cohort counts as inherited -- as the earlier cohorts do in
+    // buildDayOutcomes. Unlike that function, this column stays inherited-only:
+    // what the cluster placed on the day has a column of its own beside it.
     role.opening += before
       ? before[0] + before[1]
       : today[0] + today[1] + today[2] + today[3];

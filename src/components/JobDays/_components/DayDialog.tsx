@@ -69,7 +69,7 @@ interface DayDialogProps {
   /**
    * Which calendar opened the dialog. Accepted for the callers' sake but not
    * currently read: both calendars draw the same six-bin chart and the day's
-   * outcome for the jobs it inherited, which is where the completion fill's
+   * outcome for the jobs it had in hand, which is where the completion ratio's
    * numbers are printed.
    */
   variant?: CalendarVersion;
@@ -154,7 +154,7 @@ export default function DayDialog({
     };
   }, [barData, filter, day, bars]);
 
-  // What became of the jobs open when this day began, for the same scope as the
+  // What became of the jobs this day had in hand, for the same scope as the
   // tile that was clicked. The tile draws this as the completion fill, and has
   // no room for
   // the numbers, so this is where they are.
@@ -294,9 +294,8 @@ export default function DayDialog({
                 )}
               </Box>
 
-              {/* The day's inheritance, drawn large, with its numbers: the
-                  population the tile's completion fill is a
-                  share of. */}
+              {/* The day's whole workload, drawn large, with its numbers: the
+                  population the tile's completion ratio is a share of. */}
               {outcome && (
                 <Box component="section">
                   <Typography
@@ -304,17 +303,17 @@ export default function DayDialog({
                     component="h3"
                     sx={{ color: "text.secondary", lineHeight: 1.6, display: "block" }}
                   >
-                    Jobs open when the day began
+                    Jobs this day had in hand
                   </Typography>
                   <Typography variant="caption" sx={{ color: "text.secondary" }}>
-                    {outcome.opening.toLocaleString()} jobs, whenever they were placed; nothing
-                    placed during the day is counted here
+                    {outcome.inPlay.toLocaleString()} jobs: everything open when the day began,
+                    plus everything placed into it during the day
                   </Typography>
                   {outcome.hasData ? (
                     <>
                       <Box
                         role="img"
-                        aria-label={`Of ${outcome.opening.toLocaleString()} jobs open when the day began: ${outcome.active.toLocaleString()} still active, ${outcome.completed.toLocaleString()} completed, ${outcome.removed.toLocaleString()} removed`}
+                        aria-label={`Of ${outcome.inPlay.toLocaleString()} jobs this day had in hand: ${outcome.active.toLocaleString()} still active, ${outcome.completed.toLocaleString()} completed, ${outcome.removed.toLocaleString()} removed`}
                         sx={{
                           mt: 1,
                           height: 22,
@@ -336,7 +335,7 @@ export default function DayDialog({
                       </Box>
                       <Stack spacing={0.25} sx={{ mt: 1.25 }}>
                         {OUTCOME_ORDER_TOP_DOWN.map((state) => {
-                          const share = (outcome[state] / outcome.opening) * 100;
+                          const share = (outcome[state] / outcome.inPlay) * 100;
                           return (
                             <Stack key={state} direction="row" spacing={1} alignItems="baseline">
                               <Box
@@ -363,7 +362,7 @@ export default function DayDialog({
                     </>
                   ) : (
                     <Typography variant="body2" sx={{ color: "text.secondary", mt: 0.75 }}>
-                      Nothing was open when the day began.
+                      Nothing was open when the day began and nothing was placed during it.
                     </Typography>
                   )}
                 </Box>

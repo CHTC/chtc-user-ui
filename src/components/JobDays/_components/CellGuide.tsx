@@ -117,7 +117,7 @@ const FEATURES: Feature[] = [
   {
     id: "fill",
     title: "The ground is the day's end-of-day ratio",
-    body: "Of the jobs that were already open when this day began, how many had completed by the time it ended. The ground rises from the floor of the cell to that share, so a day that cleared its whole backlog is filled to the top and a day that cleared none of it is bare. Jobs placed during the day are counted on neither side: this is the backlog being cleared, nothing else. The ground is also coloured by its own size, on the same ramp the queue line uses: cool blue for a day that barely touched its backlog, through green and orange as the share climbs, to brilliant purple for a day that finished essentially all of it — so a cleared day is purple to the top. A day that cleared every job it began with is striped as well as purple, because the top of the ramp is a gradient and 96% and 100% are otherwise neighbouring shades. What is left undone is the plain cell above the waterline rather than a colour of its own: the cell is already carrying six bars, a queue line and two numbers, and one field behind them is as much as stays legible. Its numbers are in the day's full breakdown, one click away.",
+    body: "Of every job this day had in hand — open when it began, plus everything placed into it during the day — how many had completed by the time it ended. The ground rises from the floor of the cell to that share, so a day that finished all its work is filled to the top and a day that finished none of it is bare. A day with nothing in hand has no ground at all. The ground is also coloured by its own size, on the same ramp the queue line uses: cool blue for a day that barely touched its workload, through green and orange as the share climbs, to brilliant purple for a day that finished essentially all of it — so a cleared day is purple to the top. A day that finished every job it held is striped as well as purple, because the top of the ramp is a gradient and 96% and 100% are otherwise neighbouring shades. What is left undone is the plain cell above the waterline rather than a colour of its own: the cell is already carrying six bars, a queue line and two numbers, and one field behind them is as much as stays legible. Its numbers are in the day's full breakdown, one click away.",
     parts: ["fill"],
   },
   {
@@ -137,11 +137,12 @@ const V2_FILL_FEATURE: Feature = {
   id: "fill",
   title: "The column on midnight is the day's end-of-day ratio",
   body:
-    "Of the jobs already open when this day began, how many had completed by the time it ended " +
-    "— as a single stacked column straddling the midnight boundary, so it reads as the close of " +
-    "the day rather than a seventh bar. Completed is at its base, in bright red; above that, in " +
-    "highlighter yellow, is everything that had not completed when the day closed, removed and " +
-    "still open together. Jobs placed during the day are in neither part. Two flat colours and " +
+    "Of every job this day had in hand — open when it began, plus everything placed into it " +
+    "during the day — how many had completed by the time it ended, as a single stacked column " +
+    "straddling the midnight boundary, so it reads as the close of the day rather than a " +
+    "seventh bar. Completed is at its base, in bright red; above that, in highlighter yellow, " +
+    "is everything that had not completed when the day closed, removed and still open " +
+    "together. A day with nothing in hand has no column at all. Two flat colours and " +
     "nothing else: at this width the reading is where the boundary between them falls, and red " +
     "on yellow is the loudest pair on the calendar to find it by — a star on top of a full " +
     "column marks a clean sweep. Hover it for the counts, including the yellow split back into " +
@@ -253,9 +254,9 @@ const HOUR_ROW = 14;
 const EXAMPLE_ACTIVITY_TICKS = buildScaleTicks(EXAMPLE_PEAK, "linear");
 
 /**
- * The share of the example day's opening 3,800 jobs that completed, for the
- * fill: squares with the bins above once the 1,200 placed at 04-08 are left
- * out of the day's 4,800 completions.
+ * The share of the example day's 3,800 jobs that completed, for the fill: the
+ * jobs it opened with and the ones placed into it during the day, each ending
+ * the day completed, removed or still open.
  */
 const EXAMPLE_OUTCOME = { active: 300, completed: 3200, removed: 300 };
 const EXAMPLE_OUTCOME_TOTAL = EXAMPLE_OUTCOME.active + EXAMPLE_OUTCOME.completed + EXAMPLE_OUTCOME.removed;
@@ -478,7 +479,7 @@ function ExampleCell({
           {/* The end-of-day ratio. On v1 it is the cell's ground, drawn first
               so everything else paints over it, as on a real tile; on v2 it is
               the column astride the right-hand boundary. Its height is the
-              example's completed share of the jobs the day began with. */}
+              example's completed share of the jobs the day had in hand. */}
           {variant === "v2" ? (
             <Box
               sx={{
