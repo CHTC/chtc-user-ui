@@ -467,6 +467,7 @@ export default function JobCalendar({
           if (view !== "month") return null;
           const key = dayKeyOf(date);
           const slice = slices.get(key);
+          const activity = activities.get(key);
           // Local-midnight arithmetic, not a milliseconds offset, so the label is
           // right across a daylight-saving boundary.
           const next = new Date(date.getFullYear(), date.getMonth(), date.getDate() + 1);
@@ -545,8 +546,15 @@ export default function JobCalendar({
                 level trace so the bar's paper ring sits over it, and a hover
                 target in its own right -- which is why it is not a child of
                 the day body, whose own click opens the day.
+
+                Drawn only on a day something actually happened on. The column
+                paints both sides of the ratio, so a day where nothing moved is
+                a full-height yellow bar -- the loudest mark the calendar has,
+                standing for an idle day. v1's ground needs no such guard: it
+                paints the completed share alone, so the same day is simply
+                bare.
               */}
-              {fills && fills.get(key)?.hasData && ratioMark === "bar" && (
+              {fills && fills.get(key)?.hasData && activity?.hasData && ratioMark === "bar" && (
                 <TileOutcomeBar
                   outcome={fills.get(key) as DayOutcome}
                   day={key}
@@ -556,7 +564,7 @@ export default function JobCalendar({
               )}
               <TileBody
                 slice={slice}
-                activity={activities.get(key)}
+                activity={activity}
                 bars={bars}
                 onShowBars={onShowBars}
                 perDayScale={perDayScale}

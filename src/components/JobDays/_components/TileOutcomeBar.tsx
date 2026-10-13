@@ -55,6 +55,11 @@ interface TileOutcomeBarProps {
  * completed. The six bars in the tile beside it count every state change in the
  * day; this one asks what share of the day's own workload came out finished.
  *
+ * Not drawn at all on a day nothing happened on (see JobCalendar): both sides
+ * of the ratio are painted here, so an idle day would be a full-height yellow
+ * column -- the loudest thing on the tile, saying only that the queue sat
+ * still, which the flat level trace already says.
+ *
  * It runs the full height of the tile, top edge to bottom edge, rather than
  * the bar slot's: being a share it has no height of its own to encode, and
  * spanning the cell is what marks it as a boundary between days rather than a
