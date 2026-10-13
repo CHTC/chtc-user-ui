@@ -11,27 +11,28 @@ interface TileRatioBarProps {
   day: string;
 }
 
-/** Share of the day's opening jobs that completed during it, 0-1. */
+/** Share of the jobs the day had in hand that completed during it, 0-1. */
 export function completionShare(outcome: DayOutcome): number {
-  if (outcome.opening <= 0) return 0;
-  return Math.min(1, Math.max(0, outcome.completed / outcome.opening));
+  if (outcome.inPlay <= 0) return 0;
+  return Math.min(1, Math.max(0, outcome.completed / outcome.inPlay));
 }
 
 /**
  * The end-of-day ratio as a cell ground, on calendar v1: a translucent field
- * rising from the tile's floor to the share of the jobs open when the day
- * began that completed before it ended. A day that started with 200 jobs and
- * finished 100 of them is filled to half height, whatever else was placed
- * meanwhile -- jobs placed during the day are not in the ratio at all, which
- * is the backlog being cleared and nothing else.
+ * rising from the tile's floor to the share of the day's jobs that completed
+ * before it ended. The denominator is everything the day could have finished --
+ * what was open when it began plus what was placed into it during the day --
+ * so a day that inherited 200 jobs, took on 200 more and finished 100 is
+ * filled to a quarter height. Work placed in the morning and finished by the
+ * evening counts on both sides of the ratio rather than on neither.
  *
  * The field is also coloured by that same share, on the queue line's ramp (see
- * ratioCompletedColor): cool blue for a day that barely moved its inheritance,
+ * ratioCompletedColor): cool blue for a day that barely moved its workload,
  * through green and orange as the share climbs, to brilliant purple for a day
  * that finished essentially all of it. Height and colour say one thing twice,
  * so a month reads for purple without reading any single waterline.
  *
- * At 100% -- every inherited job finished -- the field also picks up a fine
+ * At 100% -- every job the day held finished -- the field also picks up a fine
  * diagonal hatch. The top of the ramp is a gradient, so a cleared day and a
  * nearly cleared one are neighbouring purples; the stripes give that one
  * reading a hard edge, and v2 marks the same day with a star on its column.
@@ -51,8 +52,8 @@ export function completionShare(outcome: DayOutcome): number {
 export default function TileRatioBar({ outcome, day }: TileRatioBarProps) {
   const share = completionShare(outcome);
   const percent = Math.round(share * 100);
-  // Every inherited job finished. The share is clamped, so this is an exact
-  // comparison rather than a tolerance: completed === opening and nothing was
+  // Every job the day held finished. The share is clamped, so this is an exact
+  // comparison rather than a tolerance: completed === inPlay and nothing was
   // removed or left open.
   const cleared = share >= 1;
 
@@ -62,10 +63,10 @@ export default function TileRatioBar({ outcome, day }: TileRatioBarProps) {
       role="img"
       aria-label={
         cleared
-          ? `Every one of the ${outcome.opening.toLocaleString()} jobs open as ` +
-            `${formatDayShort(day)} began completed during it`
-          : `${percent}% of the ${outcome.opening.toLocaleString()} jobs open as ` +
-            `${formatDayShort(day)} began completed during it`
+          ? `Every one of the ${outcome.inPlay.toLocaleString()} jobs ` +
+            `${formatDayShort(day)} had open or took on completed during it`
+          : `${percent}% of the ${outcome.inPlay.toLocaleString()} jobs ` +
+            `${formatDayShort(day)} had open or took on completed during it`
       }
       sx={{
         position: "absolute",

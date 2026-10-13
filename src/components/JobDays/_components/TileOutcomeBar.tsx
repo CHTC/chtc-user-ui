@@ -26,13 +26,13 @@ const BAR_WIDTH = 11;
 const STAR_DISC = 14;
 
 /**
- * True when every job the day inherited completed during it: nothing still
- * open, nothing removed. The bar is solid purple at the top of the ramp and
- * gets a star, so a month can be scanned for the days that cleared their
- * backlog outright.
+ * True when every job the day held completed during it -- inherited and placed
+ * alike: nothing still open, nothing removed. The bar is solid red and gets a
+ * star, so a month can be scanned for the days that finished everything they
+ * touched.
  */
 function isCleanSweep(outcome: DayOutcome): boolean {
-  return outcome.opening > 0 && outcome.active === 0 && outcome.removed === 0;
+  return outcome.inPlay > 0 && outcome.active === 0 && outcome.removed === 0;
 }
 
 interface TileOutcomeBarProps {
@@ -46,13 +46,14 @@ interface TileOutcomeBarProps {
 }
 
 /**
- * Calendar v2's end-of-day ratio bar: what became of the jobs that were open
- * when the day began, as a 100%-stacked column astride midnight.
+ * Calendar v2's end-of-day ratio bar: what became of every job the day had in
+ * hand, as a 100%-stacked column astride midnight.
  *
- * Its population is fixed at the moment the day opens, so placements during the
- * day never enter it: a day that inherited 200 jobs and finished 100 is 50/50
- * whatever arrived meanwhile. The six bars in the tile beside it count changes
- * to every job; this one answers only for the inherited ones.
+ * Its population is everything that could have finished during the day -- open
+ * when the day began, or placed into it while the day ran. A day that inherited
+ * 200 jobs, took on 200 more and finished 100 of the 400 reads as a quarter
+ * completed. The six bars in the tile beside it count every state change in the
+ * day; this one asks what share of the day's own workload came out finished.
  *
  * It runs the full height of the tile, top edge to bottom edge, rather than
  * the bar slot's: being a share it has no height of its own to encode, and
@@ -81,7 +82,7 @@ export default function TileOutcomeBar({ outcome, day, nextDay, onHoverScale }: 
   const [hovered, setHovered] = useState(false);
   const cleanSweep = isCleanSweep(outcome);
   const share = completionShare(outcome);
-  const notCompleted = outcome.opening - outcome.completed;
+  const notCompleted = outcome.inPlay - outcome.completed;
 
   // The readout keeps v2's three-way split: the bar merges removed into "not
   // completed", and this is where that detail goes rather than being dropped.
@@ -93,7 +94,7 @@ export default function TileOutcomeBar({ outcome, day, nextDay, onHoverScale }: 
       // page uses for the same state.
       color: state === "completed" ? RATIO_COMPLETED_COLOR : OUTCOME_STYLES[state].color,
       value: outcome[state],
-      share: outcome.opening > 0 ? (outcome[state] / outcome.opening) * 100 : null,
+      share: outcome.inPlay > 0 ? (outcome[state] / outcome.inPlay) * 100 : null,
       lead: "share" as const,
     }),
   );
@@ -110,24 +111,24 @@ export default function TileOutcomeBar({ outcome, day, nextDay, onHoverScale }: 
         <BinReadout
           title={
             nextDay
-              ? `Jobs open as ${formatDayShort(day)} began · by midnight`
-              : `Jobs open as ${formatDayShort(day)} began · by its end`
+              ? `Jobs ${formatDayShort(day)} had in hand · by midnight`
+              : `Jobs ${formatDayShort(day)} had in hand · by its end`
           }
-          subtitle={`${Math.round(share * 100)}% of ${outcome.opening.toLocaleString()} completed before the day ended`}
+          subtitle={`${Math.round(share * 100)}% of ${outcome.inPlay.toLocaleString()} completed before the day ended`}
           rows={rows}
           footer={[
             ...(cleanSweep
-              ? ["A clean sweep: every job the day began with completed before it ended."]
+              ? ["A clean sweep: every job the day held completed before it ended."]
               : []),
             "The yellow half of the bar is everything above that had not completed: removed and still active together.",
-            "Only the jobs already open when the day began. Anything placed during the day is not part of this bar; the six bars beside it count those.",
+            "The jobs already open when the day began plus everything placed during it: every job the day could have finished.",
           ]}
         />
       }
     >
       <Box
         role="img"
-        aria-label={`Of ${outcome.opening.toLocaleString()} jobs open as ${formatDayShort(day)} began: ${outcome.completed.toLocaleString()} completed, ${notCompleted.toLocaleString()} had not completed when the day ended (${outcome.removed.toLocaleString()} removed, ${outcome.active.toLocaleString()} still active)`}
+        aria-label={`Of ${outcome.inPlay.toLocaleString()} jobs ${formatDayShort(day)} had open or took on: ${outcome.completed.toLocaleString()} completed, ${notCompleted.toLocaleString()} had not completed when the day ended (${outcome.removed.toLocaleString()} removed, ${outcome.active.toLocaleString()} still active)`}
         onMouseEnter={() => {
           setHovered(true);
           onHoverScale?.("queue");

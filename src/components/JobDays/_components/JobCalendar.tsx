@@ -73,9 +73,9 @@ interface JobCalendarProps {
    */
   levels: Map<string, DayLevel> | null;
   /**
-   * What became of the jobs open when each day began: the end-of-day ratio,
+   * What became of the jobs each day had in hand: the end-of-day ratio,
    * drawn as the cell's ground or as a column astride midnight depending on
-   * `inheritance`.
+   * `ratioMark`.
    */
   fills: Map<string, DayOutcome> | null;
   /** Which scale the magnitude bars and the level trace use. */
@@ -94,7 +94,7 @@ interface JobCalendarProps {
    * TileOutcomeBar). The same quantity either way; the colours differ, since
    * only the column paints the remainder.
    */
-  inheritance: "ground" | "bar";
+  ratioMark: "ground" | "bar";
   /**
    * Tallest 4-hour bin on the visible grid, neighbouring days included; every
    * tile scales against it so bar heights compare across days. Measured by the
@@ -148,7 +148,7 @@ export default function JobCalendar({
   fills,
   scale,
   perDayScale,
-  inheritance,
+  ratioMark,
   peakBinTotal,
   levelPeak,
   firstDay,
@@ -458,8 +458,8 @@ export default function JobCalendar({
         }}
         tileDisabled={({ date }) => {
           const key = dayKeyOf(date);
-          // A day with inherited work to report on is alive even if nothing
-          // moved: its completion fill is the answer.
+          // A day with work in hand to report on is alive even if nothing
+          // moved: its completion ratio is the answer.
           if (fills?.get(key)?.hasData) return false;
           return isEmptySlice(slices.get(key));
         }}
@@ -512,7 +512,7 @@ export default function JobCalendar({
                 at the same z-index, paint over it; the day body sits above
                 them all.
               */}
-              {fills && fills.get(key)?.hasData && inheritance === "ground" && (
+              {fills && fills.get(key)?.hasData && ratioMark === "ground" && (
                 <TileRatioBar outcome={fills.get(key) as DayOutcome} day={key} />
               )}
               {/*
@@ -546,7 +546,7 @@ export default function JobCalendar({
                 target in its own right -- which is why it is not a child of
                 the day body, whose own click opens the day.
               */}
-              {fills && fills.get(key)?.hasData && inheritance === "bar" && (
+              {fills && fills.get(key)?.hasData && ratioMark === "bar" && (
                 <TileOutcomeBar
                   outcome={fills.get(key) as DayOutcome}
                   day={key}

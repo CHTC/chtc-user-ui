@@ -166,7 +166,7 @@ export default function DaysView({
   const perDayScale = variant !== "v1";
   // Both report the same end-of-day ratio; v2 draws it as a column astride
   // midnight rather than as the cell's ground. See TileRatioBar/TileOutcomeBar.
-  const inheritance = variant === "v2" ? "bar" : "ground";
+  const ratioMark = variant === "v2" ? "bar" : "ground";
   // v2 drops the queue line, and with it the queue's scale down the right: its
   // cell is the six bars and the ratio column, and nothing else. Withheld by
   // passing no levels rather than by a flag of its own, so the calendar's two
@@ -346,7 +346,7 @@ export default function DaysView({
   // The open-jobs level behind the bars.
   const levels = useMemo(() => buildDayLevels(data, dense), [data, dense]);
 
-  // What became of each day's inherited jobs, for whichever group is in view,
+  // What became of each day's jobs in hand, for whichever group is in view,
   // drawn as the completed share filling the tile from the floor.
   const fills = useMemo(() => buildDayOutcomes(dayData, filter), [dayData, filter]);
 
@@ -613,7 +613,7 @@ export default function DaysView({
             fills={fills}
             scale={scale}
             perDayScale={perDayScale}
-            inheritance={inheritance}
+            ratioMark={ratioMark}
             peakBinTotal={peak}
             levelPeak={levelPeak}
             firstDay={pageFloor}
@@ -747,12 +747,12 @@ export default function DaysView({
               <Box component="span" sx={{ fontWeight: 700, color: "text.primary" }}>
                 end-of-day ratio
               </Box>
-              : of the jobs already open when the day began, how many had completed by the time
-              it ended. Jobs placed during the day are counted on neither side of it — this is
-              the backlog being cleared, nothing else.{" "}
-              {inheritance === "bar"
-                ? "It is the narrow column straddling each midnight: completed at its base in bright red, and above that, in highlighter yellow, everything that had not completed when the day closed — removed and still open together. Two flat colours, so what you read is where the boundary between them sits; a star on top of a full column marks a day that cleared everything it began with. Hover it to split that yellow back out."
-                : "It is the cell's own ground: a field rising from the floor of the tile to the completed share, so a day that cleared its whole backlog is filled to the top and a day that cleared none of it is bare. It is coloured by that share too, on the same ramp the queue line uses — a day that barely touched its inheritance is cool blue, one that cleared most of it runs through green and orange, and a day that finished essentially all of it is brilliant purple, so a month can be scanned for purple without reading any single waterline. A day that cleared every job it began with is striped as well as purple — the top of that ramp is a gradient, so the stripes are what tell 100% from very nearly 100%. What is left undone is the plain tile above the waterline rather than a colour of its own: the cell has six bars, a queue line and two numbers to carry as well, and one field behind them is as much as stays legible."}{" "}
+              : of every job the day had in hand — open when it began, plus everything placed
+              into it during the day — how many had completed by the time it ended. A day with
+              nothing in hand draws no ratio at all.{" "}
+              {ratioMark === "bar"
+                ? "It is the narrow column straddling each midnight: completed at its base in bright red, and above that, in highlighter yellow, everything that had not completed when the day closed — removed and still open together. Two flat colours, so what you read is where the boundary between them sits; a star on top of a full column marks a day that finished every job it held. Hover it to split that yellow back out."
+                : "It is the cell's own ground: a field rising from the floor of the tile to the completed share, so a day that finished all its work is filled to the top and a day that finished none of it is bare. It is coloured by that share too, on the same ramp the queue line uses — a day that barely touched its workload is cool blue, one that cleared most of it runs through green and orange, and a day that finished essentially all of it is brilliant purple, so a month can be scanned for purple without reading any single waterline. A day that finished every job it held is striped as well as purple — the top of that ramp is a gradient, so the stripes are what tell 100% from very nearly 100%. What is left undone is the plain tile above the waterline rather than a colour of its own: the cell has six bars, a queue line and two numbers to carry as well, and one field behind them is as much as stays legible."}{" "}
               Click a day for the counts behind the ratio.
             </Typography>
           </Box>
