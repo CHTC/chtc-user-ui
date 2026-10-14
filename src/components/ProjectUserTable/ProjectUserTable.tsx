@@ -1,11 +1,11 @@
 import { apiFetch } from "@/src/components/AuthProvider";
-import DeleteActionButton from "@/src/components/DeleteActionButton/DeleteActionButton";
+import ActionButton from "@/src/components/ActionButton/ActionButton";
 import EditLink from "@/src/components/EditLink/EditLink";
 import UserAutocomplete from "@/src/components/UserAutocomplete/UserAutocomplete";
 import ManagedBySelect from "@/src/components/ManagedBySelect/ManagedBySelect";
 import { useTableFetch } from "@/src/utils/useTableFetch";
 import { JoinedProjectView, RoleEnum, User } from "@/types";
-import { ArrowDropDown, ArrowDropUp } from "@mui/icons-material";
+import { ArrowDropDown, ArrowDropUp, Delete } from "@mui/icons-material";
 import {
   Alert,
   AlertTitle,
@@ -205,7 +205,10 @@ const ProjectUserTable = ({ projectId }: ProjectUserTableProps) => {
                   />
                 </TableCell>
                 <TableCell>
-                  <DeleteActionButton
+                  <ActionButton
+                    method="DELETE"
+                    icon={<Delete />}
+                    color="error"
                     url={`/projects/${projectId}/users/${user.id}`}
                     onSuccess={mutate}
                     ariaLabel="Remove User"
