@@ -7,6 +7,8 @@ import { useTableFetch } from "@/src/utils/useTableFetch";
 import { JoinedProjectView, RoleEnum, User } from "@/types";
 import { ArrowDropDown, ArrowDropUp } from "@mui/icons-material";
 import {
+  Alert,
+  AlertTitle,
   Box,
   Button,
   Collapse,
@@ -145,20 +147,26 @@ const ProjectUserTable = ({ projectId }: ProjectUserTableProps) => {
             </Box>
 
             {oldPrimary && selectedUser && (
-              <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
-                <Typography color="error" sx={{ flex: 1, minWidth: 0 }}>
+              <Alert
+                severity="warning"
+                sx={{ "& .MuiAlert-action": { alignSelf: "center", pt: 0 } }}
+                action={
+                  <Stack direction="row" spacing={1}>
+                    <Button variant="contained" disabled={isSubmitting} onClick={() => addUser(selectedUser.id)}>
+                      Confirm
+                    </Button>
+                    <Button variant="outlined" disabled={isSubmitting} onClick={() => setOldPrimary(null)}>
+                      Cancel
+                    </Button>
+                  </Stack>
+                }
+              >
+                <AlertTitle>User Already Has a Primary Project</AlertTitle>
+                <Box>
                   {selectedUser.name} already has a different primary project: {oldPrimary.project_name}. Make this
                   project their primary project instead? They will stay a member of {oldPrimary.project_name}.
-                </Typography>
-                <Stack direction="row" spacing={1} sx={{ flexShrink: 0 }}>
-                  <Button variant="contained" disabled={isSubmitting} onClick={() => addUser(selectedUser.id)}>
-                    Confirm
-                  </Button>
-                  <Button variant="outlined" disabled={isSubmitting} onClick={() => setOldPrimary(null)}>
-                    Cancel
-                  </Button>
-                </Stack>
-              </Box>
+                </Box>
+              </Alert>
             )}
 
             {error && <Typography color="error">{error}</Typography>}
