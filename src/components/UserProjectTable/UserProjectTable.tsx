@@ -1,4 +1,5 @@
-import DeleteActionButton from "@/src/components/DeleteActionButton/DeleteActionButton";
+import ActionButton from "@/src/components/ActionButton/ActionButton";
+import { Delete } from "@mui/icons-material";
 import EditLink from "@/src/components/EditLink/EditLink";
 import { useTableFetch } from "@/src/utils/useTableFetch";
 import { JoinedProjectView } from "@/types";
@@ -56,7 +57,10 @@ const UserProjectTable = ({ userId, adminView=false }: UserProjectTableProps) =>
               )}
               {adminView && (
                 <TableCell>
-                  <DeleteActionButton
+                  <ActionButton
+                    method="DELETE"
+                    icon={<Delete />}
+                    color="error"
                     url={`/projects/${project.project_id}/users/${userId}`}
                     onSuccess={mutate}
                     ariaLabel="Delete User"

@@ -1,7 +1,7 @@
-import DeleteActionButton from "@/src/components/DeleteActionButton/DeleteActionButton";
+import ActionButton from "@/src/components/ActionButton/ActionButton";
 import { useTableFetch } from "@/src/utils/useTableFetch";
 import { Note } from "@/types";
-import { Edit } from "@mui/icons-material";
+import { Edit, Delete } from "@mui/icons-material";
 import { Box, IconButton, Table, TableBody, TableCell, TableHead, TableRow, Tooltip } from "@mui/material";
 import Link from "next/link";
 import EmptyTableMessage from "../EmptyTableMessage/EmptyTableMessage";
@@ -43,7 +43,10 @@ const ProjectNoteTable = ({ projectId }: ProjectNoteTableProps) => {
               <TableCell>{note.users.map((x) => x.netid).join(", ")}</TableCell>
               <TableCell>
                 <Box sx={{ display: "flex", gap: 1 }}>
-                  <DeleteActionButton
+                  <ActionButton
+                    method="DELETE"
+                    icon={<Delete />}
+                    color="error"
                     url={`/projects/${projectId}/notes/${note.id}`}
                     onSuccess={mutate}
                     ariaLabel="Delete Note"
