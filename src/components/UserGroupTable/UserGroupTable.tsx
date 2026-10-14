@@ -1,4 +1,5 @@
-import DeleteActionButton from "@/src/components/DeleteActionButton/DeleteActionButton";
+import ActionButton from "@/src/components/ActionButton/ActionButton";
+import { Delete } from "@mui/icons-material";
 import EditLink from "@/src/components/EditLink/EditLink";
 import ManagedBySelect from "@/src/components/ManagedBySelect/ManagedBySelect";
 import { useTableFetch } from "@/src/utils/useTableFetch";
@@ -49,7 +50,10 @@ const UserProjectTable = ({ userId, adminView = false }: UserProjectTableProps) 
               </TableCell>
               {adminView && (
                 <TableCell>
-                  <DeleteActionButton
+                  <ActionButton
+                    method="DELETE"
+                    icon={<Delete />}
+                    color="error"
                     url={`/groups/${group.group_id}/users/${userId}`}
                     onSuccess={revalidate}
                     ariaLabel="Delete Group"

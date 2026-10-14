@@ -1,5 +1,6 @@
 import { apiFetch } from "@/src/components/AuthProvider";
-import DeleteActionButton from "@/src/components/DeleteActionButton/DeleteActionButton";
+import ActionButton from "@/src/components/ActionButton/ActionButton";
+import { Delete } from "@mui/icons-material";
 import EditLink from "@/src/components/EditLink/EditLink";
 import ManagedBySelect from "@/src/components/ManagedBySelect/ManagedBySelect";
 import UserAutocomplete from "@/src/components/UserAutocomplete/UserAutocomplete";
@@ -46,7 +47,10 @@ const GroupUserTable = ({ groupId }: GroupUserTableProps) => {
                     />
                   </TableCell>
                   <TableCell>
-                    <DeleteActionButton
+                    <ActionButton
+                      method="DELETE"
+                      icon={<Delete />}
+                      color="error"
                       url={`/groups/${groupId}/users/${user.user_id}`}
                       onSuccess={mutate}
                       ariaLabel="Remove User"
