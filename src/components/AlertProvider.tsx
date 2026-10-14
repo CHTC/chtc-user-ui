@@ -14,6 +14,7 @@ export const AlertMessages = {
   UPDATE_NOTE_SUCCESS: { message: () => `Successfully updated note`, severity: 'success' },
   UPDATE_GROUP_SUCCESS: { message: () => `Successfully updated group`, severity: 'success' },
   UPDATE_PRIMARY_PROJECT_SUCCESS: { message: (projectName: string) => `Primary project set to ${projectName}`, severity: 'success' },
+  ACTION_ERROR: { message: (detail: string) => detail, severity: 'error' },
   UPDATE_PRIMARY_PROJECT_ERROR: { message: (detail: string) => `Failed to update primary project: ${detail}`, severity: 'error' },
 
 } satisfies Record<string, AlertPreset>;
