@@ -61,6 +61,7 @@ function UserApplicationFormSuspense({ id }: { id: number }) {
   });
   const [error, setError] = useState<string | ApiError | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [approved, setApproved] = useState<{ projectId: number | null } | null>(null);
   const router = useRouter();
 
   // assumes created by field is field, not always true in dev, but always true in prod
@@ -90,7 +91,12 @@ function UserApplicationFormSuspense({ id }: { id: number }) {
       }
 
       await mutate();
-      router.push("/forms/user-applications");
+      if (payload.status === "APPROVED") {
+        // Stay on the page so the admin can jump to the project (e.g. to add a note)
+        setApproved({ projectId: payload.project_id ?? null });
+      } else {
+        router.push("/forms/user-applications");
+      }
 
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : "Failed to update user application");
@@ -100,7 +106,14 @@ function UserApplicationFormSuspense({ id }: { id: number }) {
   };
 
   return (
-    <UserApplicationEditForm initialValues={data} onSubmit={handleSubmit} isSubmitting={isSubmitting} error={error} />
+    <UserApplicationEditForm
+      initialValues={data}
+      onSubmit={handleSubmit}
+      isSubmitting={isSubmitting}
+      error={error}
+      submitSuccess={approved !== null}
+      approvedProjectId={approved?.projectId ?? null}
+    />
   );
 }
 
