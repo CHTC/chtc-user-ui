@@ -1,3 +1,4 @@
+import { useAlert } from "@/src/components/AlertProvider";
 import { apiFetch } from "@/src/components/AuthProvider";
 import { ConfirmButton } from "@chtc/web-components";
 import type { ReactNode } from "react";
@@ -10,7 +11,7 @@ interface ActionButtonProps {
   ariaLabel: string;
   body?: unknown;
   onSuccess?: () => void;
-  /** Called with the API's error detail when the request fails */
+  /** Called with the API's error detail when the request fails, instead of the default red alert */
   onError?: (detail: string) => void;
 }
 
@@ -20,17 +21,19 @@ interface ActionButtonProps {
  * Handles API call and refresh on success
  */
 export const ActionButton = ({ url, method, icon, color, ariaLabel, body, onSuccess, onError }: ActionButtonProps) => {
+  const { showAlert } = useAlert();
+
   const handleConfirm = async () => {
     const response = await apiFetch(url, {
       method,
       ...(body !== undefined && { body: JSON.stringify(body) }),
     });
-    if (!response.ok && onError) {
+    if (!response.ok) {
       const detail = await response
         .json()
         .then((data) => (typeof data?.detail === "string" ? data.detail : response.statusText))
         .catch(() => response.statusText);
-      onError(detail);
+      (onError ?? ((message: string) => showAlert("ACTION_ERROR", message)))(detail);
       return;
     }
     onSuccess?.();
