@@ -7,6 +7,8 @@ import { useTableFetch } from "@/src/utils/useTableFetch";
 import { JoinedProjectView, RoleEnum, User } from "@/types";
 import { ArrowDropDown, ArrowDropUp } from "@mui/icons-material";
 import {
+  Alert,
+  AlertTitle,
   Box,
   Button,
   Collapse,
@@ -39,22 +41,31 @@ const ProjectUserTable = ({ projectId }: ProjectUserTableProps) => {
   const [isPrimary, setIsPrimary] = useState<boolean>(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showAddForm, setShowAddForm] = useState(false);
+  const [oldPrimary, setOldPrimary] = useState<JoinedProjectView | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
-  const handleAddUser = async () => {
-    if (!selectedUser || !role) return;
+  // The API demotes the user's other primary project when this one is added as primary
+  const addUser = async (userId: number) => {
     setIsSubmitting(true);
+    setError(null);
     try {
-      await apiFetch(`/projects/${projectId}/users`, {
+      const response = await apiFetch(`/projects/${projectId}/users`, {
         method: "POST",
         body: JSON.stringify({
-          user_id: selectedUser.id,
+          user_id: userId,
           role,
           is_primary: isPrimary,
         }),
       });
+      if (!response.ok) {
+        setOldPrimary(null);
+        setError("Failed to add user to project");
+        return;
+      }
       setSelectedUser(null);
       setRole("");
       setIsPrimary(false);
+      setOldPrimary(null);
       setShowAddForm(false);
       mutate();
     } finally {
@@ -62,11 +73,35 @@ const ProjectUserTable = ({ projectId }: ProjectUserTableProps) => {
     }
   };
 
+  const handleAddUser = async () => {
+    if (!selectedUser || !role) return;
+    if (isPrimary) {
+      setIsSubmitting(true);
+      setError(null);
+      try {
+        const response = await apiFetch(`/users/${selectedUser.id}/projects`);
+        if (!response.ok) {
+          setError("Failed to check the user's current primary project");
+          return;
+        }
+        const projects: JoinedProjectView[] = await response.json();
+        const current = projects.find((p) => p.is_primary && p.project_id !== projectId);
+        if (current) {
+          setOldPrimary(current);
+          return;
+        }
+      } finally {
+        setIsSubmitting(false);
+      }
+    }
+    await addUser(selectedUser.id);
+  };
+
   return (
     <Box>
       <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 2 }}>
         <Typography variant="h6">Project Members</Typography>
-        <Button startIcon={showAddForm ? <ArrowDropUp /> : <ArrowDropDown />} onClick={() => setShowAddForm(!showAddForm)}>
+        <Button variant="contained" startIcon={showAddForm ? <ArrowDropUp /> : <ArrowDropDown />} onClick={() => setShowAddForm(!showAddForm)}>
           {showAddForm ? "Hide Form" : "Add Member"}
         </Button>
       </Box>
@@ -103,13 +138,38 @@ const ProjectUserTable = ({ projectId }: ProjectUserTableProps) => {
               <Button
                 variant="contained"
                 color="primary"
-                disabled={!selectedUser || !role || isSubmitting}
+                disabled={!selectedUser || !role || isSubmitting || !!oldPrimary}
                 onClick={handleAddUser}
                 sx={{ minWidth: 120 }}
               >
                 Add User
               </Button>
             </Box>
+
+            {oldPrimary && selectedUser && (
+              <Alert
+                severity="warning"
+                sx={{ "& .MuiAlert-action": { alignSelf: "center", pt: 0 } }}
+                action={
+                  <Stack direction="row" spacing={1}>
+                    <Button variant="contained" disabled={isSubmitting} onClick={() => addUser(selectedUser.id)}>
+                      Confirm
+                    </Button>
+                    <Button variant="outlined" disabled={isSubmitting} onClick={() => setOldPrimary(null)}>
+                      Cancel
+                    </Button>
+                  </Stack>
+                }
+              >
+                <AlertTitle>User Already Has a Primary Project</AlertTitle>
+                <Box>
+                  {selectedUser.name} already has a different primary project: {oldPrimary.project_name}. Make this
+                  project their primary project instead? They will stay a member of {oldPrimary.project_name}.
+                </Box>
+              </Alert>
+            )}
+
+            {error && <Typography color="error">{error}</Typography>}
           </Stack>
         </Box>
       </Collapse>
@@ -122,6 +182,7 @@ const ProjectUserTable = ({ projectId }: ProjectUserTableProps) => {
             <TableCell>Tickets Assigned</TableCell>
             <TableCell>Email</TableCell>
             <TableCell>NetID</TableCell>
+            <TableCell>Active</TableCell>
             <TableCell>Managed By</TableCell>
             <TableCell>Action</TableCell>
           </TableRow>
@@ -135,6 +196,7 @@ const ProjectUserTable = ({ projectId }: ProjectUserTableProps) => {
                 <TableCell>{user.last_note_ticket}</TableCell>
                 <TableCell>{user.email1}</TableCell>
                 <TableCell>{user.netid}</TableCell>
+                <TableCell>{user.active == null ? "" : user.active ? "Yes" : "No"}</TableCell>
                 <TableCell>
                   <ManagedBySelect
                     value={user.managed_by}
