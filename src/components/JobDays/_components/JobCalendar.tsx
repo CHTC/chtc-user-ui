@@ -96,6 +96,18 @@ interface JobCalendarProps {
    */
   ratioMark: "ground" | "bar";
   /**
+   * Calendar v2: the bars take the whole tile under the date rather than a
+   * fixed slot with a caption under it.
+   *
+   * v1 keeps the caption and the fixed slot because its row axis is positioned
+   * against the tile and can only label the bars if the slot sits at the same
+   * height in every one. v2 has no axis to line up with -- each day is scaled
+   * to itself and reads its counts off the hover readout -- so the slot has
+   * nothing to hold still for, and the space the caption and the slack below
+   * it were taking goes to the bars instead.
+   */
+  barsFillTile: boolean;
+  /**
    * Tallest 4-hour bin on the visible grid, neighbouring days included; every
    * tile scales against it so bar heights compare across days. Measured by the
    * page rather than here, because the scale hint beside the toggle reasons
@@ -149,6 +161,7 @@ export default function JobCalendar({
   scale,
   perDayScale,
   ratioMark,
+  barsFillTile,
   peakBinTotal,
   levelPeak,
   firstDay,
@@ -354,7 +367,10 @@ export default function JobCalendar({
           // No horizontal padding: the level trace and the completion fill run
           // edge to edge so one day's meets the next day's. Everything else in
           // the tile is centred, which does not miss the inset.
-          padding: `${TILE_PAD_Y}px 0`,
+          //
+          // v2 gives up the bottom inset as well, so the bars stand on the
+          // tile's own bottom border rather than on a hairline 6px above it.
+          padding: `${TILE_PAD_Y}px 0 ${barsFillTile ? 0 : TILE_PAD_Y}px`,
           border: "1px solid",
           borderColor: "divider",
           background: "none",
@@ -517,11 +533,14 @@ export default function JobCalendar({
                 <TileRatioBar outcome={fills.get(key) as DayOutcome} day={key} />
               )}
               {/*
-                The zero of the bar slot, on every tile and on every version.
-                After the ground so it is not buried under it; before the
-                trace, which stands on it.
+                The zero of the bar slot, on every tile. After the ground so it
+                is not buried under it; before the trace, which stands on it.
+
+                v1 only. v2's bars run to the foot of the tile, so the grid line
+                under them is their zero -- a hairline of its own there would
+                only double the tile's bottom edge.
               */}
-              <TileBaseline bottom={AXIS_BOTTOM} />
+              {!barsFillTile && <TileBaseline bottom={AXIS_BOTTOM} />}
               {/*
                 The open-jobs level, behind the bars. Sibling of the day body,
                 not a child of it: the body clips, and the trace has to run edge
@@ -565,6 +584,7 @@ export default function JobCalendar({
               <TileBody
                 slice={slice}
                 activity={activity}
+                fillTile={barsFillTile}
                 bars={bars}
                 onShowBars={onShowBars}
                 perDayScale={perDayScale}
@@ -609,16 +629,23 @@ const TILE_CAPTION = {
 } as const;
 
 /**
- * One day's tile content: the bar slot and its caption.
+ * One day's tile content: the bar slot and, on v1, its caption.
  *
  * Deliberately the same skeleton on every day, including days with nothing to
  * draw. The row axis is positioned against the tile, so it can only line up with
  * the bars if the slot sits at the same height in every tile -- and the leftmost
  * tile of a row is as likely to be an empty day as a busy one.
+ *
+ * Under `fillTile` (v2) the skeleton is one box instead of two: no caption, and
+ * the slot grows to whatever is left under the date. Every tile in a row is the
+ * same height, so the bars still start and end on the same lines across the
+ * week; it is the pixel count that is no longer fixed in advance, which is
+ * exactly what v1 cannot give up and v2 has no use for.
  */
 function TileBody({
   slice,
   activity,
+  fillTile,
   bars,
   onShowBars,
   perDayScale,
@@ -628,6 +655,8 @@ function TileBody({
 }: {
   slice: DaySlice | undefined;
   activity: DayActivity | undefined;
+  /** v2: no caption, and the bar slot takes the rest of the tile. */
+  fillTile: boolean;
   bars: ActivityState[];
   onShowBars: (state: ActivityState) => void;
   perDayScale: boolean;
@@ -649,7 +678,7 @@ function TileBody({
   // event was a submission has "0 changed" -- which reads as nothing happened
   // next to a tile full of fresh blue. The bars' own placement count knows
   // better.
-  const caption = !slice
+  const caption = fillTile || !slice
     ? ""
     : !barsVisible
       ? ""
@@ -667,6 +696,10 @@ function TileBody({
         display: "flex",
         flexDirection: "column",
         gap: `${TILE_GAP}px`,
+        // v2: everything under the date belongs to the bars. flexGrow against
+        // the tile's own column, with minHeight 0 so the slot inside can be
+        // shorter than its content wants when a row is tight.
+        ...(fillTile ? { flexGrow: 1, minHeight: 0 } : null),
         // The tile is unclipped so the axis can reach outside it; the day's own
         // content is clipped here instead.
         overflow: "hidden",
@@ -679,9 +712,15 @@ function TileBody({
       <Box
         sx={{
           width: "100%",
-          height: BARS_SLOT,
+          ...(fillTile ? { flexGrow: 1, minHeight: 0 } : { height: BARS_SLOT }),
           display: "flex",
-          alignItems: barsVisible ? "flex-end" : "center",
+          // v1's bars stand on the floor of a slot taller than they need. v2's
+          // fill it, so they stretch instead: that is what gives the inset box
+          // below a height of its own, which is in turn what the bars' own
+          // percentage heights resolve against. Left to flex-end it would be
+          // content-sized, the percentages would have nothing to measure, and
+          // the bars would collapse.
+          alignItems: barsVisible ? (fillTile ? "stretch" : "flex-end") : "center",
           justifyContent: "center",
         }}
       >
@@ -693,7 +732,7 @@ function TileBody({
               bins={activity.bins}
               peakBinTotal={peak}
               scale={scale}
-              height={BARS_SLOT}
+              height={fillTile ? "100%" : BARS_SLOT}
               dayLabel={dayLabel}
               label={`${compactNumber(activity.total)} jobs ${describeActivity(bars)}`}
               shown={bars}
@@ -717,11 +756,14 @@ function TileBody({
         )}
       </Box>
 
-      {/* Always present, even when blank: it is what holds the bar slot at the
-          same height in every tile, which is what the row axis is aligned to. */}
-      <Typography component="span" sx={TILE_CAPTION}>
-        {caption || "\u00A0"}
-      </Typography>
+      {/* Always present on v1, even when blank: it is what holds the bar slot at
+          the same height in every tile, which is what the row axis is aligned
+          to. v2 has no axis to align and so no reason to keep the line. */}
+      {!fillTile && (
+        <Typography component="span" sx={TILE_CAPTION}>
+          {caption || "\u00A0"}
+        </Typography>
+      )}
     </Box>
   );
 }

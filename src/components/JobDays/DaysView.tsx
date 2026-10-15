@@ -614,6 +614,7 @@ export default function DaysView({
             scale={scale}
             perDayScale={perDayScale}
             ratioMark={ratioMark}
+            barsFillTile={variant === "v2"}
             peakBinTotal={peak}
             levelPeak={levelPeak}
             firstDay={pageFloor}

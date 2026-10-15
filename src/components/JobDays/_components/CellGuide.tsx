@@ -173,12 +173,14 @@ const V2_COLOUR_FEATURE: Feature = {
 
 /**
  * The feature list for one calendar version: v2 takes its own height and
- * bar-colour cards, swaps the ratio card for the column's, and drops the queue
- * line's card along with the line.
+ * bar-colour cards, swaps the ratio card for the column's, and drops the cards
+ * for the two things it does not draw: the queue line and the caption.
  */
 function featuresFor(variant: CalendarVersion): Feature[] {
   if (variant === "v1") return FEATURES;
-  return FEATURES.filter((feature) => feature.id !== "queue").map((feature) => {
+  // The caption card goes with the caption: v2's bars take that line, and the
+  // counts it carried are in the hover readout.
+  return FEATURES.filter((feature) => feature.id !== "queue" && feature.id !== "caption").map((feature) => {
     if (feature.id === "height") return V2_HEIGHT_FEATURE;
     if (feature.id === "colour") return V2_COLOUR_FEATURE;
     if (feature.id === "fill") return V2_FILL_FEATURE;
@@ -768,11 +770,15 @@ function ExampleCell({
             ))}
           </Box>
 
-          <Box sx={{ alignSelf: "center", ...dim("caption"), ...ring("caption") }}>
-            <Typography component="span" sx={{ fontSize: "0.72rem", fontWeight: 700 }}>
-              4.1k changed
-            </Typography>
-          </Box>
+          {/* v2 has no caption line: the bars run on down to the cell's floor
+              instead. See TileBody. */}
+          {variant === "v1" && (
+            <Box sx={{ alignSelf: "center", ...dim("caption"), ...ring("caption") }}>
+              <Typography component="span" sx={{ fontSize: "0.72rem", fontWeight: 700 }}>
+                4.1k changed
+              </Typography>
+            </Box>
+          )}
         </Box>
       </Box>
 

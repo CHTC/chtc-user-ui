@@ -24,6 +24,10 @@ interface TileBaselineProps {
  * the way the queue line above it does. Drawn on every tile, including days
  * with nothing to plot: the slot is there in every tile (see TileBody), and a
  * baseline that came and went would make the grid flicker as the reader paged.
+ *
+ * Calendar v1 only. v2's bars reach the foot of the tile, so the grid line
+ * under them already is their zero and drawing this over it would do nothing
+ * but thicken the tile's bottom edge.
  */
 export default function TileBaseline({ bottom }: TileBaselineProps) {
   return (
