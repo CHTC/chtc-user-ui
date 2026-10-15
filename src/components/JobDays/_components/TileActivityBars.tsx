@@ -65,7 +65,12 @@ interface TileActivityBarsProps {
    */
   peakBinTotal: number;
   scale: BarScale;
-  height: number;
+  /**
+   * The slot's height, as a number of pixels or any CSS length. v1 passes its
+   * fixed slot; v2's slot is whatever is left of the tile under the date, so it
+   * passes "100%" and lets the bars resolve against it.
+   */
+  height: number | string;
   /** The day the bars belong to, for the hover readout's title. */
   dayLabel: string;
   /** Accessible description; the graphic is one image. */
