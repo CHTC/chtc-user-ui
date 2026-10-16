@@ -38,7 +38,7 @@ function View() {
         query={async (client, opts, searchQuery) => {
           const queryObj = searchQuery
             ? {
-                or: `(pi_name.ilike.${searchQuery},pi_email.ilike.${searchQuery})`,
+                or: `(created_by_name.ilike.${searchQuery},created_by_netid.ilike.${searchQuery},created_by_email1.ilike.${searchQuery},email.ilike.${searchQuery})`,
               }
             : undefined;
 
@@ -58,7 +58,7 @@ function View() {
 
           return { data, totalCount: result.totalCount };
         }}
-        queryLabel="Search by PI Name or Email"
+        queryLabel="Search by Requester Name, NetID, or Email"
         unauthenticatedMessage="You must be logged in to view user applications."
       />
     </Box>
