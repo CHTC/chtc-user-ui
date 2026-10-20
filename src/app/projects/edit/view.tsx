@@ -7,12 +7,12 @@ import ProjectNoteTable from "@/src/components/ProjectNoteTable/ProjectNoteTable
 import ProjectUserTable from "@/src/components/ProjectUserTable/ProjectUserTable";
 import {ApiError} from "@/src/utils/formErrors";
 import usePageTitle from "@/src/utils/usePageTitle";
+import { useProject } from "@/src/utils/useProject";
 import type {ProjectCreateUpdate} from "@/types";
 import {Add} from "@mui/icons-material";
 import {Box, Breadcrumbs, Button, Skeleton, Typography} from "@mui/material";
 import {useSearchParams} from "next/navigation";
 import {Suspense, useState} from "react";
-import useSWR from "swr";
 import {useAlert} from "@/src/components/AlertProvider";
 
 function View() {
@@ -70,16 +70,6 @@ function View() {
   );
 }
 
-// Fetcher function for SWR
-const projectFetcher = async (id: number | null) => {
-  if (!id) return null;
-  const response = await apiFetch(`/projects/${id}`);
-  if (!response.ok) {
-    throw new Error(`Failed to fetch project with id ${id}: ${response.statusText}`);
-  }
-  return response.json();
-};
-
 const ProjectFormSuspense = ({
   id,
   handleSubmit,
@@ -93,9 +83,7 @@ const ProjectFormSuspense = ({
     setIsSubmitting: (isSubmitting: boolean) => void,
   ) => Promise<void>;
 }) => {
-  const { data: project, mutate } = useSWR(id ? [`/projects/${id}`] : null, () => projectFetcher(id), {
-    suspense: true,
-  });
+  const { data: project, mutate } = useProject(id);
   const [error, setError] = useState<string | ApiError | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
