@@ -164,6 +164,7 @@ export function UserApplicationEditForm({
                 label="Submitted By"
                 value={initialValues?.created_by?.name ?? initialValues?.created_by?.email1 ?? "-"}
               />
+              <ReviewField label="NetID" value={initialValues?.created_by?.netid ?? "-"} />
               <ReviewField label={"Department"} value={content?.department} />
               <ReviewField label="PI Name" value={piDisplay} />
               <ReviewField label="PI Email" value={piEmail} />
