@@ -56,7 +56,7 @@ function View() {
 
 const fetcher = async (url: string) => {
   const response = await apiFetch(url);
-  if (!response.ok) throw new Error("Failed to fetch");
+  if (!response.ok) throw new Error(`Failed to fetch project note: ${response.statusText}`);
   return response.json();
 };
 
