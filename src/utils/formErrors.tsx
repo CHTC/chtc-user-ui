@@ -73,3 +73,13 @@ export async function handleApiError(response: Response, defaultMessage: string)
     return `${defaultMessage}: ${response.statusText}`;
   }
 }
+
+/**
+ * Like handleApiError, but always returns one line of text, for alerts and thrown errors.
+ */
+export async function apiErrorMessage(response: Response, defaultMessage: string): Promise<string> {
+  const error = await handleApiError(response, defaultMessage);
+  if (typeof error === "string") return error;
+  if (typeof error.detail === "string") return error.detail;
+  return `${defaultMessage}: ${response.statusText}`;
+}
