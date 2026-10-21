@@ -1,6 +1,4 @@
-import { alertOnError } from '@/helpers/util';
-import { useContext } from 'react';
-import { AlertDispatchContext } from '@/src/components/AlertProvider';
+import { useAlert } from '@/src/components/AlertProvider';
 import { CellComponentProps, TableData } from '@/src/components/Table';
 import DeleteCell from '@/src/components/Table/DeleteCell/DeleteCell';
 import ConfirmButton from '@chtc/web-components/ConfirmButton';
@@ -19,18 +17,19 @@ function makeDeleteCell<R extends TableData>({
   confirmButtonProps,
 }: MakeDeleteCellProps<R>) {
   const DynamicDeleteCell = ({ row }: CellComponentProps<R, any>) => {
-    const dispatch = useContext(AlertDispatchContext);
+    const { showAlert } = useAlert();
 
     const cellHandleDelete = async () => {
       try {
-        await alertOnError(
-          () => handleDelete(row),
-          `Error Deleting Item`,
-          dispatch,
-          true
-        );
+        await handleDelete(row);
         mutate();
-      } catch {}
+      } catch (error) {
+        console.error(error);
+        showAlert(
+          'ACTION_ERROR',
+          `Error Deleting Item: ${error instanceof Error ? error.message : String(error)}`
+        );
+      }
     };
 
     return (
