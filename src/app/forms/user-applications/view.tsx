@@ -1,14 +1,13 @@
 "use client";
 
-import GenericTableView from "@/src/components/GenericTableView/GenericTableView";
-import { createCellRenderer } from "@/src/utils/cellRenderers";
+import { AuthGuard } from "@/src/components/AuthGuard";
+import ServerTable, { ServerTableColumns, ServerTableFilter } from "@/src/components/Table/ServerTable";
+import type { SortState } from "@/src/components/Table/types";
+import { DateCell, makeIconLinkCell } from "@/src/components/TableCells/TableCells";
+import { apiPageFetcher } from "@/src/utils/tableQuery";
+import type { UserForm } from "@/types";
+import { Edit } from "@mui/icons-material";
 import { Box, Link, Typography } from "@mui/material";
-
-const headers = ["id", "Created By", "Status", "PI", "Position", "Created At"];
-const cellRenderer = createCellRenderer({
-  editPath: "/forms/user-applications/edit",
-  timeColumns: ["Created At", "Updated At"],
-});
 
 function formatPosition(position: string) {
   return position
@@ -18,6 +17,57 @@ function formatPosition(position: string) {
     .join(" ");
 }
 
+const columns: ServerTableColumns<UserForm> = {
+  edit: {
+    id: "edit",
+    name: "",
+    CellComponent: makeIconLinkCell<UserForm>({
+      href: (application) => `/forms/user-applications/edit?id=${application.id}`,
+      icon: <Edit />,
+      ariaLabel: "Edit application",
+    }),
+  },
+  // The API sorts created_by by user id, not name, so this column isn't sortable
+  created_by: {
+    id: "created_by",
+    name: "Created By",
+    value: (application) => application.created_by?.name ?? application.created_by?.email1 ?? "",
+  },
+  status: { id: "status", name: "Status", sortable: true },
+  pi_name: {
+    id: "pi_name",
+    name: "PI",
+    sortable: true,
+    value: (application) => application.pi_name ?? application.pi_email ?? application.pi_id ?? "",
+  },
+  position: {
+    id: "position",
+    name: "Position",
+    sortable: true,
+    value: (application) => formatPosition(application.position),
+  },
+  created_at: { id: "created_at", name: "Created At", sortable: true, CellComponent: DateCell },
+};
+
+const filters: ServerTableFilter[] = [
+  {
+    id: "status",
+    label: "Status",
+    options: [
+      { value: "PENDING", label: "Pending" },
+      { value: "APPROVED", label: "Approved" },
+      { value: "DENIED", label: "Denied" },
+    ],
+  },
+];
+
+const defaultSort: SortState<keyof UserForm & string> = { columnId: "created_at", direction: "desc" };
+
+const fetchPage = apiPageFetcher<UserForm>("/forms/user-applications", {
+  searchFields: ["pi_name", "pi_email"],
+  tiebreakers: [{ columnId: "id", direction: "desc" }],
+});
+
 function View() {
   return (
     <Box>
@@ -26,41 +76,18 @@ function View() {
           User Applications
         </Link>
       </Typography>
-      <GenericTableView
-        headers={headers}
-        cellRenderer={cellRenderer}
-        sortableColumns={{
-          Status: "status",
-          PI: "pi_name",
-          Position: "position",
-          "Created At": { column: "created_at", default: "desc" },
-        }}
-        query={async (client, opts, searchQuery) => {
-          const queryObj = searchQuery
-            ? {
-                or: `(pi_name.ilike.${searchQuery},pi_email.ilike.${searchQuery})`,
-              }
-            : undefined;
-
-          const result = await client.getUserApplications({
-            ...opts,
-            ...(queryObj && { query: queryObj }),
-          });
-
-          const data = result.data.map((application) => [
-            application.id,
-            application.created_by?.name ?? application.created_by?.email1 ?? "",
-            application.status,
-            application.pi_name ?? application.pi_email ?? application.pi_id ?? "",
-            formatPosition(application.position),
-            application.created_at,
-          ]);
-
-          return { data, totalCount: result.totalCount };
-        }}
-        queryLabel="Search by PI Name or Email"
-        unauthenticatedMessage="You must be logged in to view user applications."
-      />
+      <AuthGuard message="You must be logged in to view user applications.">
+        <ServerTable
+          cacheKey="/forms/user-applications"
+          fetchPage={fetchPage}
+          columns={columns}
+          defaultSort={defaultSort}
+          defaultPageSize={50}
+          searchLabel="Search by PI Name or Email"
+          filters={filters}
+          emptyMessage="No applications found."
+        />
+      </AuthGuard>
     </Box>
   );
 }

@@ -1,43 +1,55 @@
 "use client";
 
-import GenericTableView from "@/src/components/GenericTableView/GenericTableView";
-import { createCellRenderer } from "@/src/utils/cellRenderers";
+import { AuthGuard } from "@/src/components/AuthGuard";
+import ServerTable, { ServerTableColumns } from "@/src/components/Table/ServerTable";
+import type { SortState } from "@/src/components/Table/types";
+import { makeIconLinkCell } from "@/src/components/TableCells/TableCells";
+import { apiPageFetcher } from "@/src/utils/tableQuery";
+import type { Group } from "@/types";
+import { Edit } from "@mui/icons-material";
 
-const headers = ["id", "Group Name", "Point of Contact", "GID", "Has Group Directory?"];
-const cellRenderer = createCellRenderer({ editPath: "/groups/edit" });
+const columns: ServerTableColumns<Group> = {
+  edit: {
+    id: "edit",
+    name: "",
+    CellComponent: makeIconLinkCell<Group>({ href: (group) => `/groups/edit?id=${group.id}`, icon: <Edit />, ariaLabel: "Edit group" }),
+  },
+  name: { id: "name", name: "Group Name", sortable: true },
+  // The API sorts point_of_contact by user id, not name, so this column isn't sortable
+  point_of_contact: {
+    id: "point_of_contact",
+    name: "Point of Contact",
+    value: (group) => group.point_of_contact?.name ?? group.point_of_contact?.email1 ?? "",
+  },
+  unix_gid: { id: "unix_gid", name: "GID", sortable: true },
+  has_groupdir: {
+    id: "has_groupdir",
+    name: "Has Group Directory?",
+    sortable: true,
+    value: (group) => (group.has_groupdir ? "Yes" : "No"),
+  },
+};
+
+const defaultSort: SortState<keyof Group & string> = { columnId: "name", direction: "asc" };
+
+const fetchPage = apiPageFetcher<Group>("/groups", {
+  searchFields: ["name"],
+  tiebreakers: [{ columnId: "id", direction: "asc" }],
+});
 
 function View() {
   return (
-    <div>
-      <GenericTableView
-        headers={headers}
-        cellRenderer={cellRenderer}
-        sortableColumns={{
-          "Group Name": "name",
-          "Point of Contact": "point_of_contact",
-          GID: "unix_gid",
-        }}
-        query={async (client, opts, searchQuery) => {
-          const queryObj = searchQuery ? { name: `ilike.${searchQuery}` } : undefined;
-          const result = await client.getGroups({
-            ...opts,
-            ...(queryObj && { query: queryObj }),
-          });
-
-          const data = result.data.map((group) => [
-            group.id,
-            group.name,
-            group.point_of_contact?.name ?? group.point_of_contact?.email1 ?? "",
-            group.unix_gid ?? "",
-            group.has_groupdir ? "Yes" : "No",
-          ]);
-
-          return { data, totalCount: result.totalCount };
-        }}
-        queryLabel="Search by Group"
-        unauthenticatedMessage="You must be logged in to view groups."
+    <AuthGuard message="You must be logged in to view groups.">
+      <ServerTable
+        cacheKey="/groups"
+        fetchPage={fetchPage}
+        columns={columns}
+        defaultSort={defaultSort}
+        defaultPageSize={50}
+        searchLabel="Search by Group"
+        emptyMessage="No groups found."
       />
-    </div>
+    </AuthGuard>
   );
 }
 
