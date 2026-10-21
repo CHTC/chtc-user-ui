@@ -10,7 +10,7 @@ import usePageTitle from "@/src/utils/usePageTitle";
 import { useProject } from "@/src/utils/useProject";
 import type {ProjectCreateUpdate} from "@/types";
 import {Add} from "@mui/icons-material";
-import {Box, Breadcrumbs, Button, Skeleton, Typography} from "@mui/material";
+import {Box, Breadcrumbs, Button, Link, Skeleton, Stack, Typography} from "@mui/material";
 import {useSearchParams} from "next/navigation";
 import {Suspense, useState} from "react";
 import {useAlert} from "@/src/components/AlertProvider";
@@ -124,12 +124,18 @@ const ProjectPage = ({
 
   return (
     <>
+      <Box id="top" sx={{ scrollMarginTop: "80px" }}>
+        <Stack direction="row" spacing={2}>
+          <Link href="#users">Jump to Users</Link>
+          <Link href="#notes">Jump to Notes</Link>
+        </Stack>
+      </Box>
       <Box my={3}>
         <Suspense fallback={<Skeleton variant={"rectangular"} height={"400px"} />}>
           <ProjectFormSuspense id={id} handleSubmit={handleSubmit} />
         </Suspense>
       </Box>
-      <Box my={4}>
+      <Box id="users" my={4} sx={{ scrollMarginTop: "80px" }}>
         <Typography variant={"h4"} component="h3">
           Users
         </Typography>
@@ -137,16 +143,22 @@ const ProjectPage = ({
           <ProjectUserTable projectId={id} />
         </Suspense>
       </Box>
-      <Box my={4}>
+      <Box>
+        <Link href="#top">Back to top</Link>
+      </Box>
+      <Box id="notes" my={4} sx={{ scrollMarginTop: "80px" }}>
         <Typography variant={"h4"} component="h3" sx={{ mb: 2, display: "flex", justifyContent: "space-between" }}>
           Notes
-          <Button startIcon={<Add />} href={`/projects/notes/create/?project_id=${id}`} >
+          <Button variant="contained" startIcon={<Add />} href={`/projects/notes/create/?project_id=${id}`} >
             Add Note
           </Button>
         </Typography>
         <Suspense fallback={<Skeleton variant={"rectangular"} height={"400px"} />}>
           <ProjectNoteTable projectId={id} />
         </Suspense>
+      </Box>
+      <Box>
+        <Link href="#top">Back to top</Link>
       </Box>
     </>
   );
