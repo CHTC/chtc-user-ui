@@ -13,7 +13,7 @@ interface MakeViewCellProps<R> {
 function makeViewCell<R extends TableData>({ href }: MakeViewCellProps<R>) {
   const hrefGetter = typeof href === 'string' ? () => href : href;
 
-  const DynamicViewCell = ({ row }: CellComponentProps<R, any>) => {
+  const DynamicViewCell = ({ row }: CellComponentProps<R, keyof R>) => {
     const href = hrefGetter(row);
     return <ViewCell href={href} />;
   };

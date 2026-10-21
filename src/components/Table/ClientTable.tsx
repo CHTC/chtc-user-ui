@@ -51,7 +51,7 @@ const ClientTable = <R extends TableData>({
       return {
         ...column,
         onSort: ({ columnId, direction }: SortState) => {
-          setSort({ columnId, direction });
+          setSort({ columnId: columnId as keyof R & string, direction });
         },
       };
     }

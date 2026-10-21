@@ -16,7 +16,7 @@ function makeDeleteCell<R extends TableData>({
   handleDelete,
   confirmButtonProps,
 }: MakeDeleteCellProps<R>) {
-  const DynamicDeleteCell = ({ row }: CellComponentProps<R, any>) => {
+  const DynamicDeleteCell = ({ row }: CellComponentProps<R, keyof R>) => {
     const { showAlert } = useAlert();
 
     const cellHandleDelete = async () => {

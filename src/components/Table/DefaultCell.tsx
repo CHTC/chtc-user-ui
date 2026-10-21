@@ -1,11 +1,11 @@
 import { TableCell } from '@mui/material';
-import { CellComponentProps } from '@/src/components/Table/types';
+import { ReactNode } from 'react';
+import { CellComponentProps, TableData } from '@/src/components/Table/types';
 
-const DefaultCell = <R extends Record<string, any>, K extends keyof R>({
-  row,
+const DefaultCell = <R extends TableData>({
   value,
-}: CellComponentProps<any, any>) => {
-  return <TableCell>{value}</TableCell>;
+}: CellComponentProps<R, keyof R>) => {
+  return <TableCell>{value as ReactNode}</TableCell>;
 };
 
 export default DefaultCell;

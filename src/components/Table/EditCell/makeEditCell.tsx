@@ -13,7 +13,7 @@ interface MakeEditCellProps<R> {
 function makeEditCell<R extends TableData>({ href }: MakeEditCellProps<R>) {
   const hrefGetter = typeof href === 'string' ? () => href : href;
 
-  const DynamicEditCell = ({ row }: CellComponentProps<R, any>) => {
+  const DynamicEditCell = ({ row }: CellComponentProps<R, keyof R>) => {
     const href = hrefGetter(row);
     return <EditCell href={href} />;
   };

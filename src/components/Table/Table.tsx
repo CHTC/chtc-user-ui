@@ -9,7 +9,6 @@ import {
   TableRow,
   TablePagination,
 } from '@mui/material';
-import { useEffect, useRef, useState } from 'react';
 import DefaultCell from './DefaultCell';
 import {
   ActionConfig,
@@ -78,7 +77,9 @@ const Table = <R extends TableData>(props: TableProps<R>) => {
             <TableRow key={`${pagination ? pagination.page : 0}-${rowIndex}`}>
               {columns.map((column, colIndex) => {
                 const CellComponent = column.CellComponent || DefaultCell;
-                const value = column.value ? column.value(row) : row[column.id];
+                const value = column.value
+                  ? column.value(row)
+                  : row[column.id as keyof R];
                 return (
                   <CellComponent
                     key={`${rowIndex}-${colIndex}`}
