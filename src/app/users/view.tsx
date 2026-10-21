@@ -3,8 +3,8 @@
 import GenericTableView from "@/src/components/GenericTableView/GenericTableView";
 import { createCellRenderer } from "@/src/utils/cellRenderers";
 
-const headers = ["id", "Name", "Email", "Phone", "NetID", "Last Modified"];
-const cellRenderer = createCellRenderer({ editPath: "/users/edit" });
+const headers = ["id", "Name", "Email", "NetID", "Submit Nodes", "Last Modified"];
+const cellRenderer = createCellRenderer({ editPath: "/users/edit", truncateColumns: ["Submit Nodes"] });
 
 function View() {
   return (
@@ -28,8 +28,8 @@ function View() {
           user.id ?? "",
           user.name ?? "",
           user.email1 ?? "",
-          user.phone1 ?? "",
           user.netid ?? "",
+          (user.submit_nodes ?? []).map((node) => node.name).join(", "),
           user.updated_at ?? "",
         ]);
 
