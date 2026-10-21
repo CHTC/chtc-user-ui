@@ -1,67 +1,69 @@
-import ActionButton from "@/src/components/ActionButton/ActionButton";
-import { useTableFetch } from "@/src/utils/useTableFetch";
+import makeDeleteCell from "@/src/components/Table/DeleteCell/makeDeleteCell";
+import ServerTable, { ServerTableColumns, useServerTableRefresh } from "@/src/components/Table/ServerTable";
+import type { SortState } from "@/src/components/Table/types";
+import { DateCell, makeIconLinkCell, TruncatedTextCell } from "@/src/components/TableCells/TableCells";
+import { apiDelete, apiPageFetcher } from "@/src/utils/tableQuery";
 import { Note } from "@/types";
-import { Edit, Delete } from "@mui/icons-material";
-import { Box, IconButton, Table, TableBody, TableCell, TableHead, TableRow, Tooltip } from "@mui/material";
-import Link from "next/link";
-import EmptyTableMessage from "../EmptyTableMessage/EmptyTableMessage";
+import { Edit } from "@mui/icons-material";
+import { useMemo } from "react";
 
 interface ProjectNoteTableProps {
   projectId: number;
 }
 
+const defaultSort: SortState<keyof Note & string> = { columnId: "date", direction: "desc" };
+
+const fetchOptions = {
+  searchFields: ["note", "ticket"],
+  tiebreakers: [{ columnId: "id", direction: "desc" }] satisfies SortState[],
+};
+
 const ProjectNoteTable = ({ projectId }: ProjectNoteTableProps) => {
-  const { data: notes, mutate } = useTableFetch<Note[]>(`/projects/${projectId}/notes?date=order_by.desc`);
+  const cacheKey = `/projects/${projectId}/notes`;
+  const refresh = useServerTableRefresh(cacheKey);
+  const fetchPage = useMemo(() => apiPageFetcher<Note>(cacheKey, fetchOptions), [cacheKey]);
+
+  const columns = useMemo(
+    (): ServerTableColumns<Note> => ({
+      // The API sorts author by user id, not name, so this column isn't sortable
+      author: { id: "author", name: "Author", value: (note) => note.author?.name ?? "" },
+      ticket: { id: "ticket", name: "Ticket", sortable: true },
+      note: { id: "note", name: "Note", CellComponent: TruncatedTextCell },
+      date: { id: "date", name: "Date", sortable: true, CellComponent: DateCell },
+      users: { id: "users", name: "Users", value: (note) => note.users.map((user) => user.netid).join(", ") },
+      edit: {
+        id: "edit",
+        name: "Edit",
+        CellComponent: makeIconLinkCell<Note>({
+          href: (note) => `/projects/notes/edit/?projectId=${projectId}&noteId=${note.id}`,
+          icon: <Edit />,
+          ariaLabel: "Edit Note",
+        }),
+      },
+      delete: {
+        id: "delete",
+        name: "Delete",
+        CellComponent: makeDeleteCell<Note>({
+          mutate: refresh,
+          handleDelete: (note) => apiDelete(`/projects/${projectId}/notes/${note.id}`),
+          confirmButtonProps: { "aria-label": "Delete Note" },
+        }),
+      },
+    }),
+    [projectId, refresh],
+  );
 
   return (
-    <Table>
-      <TableHead>
-        <TableRow>
-          <TableCell>Author</TableCell>
-          <TableCell>Ticket</TableCell>
-          <TableCell>Note</TableCell>
-          <TableCell>Date</TableCell>
-          <TableCell>Users</TableCell>
-          <TableCell>Action</TableCell>
-        </TableRow>
-      </TableHead>
-      <TableBody>
-        {notes && notes.length > 0 ?
-          (notes || []).map((note) => (
-            <TableRow key={note.id}>
-              <TableCell>{note.author?.name}</TableCell>
-              <TableCell>{note.ticket}</TableCell>
-              <TableCell>
-                <Tooltip title={note.note || ""} arrow>
-                  <span style={{ cursor: "help" }}>
-                    {note.note?.substring(0, 50)}
-                    {note.note && note.note.length > 50 ? "..." : ""}
-                  </span>
-                </Tooltip>
-              </TableCell>
-              <TableCell>{note.date ? new Date(note?.date).toLocaleString() : ""}</TableCell>
-              <TableCell>{note.users.map((x) => x.netid).join(", ")}</TableCell>
-              <TableCell>
-                <Box sx={{ display: "flex", gap: 1 }}>
-                  <ActionButton
-                    method="DELETE"
-                    icon={<Delete />}
-                    color="error"
-                    url={`/projects/${projectId}/notes/${note.id}`}
-                    onSuccess={mutate}
-                    ariaLabel="Delete Note"
-                  />
-                  <IconButton aria-label={"Edit Note"}>
-                    <Link href={`/projects/notes/edit/?projectId=${projectId}&noteId=${note.id}`}>
-                      <Edit />
-                    </Link>
-                  </IconButton>
-                </Box>
-              </TableCell>
-            </TableRow>
-          )) : <EmptyTableMessage message="No notes" />}
-      </TableBody>
-    </Table>
+    <ServerTable
+      cacheKey={cacheKey}
+      fetchPage={fetchPage}
+      columns={columns}
+      defaultSort={defaultSort}
+      defaultPageSize={10}
+      urlPrefix="notes."
+      searchLabel="Search by Note or Ticket"
+      emptyMessage="No notes"
+    />
   );
 };
 
