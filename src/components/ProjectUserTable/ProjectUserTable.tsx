@@ -175,7 +175,14 @@ const ProjectUserTable = ({ projectId }: ProjectUserTableProps) => {
             Add Project Member
           </Typography>
           <Stack spacing={2}>
-            <UserAutocomplete value={selectedUser ?? undefined} onSelect={(user) => setSelectedUser(user || null)} />
+            {/* Changing the user or the Primary switch clears the old primary warning, since it no longer applies */}
+            <UserAutocomplete
+              value={selectedUser ?? undefined}
+              onSelect={(user) => {
+                setSelectedUser(user || null);
+                setOldPrimary(null);
+              }}
+            />
 
             <Box sx={{ display: "flex", gap: 2, flexWrap: "wrap" }}>
               <FormControl sx={{ flex: 1, minWidth: 200 }}>
@@ -193,7 +200,15 @@ const ProjectUserTable = ({ projectId }: ProjectUserTableProps) => {
               </FormControl>
 
               <FormControlLabel
-                control={<Switch checked={isPrimary} onChange={(e) => setIsPrimary(e.target.checked)} />}
+                control={
+                  <Switch
+                    checked={isPrimary}
+                    onChange={(e) => {
+                      setIsPrimary(e.target.checked);
+                      setOldPrimary(null);
+                    }}
+                  />
+                }
                 label="Primary"
                 sx={{ ml: 1 }}
               />
