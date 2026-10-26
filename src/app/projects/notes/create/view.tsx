@@ -6,15 +6,14 @@ import type { NoteCreate } from "@/types";
 import { Box, Breadcrumbs, Skeleton, Typography } from "@mui/material";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useState } from "react";
+import { useProject } from "@/src/utils/useProject";
 
-function View() {
-  const params = useSearchParams();
-  const projectId = params.get("project_id");
-
-  const { isAuthenticated } = useAuthClient();
+const CreateNoteSuspense = ({ projectId }: { projectId: number }) => {
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const { data: project } = useProject(projectId);
 
   const handleSubmit = async (payload: NoteCreate) => {
     setError(null);
@@ -34,13 +33,26 @@ function View() {
     }
   };
 
-  if (!isAuthenticated) {
-    return (
-      <Box sx={{ width: "100%", padding: 2 }}>
-        <Typography variant="h6">You must be logged in to create a note.</Typography>
-      </Box>
-    );
-  }
+  return (
+    <Box>
+      <Breadcrumbs>
+        <Typography color="text.primary">Create Note for {project?.name}</Typography>
+      </Breadcrumbs>
+      <NoteForm
+        mode="create"
+        projectId={projectId}
+        onSubmit={handleSubmit}
+        isSubmitting={isSubmitting}
+        error={error}
+      />
+    </Box>
+  );
+};
+
+// 3. Segment for URL Parameters
+const NotePage = () => {
+  const params = useSearchParams();
+  const projectId = params.get("project_id");
 
   if (projectId == null) {
     return (
@@ -51,27 +63,32 @@ function View() {
   }
 
   return (
-    <Box>
-      <Breadcrumbs>
-        <Typography color="text.primary">Create Note</Typography>
-      </Breadcrumbs>
-      <NoteForm
-        mode="create"
-        projectId={parseInt(projectId)}
-        onSubmit={handleSubmit}
-        isSubmitting={isSubmitting}
-        error={error}
-      />
+    <Box my={3}>
+      <Suspense fallback={<Skeleton variant="rectangular" height="400px" />}>
+        <CreateNoteSuspense projectId={parseInt(projectId)} />
+      </Suspense>
     </Box>
-  );
-}
-
-const ViewSuspended = () => {
-  return (
-    <Suspense fallback={<Skeleton height={"400px"} />}>
-      <View />
-    </Suspense>
   );
 };
 
-export default ViewSuspended;
+// 4. Main Page Component containing the auth check and outer Suspense boundary
+function View() {
+  const { isAuthenticated } = useAuthClient();
+
+  if (!isAuthenticated) {
+    return (
+      <Box sx={{ width: "100%", padding: 2 }}>
+        <Typography variant="h6">You must be logged in to create a note.</Typography>
+      </Box>
+    );
+  }
+
+  return (
+    // Outer Suspense boundary satisfies Next.js requirements for useSearchParams
+    <Suspense fallback={<Skeleton variant="rectangular" height="100px" />}>
+      <NotePage />
+    </Suspense>
+  );
+}
+
+export default View;

@@ -78,9 +78,25 @@ export interface GroupCreateUpdate {
   has_groupdir?: boolean | null;
 }
 
+export interface FieldsOfScience {
+  fos_id: string;
+  sed_cip_title: string | null;
+  broad_field: string | null;
+  major_field: string | null;
+  detailed_field: string | null;
+}
+
+export interface CollegeAndDepartment {
+  id: number;
+  college: string | null;
+  department: string | null;
+}
+
 export interface Project {
   id: number;
   name: string;
+  display_name: string | null;
+  description: string | null;
   pi: number | null;
   staff1: User | null;
   staff2: User | null;
@@ -91,6 +107,10 @@ export interface Project {
   date: string | null;
   ticket: number | null;
   last_contact: string | null;
+  college_and_department_id: number | null;
+  fos_id: string | null;
+  college_and_department: CollegeAndDepartment | null;
+  field_of_science: FieldsOfScience | null;
   managed_by: EntityManagerEnum | null;
 }
 
@@ -106,6 +126,8 @@ export interface PiProjectView {
 
 export interface ProjectCreateUpdate {
   name: string;
+  display_name?: string | null;
+  description?: string | null;
   pi?: number | null;
   staff1?: number | null;
   staff2?: number | null;
@@ -116,6 +138,8 @@ export interface ProjectCreateUpdate {
   date?: string | null;
   ticket?: number | null;
   last_contact?: string | null;
+  college_and_department_id?: number | null;
+  fos_id?: string | null;
 }
 
 export interface User {

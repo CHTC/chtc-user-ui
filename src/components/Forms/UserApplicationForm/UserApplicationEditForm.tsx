@@ -29,6 +29,7 @@ export interface UserApplicationEditFormProps {
   isSubmitting?: boolean;
   error?: string | ApiError | null;
   submitSuccess?: boolean;
+  approvedProjectId?: number | null;
 }
 
 function formatPosition(position: PositionEnum) {
@@ -71,6 +72,7 @@ export function UserApplicationEditForm({
   isSubmitting = false,
   error = null,
   submitSuccess = false,
+  approvedProjectId = null,
 }: UserApplicationEditFormProps) {
   const [step, setStep] = useState<Step>("initial");
   const [project, setProject] = useState<Project | null>(null);
@@ -162,6 +164,7 @@ export function UserApplicationEditForm({
                 label="Submitted By"
                 value={initialValues?.created_by?.name ?? initialValues?.created_by?.email1 ?? "-"}
               />
+              <ReviewField label="NetID" value={initialValues?.created_by?.netid ?? "-"} />
               <ReviewField label={"Department"} value={content?.department} />
               <ReviewField label="PI Name" value={piDisplay} />
               <ReviewField label="PI Email" value={piEmail} />
@@ -208,6 +211,23 @@ export function UserApplicationEditForm({
                   Set the decision and assign the approved account details.
                 </Typography>
               </Stack>
+
+              {/* Success — shown after approval */}
+              {submitSuccess && (
+                <Alert severity="success">
+                  <AlertTitle>Application Approved</AlertTitle>
+                  <Stack direction="row" spacing={2} mt={2}>
+                    {approvedProjectId !== null && (
+                      <Button variant="contained" href={`/projects/edit/?id=${approvedProjectId}`}>
+                        Go to Project
+                      </Button>
+                    )}
+                    <Button variant="outlined" href="/forms/user-applications/">
+                      Back to Applications
+                    </Button>
+                  </Stack>
+                </Alert>
+              )}
 
               {/* Step: initial — Approve / Deny */}
               {step === "initial" && isPending && !submitSuccess && (

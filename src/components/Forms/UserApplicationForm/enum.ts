@@ -52,6 +52,7 @@ export const DEPARTMENTS = {
   'GEOSCIENCE': 'Geoscience',
   'HISTORY': 'History',
   'HUMAN_ONCOLOGY': 'Human Oncology',
+  'HUMAN_DEVELOPMENT_AND_FAMILY_STUDIES': 'Human Development & Family Studies',
   'INDUSTRIAL_AND_SYSTEMS_ENGINEERING': 'Industrial & Systems Engineering',
   'INFLUENZA_RESEARCH_INSTITUTE': 'Influenza Research Institute',
   'INFORMATION_SCHOOL': 'Information School',

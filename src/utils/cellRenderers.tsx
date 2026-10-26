@@ -1,5 +1,6 @@
 "use client";
 
+import TruncatedCell from "@/src/components/TruncatedCell/TruncatedCell";
 import { formatPhoneNumber } from "@/src/utils/format";
 import { Edit } from "@mui/icons-material";
 import { IconButton } from "@mui/material";
@@ -12,6 +13,7 @@ export interface CellRendererConfig {
   emailColumn?: string;
   phoneColumn?: string;
   idColumn?: string;
+  truncateColumns?: string[];
 }
 
 const defaultConfig: Required<Omit<CellRendererConfig, "editPath">> = {
@@ -20,11 +22,13 @@ const defaultConfig: Required<Omit<CellRendererConfig, "editPath">> = {
   emailColumn: "Email",
   phoneColumn: "Phone",
   idColumn: "id",
+  truncateColumns: [],
 };
 
 export function createCellRenderer(config: CellRendererConfig) {
   const mergedConfig = { ...defaultConfig, ...config };
   const timeColumnsSet = new Set(mergedConfig.timeColumns);
+  const truncateColumnsSet = new Set(mergedConfig.truncateColumns);
 
   return function cellRenderer(cell: string | number, columnHeader: string, _column: number, _row: number) {
     if (timeColumnsSet.has(columnHeader)) {
@@ -59,6 +63,10 @@ export function createCellRenderer(config: CellRendererConfig) {
     if (columnHeader === mergedConfig.phoneColumn && cell) {
       const formattedPhone = formatPhoneNumber(cell.toString());
       return <span>{formattedPhone}</span>;
+    }
+
+    if (truncateColumnsSet.has(columnHeader) && cell) {
+      return <TruncatedCell text={cell.toString()} />;
     }
 
     if (columnHeader === mergedConfig.idColumn && cell) {
