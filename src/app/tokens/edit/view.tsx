@@ -2,7 +2,8 @@
 
 import { AuthGuard } from "@/src/components/AuthGuard";
 import { apiFetch } from "@/src/components/AuthProvider";
-import DeleteActionButton from "@/src/components/DeleteActionButton/DeleteActionButton";
+import ActionButton from "@/src/components/ActionButton/ActionButton";
+import { Delete } from "@mui/icons-material";
 import type { TokenGet, TokenPermissionGet } from "@/types";
 import {
   Box,
@@ -122,7 +123,7 @@ const TokenPage = () => {
             </Typography>
           </Box>
           <Box sx={{ mt: 3 }}>
-            <DeleteActionButton url={`/tokens/${id}`} onSuccess={mutateToken} />
+            <ActionButton method="DELETE" icon={<Delete />} color="error" ariaLabel="Delete" url={`/tokens/${id}`} onSuccess={mutateToken} />
           </Box>
         </Stack>
       </Grid>
