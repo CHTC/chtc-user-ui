@@ -30,7 +30,8 @@ const ProjectNoteTable = ({ projectId }: ProjectNoteTableProps) => {
       ticket: { id: "ticket", name: "Ticket", sortable: true },
       note: { id: "note", name: "Note", CellComponent: TruncatedTextCell },
       date: { id: "date", name: "Date", sortable: true, firstSortDirection: "desc", CellComponent: DateCell },
-      users: { id: "users", name: "Users", value: (note) => note.users.map((user) => user.netid).join(", ") },
+      // Users without a NetID show their name instead of an empty entry
+      users: { id: "users", name: "Users", value: (note) => note.users.map((user) => user.netid || user.name).join(", ") },
       edit: {
         id: "edit",
         name: "Edit",
