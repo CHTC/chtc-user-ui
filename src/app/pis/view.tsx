@@ -26,7 +26,8 @@ const columns: ServerTableColumns<PiProjectView> = {
   netid: { id: "netid", name: "NetID", sortable: true },
 };
 
-const defaultSort: SortState<keyof PiProjectView & string> = { columnId: "name", direction: "asc" };
+// Newest first; the view has no id of its own, so this goes by the project's
+const defaultSort: SortState<keyof PiProjectView & string> = { columnId: "project_id", direction: "desc" };
 
 // One row per PI per project, so it takes both ids to order rows uniquely
 const fetchPage = apiPageFetcher<PiProjectView>("/pi-projects", {

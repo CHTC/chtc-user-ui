@@ -67,7 +67,8 @@ const filters: ServerTableFilter[] = [
   },
 ];
 
-const defaultSort: SortState<keyof UserForm & string> = { columnId: "created_at", direction: "desc" };
+// Newest first
+const defaultSort: SortState<keyof UserForm & string> = { columnId: "id", direction: "desc" };
 
 const fetchPage = apiPageFetcher<UserForm>("/forms/user-applications", {
   searchFields: ["created_by_name", "created_by_netid", "created_by_email1", "email"],

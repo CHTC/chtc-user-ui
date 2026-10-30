@@ -26,7 +26,8 @@ const columns: ServerTableColumns<TokenGet> = {
   expires_at: { id: "expires_at", name: "Expires At", sortable: true, CellComponent: DateCell },
 };
 
-const defaultSort: SortState<keyof TokenGet & string> = { columnId: "created_at", direction: "desc" };
+// Newest first
+const defaultSort: SortState<keyof TokenGet & string> = { columnId: "id", direction: "desc" };
 
 const fetchPage = apiPageFetcher<TokenGet>("/tokens", {
   searchFields: ["description"],

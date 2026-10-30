@@ -32,7 +32,8 @@ const columns: ServerTableColumns<User> = {
   },
 };
 
-const defaultSort: SortState<keyof User & string> = { columnId: "name", direction: "asc" };
+// Newest first
+const defaultSort: SortState<keyof User & string> = { columnId: "id", direction: "desc" };
 
 const fetchPage = apiPageFetcher<User>("/users", {
   searchFields: ["name", "netid"],

@@ -32,7 +32,8 @@ const columns: ServerTableColumns<Project> = {
   },
 };
 
-const defaultSort: SortState<keyof Project & string> = { columnId: "name", direction: "asc" };
+// Newest first
+const defaultSort: SortState<keyof Project & string> = { columnId: "id", direction: "desc" };
 
 const fetchPage = apiPageFetcher<Project>("/projects", {
   searchFields: ["name"],

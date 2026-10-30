@@ -30,7 +30,8 @@ const columns: ServerTableColumns<Group> = {
   },
 };
 
-const defaultSort: SortState<keyof Group & string> = { columnId: "name", direction: "asc" };
+// Newest first
+const defaultSort: SortState<keyof Group & string> = { columnId: "id", direction: "desc" };
 
 const fetchPage = apiPageFetcher<Group>("/groups", {
   searchFields: ["name"],
