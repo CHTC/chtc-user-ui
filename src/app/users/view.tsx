@@ -23,7 +23,13 @@ const columns: ServerTableColumns<User> = {
     value: (user) => (user.submit_nodes ?? []).map((node) => node.name).join(", "),
     CellComponent: TruncatedTextCell,
   },
-  updated_at: { id: "updated_at", name: "Last Modified", sortable: true, CellComponent: DateCell },
+  updated_at: {
+    id: "updated_at",
+    name: "Last Modified",
+    sortable: true,
+    firstSortDirection: "desc",
+    CellComponent: DateCell,
+  },
 };
 
 const defaultSort: SortState<keyof User & string> = { columnId: "name", direction: "asc" };

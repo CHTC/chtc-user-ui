@@ -23,7 +23,13 @@ const columns: ServerTableColumns<Project> = {
   staff1: { id: "staff1", name: "Staff", value: (project) => project.staff1?.name ?? project.staff1?.email1 ?? "" },
   status: { id: "status", name: "Status", sortable: true },
   url: { id: "url", name: "Project URL", CellComponent: UrlCell },
-  last_contact: { id: "last_contact", name: "Last Contact", sortable: true, CellComponent: DateCell },
+  last_contact: {
+    id: "last_contact",
+    name: "Last Contact",
+    sortable: true,
+    firstSortDirection: "desc",
+    CellComponent: DateCell,
+  },
 };
 
 const defaultSort: SortState<keyof Project & string> = { columnId: "name", direction: "asc" };

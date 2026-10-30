@@ -46,7 +46,13 @@ const columns: ServerTableColumns<UserForm> = {
     sortable: true,
     value: (application) => formatPosition(application.position),
   },
-  created_at: { id: "created_at", name: "Created At", sortable: true, CellComponent: DateCell },
+  created_at: {
+    id: "created_at",
+    name: "Created At",
+    sortable: true,
+    firstSortDirection: "desc",
+    CellComponent: DateCell,
+  },
 };
 
 const filters: ServerTableFilter[] = [

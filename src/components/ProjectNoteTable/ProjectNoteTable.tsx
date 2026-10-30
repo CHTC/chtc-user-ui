@@ -29,7 +29,7 @@ const ProjectNoteTable = ({ projectId }: ProjectNoteTableProps) => {
       author: { id: "author", name: "Author", value: (note) => note.author?.name ?? "" },
       ticket: { id: "ticket", name: "Ticket", sortable: true },
       note: { id: "note", name: "Note", CellComponent: TruncatedTextCell },
-      date: { id: "date", name: "Date", sortable: true, CellComponent: DateCell },
+      date: { id: "date", name: "Date", sortable: true, firstSortDirection: "desc", CellComponent: DateCell },
       users: { id: "users", name: "Users", value: (note) => note.users.map((user) => user.netid).join(", ") },
       edit: {
         id: "edit",

@@ -90,7 +90,13 @@ const UserProjectTable = ({ userId, adminView = false }: UserProjectTableProps) 
         CellComponent: makePrimaryProjectCell({ userId, adminView, onChange: refresh }),
       },
       project_status: { id: "project_status", name: "Status", sortable: true },
-      project_last_contact: { id: "project_last_contact", name: "Last Contact", sortable: true, CellComponent: DateCell },
+      project_last_contact: {
+        id: "project_last_contact",
+        name: "Last Contact",
+        sortable: true,
+        firstSortDirection: "desc",
+        CellComponent: DateCell,
+      },
       project_accounting_group: { id: "project_accounting_group", name: "Accounting Group", sortable: true },
       ...(adminView && {
         managed_by: {

@@ -30,7 +30,11 @@ import {
 export type ServerColumnConfig<R extends TableData> = Omit<
   ColumnConfig<R>,
   'sort' | 'onSort'
-> & { sortable?: boolean };
+> & {
+  sortable?: boolean;
+  /** Direction used when the column is first chosen, e.g. 'desc' for dates so the newest come first */
+  firstSortDirection?: SortState['direction'];
+};
 
 export type ServerTableColumns<R extends TableData> = Record<
   string,
@@ -148,7 +152,7 @@ const ServerTableContent = <R extends TableData>({
     () =>
       Object.values(columns).map((column) => {
         if (!('sortable' in column)) return column;
-        const { sortable, ...rest } = column;
+        const { sortable, firstSortDirection = 'asc', ...rest } = column;
         if (!sortable) return rest;
         return {
           ...rest,
@@ -156,11 +160,11 @@ const ServerTableContent = <R extends TableData>({
           sort: undefined,
           onSort: (next: SortState) =>
             setQuery({
-              // A newly chosen column starts ascending rather than inheriting the old direction
+              // A newly chosen column starts in its first direction rather than inheriting the old one
               sort:
                 next.columnId === query.sort?.columnId
                   ? next
-                  : { columnId: next.columnId, direction: 'asc' },
+                  : { columnId: next.columnId, direction: firstSortDirection },
             }),
         };
       }),

@@ -16,7 +16,13 @@ const columns: ServerTableColumns<TokenGet> = {
   },
   created_by: { id: "created_by", name: "Created By", sortable: true },
   description: { id: "description", name: "Description", sortable: true },
-  created_at: { id: "created_at", name: "Created At", sortable: true, CellComponent: DateCell },
+  created_at: {
+    id: "created_at",
+    name: "Created At",
+    sortable: true,
+    firstSortDirection: "desc",
+    CellComponent: DateCell,
+  },
   expires_at: { id: "expires_at", name: "Expires At", sortable: true, CellComponent: DateCell },
 };
 
