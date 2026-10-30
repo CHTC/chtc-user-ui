@@ -5,6 +5,7 @@ import {apiFetch} from "@/src/components/AuthProvider";
 import UserApplicationEditForm from "@/src/components/Forms/UserApplicationForm/UserApplicationEditForm";
 import type { ApiError } from "@/src/components/Forms/UserForm/UserForm";
 import usePageTitle from "@/src/utils/usePageTitle";
+import { useRevalidateUserAndGroups } from "@/src/utils/userCache";
 import type { UserForm, UserFormPatch } from "@/types";
 import { Box, Skeleton, Typography } from "@mui/material";
 import {useRouter, useSearchParams} from "next/navigation";
@@ -63,6 +64,9 @@ function UserApplicationFormSuspense({ id }: { id: number }) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [approved, setApproved] = useState<{ projectId: number | null } | null>(null);
   const router = useRouter();
+  // The applicant's record is cached by the form and shared with the user page, so
+  // approval (which sets their position, active flag, groups, etc.) has to bust it.
+  const revalidateApplicant = useRevalidateUserAndGroups(data?.created_by?.id ?? null);
 
   // assumes created by field is field, not always true in dev, but always true in prod
   usePageTitle(data ? "User Application: " + data.created_by?.name : null);
@@ -92,6 +96,7 @@ function UserApplicationFormSuspense({ id }: { id: number }) {
 
       await mutate();
       if (payload.status === "APPROVED") {
+        await revalidateApplicant();
         // Stay on the page so the admin can jump to the project (e.g. to add a note)
         setApproved({ projectId: payload.project_id ?? null });
       } else {

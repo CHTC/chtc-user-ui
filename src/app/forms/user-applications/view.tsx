@@ -64,7 +64,7 @@ const filters: ServerTableFilter[] = [
 const defaultSort: SortState<keyof UserForm & string> = { columnId: "created_at", direction: "desc" };
 
 const fetchPage = apiPageFetcher<UserForm>("/forms/user-applications", {
-  searchFields: ["pi_name", "pi_email"],
+  searchFields: ["created_by_name", "created_by_netid", "created_by_email1", "email"],
   tiebreakers: [{ columnId: "id", direction: "desc" }],
 });
 
@@ -83,7 +83,7 @@ function View() {
           columns={columns}
           defaultSort={defaultSort}
           defaultPageSize={50}
-          searchLabel="Search by PI Name or Email"
+          searchLabel="Search by Requester Name, NetID, or Email"
           filters={filters}
           emptyMessage="No applications found."
         />
