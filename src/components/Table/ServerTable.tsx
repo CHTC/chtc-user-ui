@@ -104,9 +104,8 @@ export function useServerTableRefresh(endpoint: string) {
 }
 
 /**
- * Server-side counterpart to ClientTable: the server sorts, filters, and pages
- * the rows, and the table's state lives in the URL so reloading or going back
- * restores it.
+ * Table whose rows the server sorts, filters, and pages, with its state in the
+ * URL so reloading or going back restores it.
  *
  * A header click, page change, search, or filter writes the URL, the URL is
  * read back into a TableQuery, and a change in the query fetches that page.

@@ -28,9 +28,3 @@ export type CellComponentProps<R extends TableData, K extends keyof R> = {
 };
 
 export type TableData = object;
-
-export interface ClientTableImplementationProps<R extends TableData> {
-  data: R[];
-  mutate?: () => void;
-  columns?: Record<string, ColumnConfig<R>>;
-}
