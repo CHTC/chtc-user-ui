@@ -25,13 +25,12 @@ import { DEFAULT_PAGE_SIZE_OPTIONS } from '@/src/components/Table/constants';
 import { apiFetch } from '@/src/components/AuthProvider';
 import { apiErrorMessage } from '@/src/utils/formErrors';
 
-/** Sorting happens on the server, so a column only says whether it can be sorted by its id */
+// Sorting happens on the server, so a column only says whether it can be sorted by its id
 export type ServerColumnConfig<R extends TableData> = Omit<
   ColumnConfig<R>,
   'sort' | 'onSort'
 > & {
   sortable?: boolean;
-  /** Direction used when the column is first chosen, e.g. 'desc' for dates so the newest come first */
   firstSortDirection?: SortState['direction'];
 };
 
@@ -44,57 +43,38 @@ export interface ServerTableFilter {
   id: string;
   label: string;
   options: { value: string; label: string }[];
-  /** API operator the selected value is applied with, "eq" when unset */
-  operator?: 'eq' | 'is';
+  operator?: 'eq' | 'is'; // default is eq
 }
 
 export interface ServerTableProps<R extends TableData> {
-  /** API list endpoint the rows come from; useServerTableRefresh refreshes the table by it */
   endpoint: string;
   columns: ServerTableColumns<R>;
   defaultSort?: SortState<keyof R & string>;
-  /**
-   * Sorts applied after the chosen one so rows keep a stable order across pages.
-   * Most list endpoints have no default order, so end with a unique column.
-   */
   tiebreakers?: SortState[];
   defaultPageSize?: number;
-  /** Prefix for this table's URL params, needed when a page has more than one table */
-  urlPrefix?: string;
-  /** Shows a search box with this label */
+  urlPrefix?: string; // used when theres more than one table per page
   searchLabel?: string;
-  /** Columns the search box matches against, case-insensitively */
-  searchFields?: string[];
+  searchFields?: string[]; // not case sensitive
   filters?: ServerTableFilter[];
   emptyMessage?: string;
 }
 
-/** Everything needed to request one page of rows; read from the URL and sent to the API */
 interface TableQuery {
-  /** 0-based */
   page: number;
   pageSize: number;
   sort?: SortState;
   search: string;
-  /** Filter id to selected value; unset filters are absent */
   filters: Record<string, string>;
 }
 
 interface TablePage<R> {
   data: R[];
-  /** Number of rows across all pages */
   totalCount: number;
 }
-
-const SEARCH_DEBOUNCE_MS = 300;
 
 const isServerTableKey = (endpoint: string) => (key: unknown) =>
   Array.isArray(key) && key[0] === endpoint;
 
-/**
- * Returns a function that refetches every page of the ServerTable for this endpoint,
- * for actions inside or outside the table that change its rows.
- */
 export function useServerTableRefresh(endpoint: string) {
   const { mutate } = useSWRConfig();
   return useCallback(
@@ -103,15 +83,9 @@ export function useServerTableRefresh(endpoint: string) {
   );
 }
 
-/**
- * Table whose rows the server sorts, filters, and pages, with its state in the
- * URL so reloading or going back restores it.
- *
- * A header click, page change, search, or filter writes the URL, the URL is
- * read back into a TableQuery, and a change in the query fetches that page.
- */
+
 const ServerTable = <R extends TableData>(props: ServerTableProps<R>) => {
-  // Reading the URL needs a Suspense boundary in a statically exported app
+  // Reading URL params needs a Suspense boundary for static export
   return (
     <Suspense fallback={<LinearProgress />}>
       <ServerTableContent {...props} />
@@ -135,7 +109,6 @@ const ServerTableContent = <R extends TableData>({
   const router = useRouter();
   const pathname = usePathname();
 
-  // URL param names; the prefix lets several tables share a page
   const keys = useMemo(
     () => ({
       page: `${urlPrefix}page`,
@@ -155,7 +128,6 @@ const ServerTableContent = <R extends TableData>({
     [columns]
   );
 
-  // Read the query from the URL, falling back to the defaults for anything missing or invalid
   const query = useMemo((): TableQuery => {
     const page = parseInt(searchParams.get(keys.page) ?? '', 10);
     const pageSize = parseInt(searchParams.get(keys.pageSize) ?? '', 10);
@@ -180,11 +152,10 @@ const ServerTableContent = <R extends TableData>({
     };
   }, [searchParams, keys, defaultPageSize, defaultSort, sortableColumns, filters]);
 
-  // Write a change to the URL, leaving out values equal to their defaults
   const setQuery = useCallback(
     (changes: Partial<TableQuery>) => {
       const next = { ...query, ...changes };
-      // Any change other than the page itself makes the current page meaningless
+
       if (changes.page === undefined) {
         next.page = 0;
       }
@@ -210,7 +181,7 @@ const ServerTableContent = <R extends TableData>({
       );
 
       const queryString = params.toString();
-      // Replace rather than push, so Back leaves the page instead of stepping through table changes
+
       router.replace(queryString ? `${pathname}?${queryString}` : pathname, {
         scroll: false,
       });
@@ -305,13 +276,12 @@ const ServerTableContent = <R extends TableData>({
         </Alert>
       )}
 
-      {/* Fixed height so the table doesn't jump when the bar appears */}
+   
       <Box sx={{ height: 4 }}>{isLoading && <LinearProgress />}</Box>
 
       <Table
         data={rows}
         columns={tableColumns}
-        // The query only accepts sorts on this table's column ids
         sort={query.sort as SortState<keyof R & string> | undefined}
         pagination={
           totalCount > DEFAULT_PAGE_SIZE_OPTIONS[0]
@@ -336,9 +306,7 @@ const ServerTableContent = <R extends TableData>({
 };
 
 /**
- * Requests one page from an API list endpoint, translating the query into the API's
- * page, page_size, col=order_by.dir, or=(...), and col=op.value params and reading
- * the total from the X-Total-Count header.
+ * Page fetch helper for translating props and making list requests
  */
 async function fetchPage<R>(
   endpoint: string,
@@ -387,7 +355,7 @@ async function fetchPage<R>(
   };
 }
 
-/** Sorts are written to the URL as the column id, prefixed with "-" when descending */
+// Sorts are written to the URL as the column id, prefixed with "-" when descending
 function formatSort(sort: SortState): string {
   return `${sort.direction === 'desc' ? '-' : ''}${sort.columnId}`;
 }
@@ -408,10 +376,6 @@ function sameSort(a: SortState, b: SortState | undefined): boolean {
   return a.columnId === b?.columnId && a.direction === b.direction;
 }
 
-/**
- * Search box that reports its value once typing pauses, and follows the
- * value it's given when that changes from outside, e.g. on back navigation.
- */
 const SearchField = ({
   label,
   value,
@@ -425,8 +389,6 @@ const SearchField = ({
   const timer = useRef<ReturnType<typeof setTimeout>>(undefined);
   const lastReported = useRef(value);
 
-  // Only an outside change should replace the input, not our own report arriving
-  // after the user has typed more
   useEffect(() => {
     if (value !== lastReported.current) {
       lastReported.current = value;
@@ -447,7 +409,7 @@ const SearchField = ({
         timer.current = setTimeout(() => {
           lastReported.current = next;
           onChange(next);
-        }, SEARCH_DEBOUNCE_MS);
+        }, 300); // debounce
       }}
       sx={{ width: 300 }}
     />

@@ -135,9 +135,7 @@ export async function apiFetch(endpoint: string, options: RequestInit = {}): Pro
   });
 }
 
-/**
- * Sends a DELETE and throws the API's error message if it fails, for makeDeleteCell's handleDelete.
- */
+// makeDeleteCell's handleDelete need the API's error message if it fails
 export async function apiDelete(endpoint: string): Promise<void> {
   const response = await apiFetch(endpoint, { method: "DELETE" });
   if (!response.ok) {
