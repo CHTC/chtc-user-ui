@@ -32,7 +32,8 @@ function makePrimaryProjectCell({ userId, adminView, onChange }: { userId: numbe
     const { showAlert } = useAlert();
 
     return (
-      <TableCell>
+      // Wide enough for the star and its Confirm button, which would otherwise cover the next column
+      <TableCell sx={{ minWidth: 176 }}>
         {project.is_primary ? (
           // The primary project is changed by starring another one, so this does nothing
           // Same 48px box and padding as ConfirmButton so the stars line up
