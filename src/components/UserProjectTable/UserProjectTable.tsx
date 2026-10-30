@@ -15,8 +15,7 @@ interface UserProjectTableProps {
   adminView?: boolean;
 }
 
-// Primary project first, then alphabetical
-const defaultSort: SortState<keyof JoinedProjectView & string> = { columnId: "is_primary", direction: "desc" };
+const defaultSort: SortState<keyof JoinedProjectView & string> = { columnId: "project_name", direction: "asc" };
 
 const fetchOptions = {
   searchFields: ["project_name"],

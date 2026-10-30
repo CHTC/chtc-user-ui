@@ -39,8 +39,7 @@ const activeFilter: ServerTableFilter[] = [
   },
 ];
 
-// Active members first, then alphabetical
-const defaultSort: SortState<keyof JoinedProjectView & string> = { columnId: "active", direction: "desc" };
+const defaultSort: SortState<keyof JoinedProjectView & string> = { columnId: "name", direction: "asc" };
 
 const fetchOptions = {
   searchFields: ["name", "netid", "email1"],
