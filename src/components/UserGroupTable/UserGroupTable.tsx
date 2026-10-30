@@ -73,7 +73,7 @@ const UserGroupTable = ({ userId, adminView = false }: UserGroupTableProps) => {
       columns={columns}
       defaultSort={defaultSort}
       tiebreakers={tiebreakers}
-      defaultPageSize={10}
+      defaultPageSize={5}
       urlPrefix="groups."
       searchLabel="Search by Group"
       searchFields={searchFields}

@@ -125,7 +125,7 @@ const UserProjectTable = ({ userId, adminView = false }: UserProjectTableProps) 
       columns={columns}
       defaultSort={defaultSort}
       tiebreakers={tiebreakers}
-      defaultPageSize={10}
+      defaultPageSize={5}
       urlPrefix="projects."
       searchLabel="Search by Project Name"
       searchFields={searchFields}

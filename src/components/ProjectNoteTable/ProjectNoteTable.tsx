@@ -58,7 +58,7 @@ const ProjectNoteTable = ({ projectId }: ProjectNoteTableProps) => {
       columns={columns}
       defaultSort={defaultSort}
       tiebreakers={tiebreakers}
-      defaultPageSize={10}
+      defaultPageSize={5}
       urlPrefix="notes."
       searchLabel="Search by Note or Ticket"
       searchFields={searchFields}

@@ -253,7 +253,7 @@ const ProjectUserTable = ({ projectId }: ProjectUserTableProps) => {
         columns={columns}
         defaultSort={defaultSort}
         tiebreakers={tiebreakers}
-        defaultPageSize={10}
+        defaultPageSize={5}
         urlPrefix="users."
         searchLabel="Search by Name, NetID, or Email"
         searchFields={searchFields}

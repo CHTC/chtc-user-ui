@@ -63,7 +63,7 @@ const GroupUserTable = ({ groupId }: GroupUserTableProps) => {
           columns={columns}
           defaultSort={defaultSort}
           tiebreakers={tiebreakers}
-          defaultPageSize={10}
+          defaultPageSize={5}
           urlPrefix="users."
           searchLabel="Search by Name or NetID"
           searchFields={searchFields}

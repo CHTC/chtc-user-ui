@@ -21,7 +21,10 @@ import {
   SortState,
   TableData,
 } from '@/src/components/Table/types';
-import { DEFAULT_PAGE_SIZE_OPTIONS } from '@/src/components/Table/constants';
+import {
+  DEFAULT_PAGE_SIZE,
+  DEFAULT_PAGE_SIZE_OPTIONS,
+} from '@/src/components/Table/constants';
 import { apiFetch } from '@/src/components/AuthProvider';
 import { apiErrorMessage } from '@/src/utils/formErrors';
 
@@ -98,7 +101,7 @@ const ServerTableContent = <R extends TableData>({
   columns,
   defaultSort,
   tiebreakers,
-  defaultPageSize = DEFAULT_PAGE_SIZE_OPTIONS[0],
+  defaultPageSize = DEFAULT_PAGE_SIZE,
   urlPrefix = '',
   searchLabel,
   searchFields,
