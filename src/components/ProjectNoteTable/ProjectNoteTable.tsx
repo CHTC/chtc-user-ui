@@ -1,8 +1,8 @@
+import { apiDelete } from "@/src/components/AuthProvider";
 import makeDeleteCell from "@/src/components/Table/DeleteCell/makeDeleteCell";
 import ServerTable, { ServerTableColumns, useServerTableRefresh } from "@/src/components/Table/ServerTable";
 import type { SortState } from "@/src/components/Table/types";
 import { DateCell, makeIconLinkCell, TruncatedTextCell } from "@/src/components/TableCells/TableCells";
-import { apiDelete, apiPageFetcher } from "@/src/utils/tableQuery";
 import { Note } from "@/types";
 import { Edit } from "@mui/icons-material";
 import { useMemo } from "react";
@@ -13,15 +13,13 @@ interface ProjectNoteTableProps {
 
 const defaultSort: SortState<keyof Note & string> = { columnId: "date", direction: "desc" };
 
-const fetchOptions = {
-  searchFields: ["note", "ticket"],
-  tiebreakers: [{ columnId: "id", direction: "desc" }] satisfies SortState[],
-};
+const searchFields = ["note", "ticket"];
+
+const tiebreakers: SortState[] = [{ columnId: "id", direction: "desc" }];
 
 const ProjectNoteTable = ({ projectId }: ProjectNoteTableProps) => {
-  const cacheKey = `/projects/${projectId}/notes`;
-  const refresh = useServerTableRefresh(cacheKey);
-  const fetchPage = useMemo(() => apiPageFetcher<Note>(cacheKey, fetchOptions), [cacheKey]);
+  const endpoint = `/projects/${projectId}/notes`;
+  const refresh = useServerTableRefresh(endpoint);
 
   const columns = useMemo(
     (): ServerTableColumns<Note> => ({
@@ -56,13 +54,14 @@ const ProjectNoteTable = ({ projectId }: ProjectNoteTableProps) => {
 
   return (
     <ServerTable
-      cacheKey={cacheKey}
-      fetchPage={fetchPage}
+      endpoint={endpoint}
       columns={columns}
       defaultSort={defaultSort}
+      tiebreakers={tiebreakers}
       defaultPageSize={10}
       urlPrefix="notes."
       searchLabel="Search by Note or Ticket"
+      searchFields={searchFields}
       emptyMessage="No notes"
     />
   );

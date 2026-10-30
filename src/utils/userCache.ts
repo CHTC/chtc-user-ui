@@ -2,7 +2,7 @@ import { useServerTableRefresh } from "@/src/components/Table/ServerTable";
 import { useCallback } from "react";
 import { useSWRConfig } from "swr";
 
-/** SWR key for a user's record, and the ServerTable cacheKey for the group table driven by the same data. */
+/** SWR key for a user's record, and the endpoint of the group table driven by the same data. */
 export const userKey = (userId: number) => [`/users/${userId}`];
 export const userGroupsKey = (userId: number) => `/users/${userId}/groups`;
 

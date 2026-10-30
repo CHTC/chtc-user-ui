@@ -4,7 +4,6 @@ import { AuthGuard } from "@/src/components/AuthGuard";
 import ServerTable, { ServerTableColumns, ServerTableFilter } from "@/src/components/Table/ServerTable";
 import type { SortState } from "@/src/components/Table/types";
 import { DateCell, makeIconLinkCell } from "@/src/components/TableCells/TableCells";
-import { apiPageFetcher } from "@/src/utils/tableQuery";
 import type { UserForm } from "@/types";
 import { Edit } from "@mui/icons-material";
 import { Box, Link, Typography } from "@mui/material";
@@ -70,10 +69,9 @@ const filters: ServerTableFilter[] = [
 // Newest first
 const defaultSort: SortState<keyof UserForm & string> = { columnId: "id", direction: "desc" };
 
-const fetchPage = apiPageFetcher<UserForm>("/forms/user-applications", {
-  searchFields: ["created_by_name", "created_by_netid", "created_by_email1", "email"],
-  tiebreakers: [{ columnId: "id", direction: "desc" }],
-});
+const searchFields = ["created_by_name", "created_by_netid", "created_by_email1", "email"];
+
+const tiebreakers: SortState[] = [{ columnId: "id", direction: "desc" }];
 
 function View() {
   return (
@@ -85,12 +83,13 @@ function View() {
       </Typography>
       <AuthGuard message="You must be logged in to view user applications.">
         <ServerTable
-          cacheKey="/forms/user-applications"
-          fetchPage={fetchPage}
+          endpoint="/forms/user-applications"
           columns={columns}
           defaultSort={defaultSort}
+          tiebreakers={tiebreakers}
           defaultPageSize={50}
           searchLabel="Search by Requester Name, NetID, or Email"
+          searchFields={searchFields}
           filters={filters}
           emptyMessage="No applications found."
         />

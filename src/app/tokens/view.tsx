@@ -4,7 +4,6 @@ import { AuthGuard } from "@/src/components/AuthGuard";
 import ServerTable, { ServerTableColumns } from "@/src/components/Table/ServerTable";
 import type { SortState } from "@/src/components/Table/types";
 import { DateCell, makeIconLinkCell } from "@/src/components/TableCells/TableCells";
-import { apiPageFetcher } from "@/src/utils/tableQuery";
 import type { TokenGet } from "@/types";
 import { Edit } from "@mui/icons-material";
 
@@ -29,21 +28,21 @@ const columns: ServerTableColumns<TokenGet> = {
 // Newest first
 const defaultSort: SortState<keyof TokenGet & string> = { columnId: "id", direction: "desc" };
 
-const fetchPage = apiPageFetcher<TokenGet>("/tokens", {
-  searchFields: ["description"],
-  tiebreakers: [{ columnId: "id", direction: "asc" }],
-});
+const searchFields = ["description"];
+
+const tiebreakers: SortState[] = [{ columnId: "id", direction: "asc" }];
 
 function View() {
   return (
     <AuthGuard message="You must be logged in to view tokens.">
       <ServerTable
-        cacheKey="/tokens"
-        fetchPage={fetchPage}
+        endpoint="/tokens"
         columns={columns}
         defaultSort={defaultSort}
+        tiebreakers={tiebreakers}
         defaultPageSize={50}
         searchLabel="Search by Description"
+        searchFields={searchFields}
         emptyMessage="No tokens found."
       />
     </AuthGuard>

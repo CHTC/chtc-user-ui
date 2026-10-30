@@ -1,4 +1,4 @@
-import { apiFetch } from "@/src/components/AuthProvider";
+import { apiDelete, apiFetch } from "@/src/components/AuthProvider";
 import makeDeleteCell from "@/src/components/Table/DeleteCell/makeDeleteCell";
 import ServerTable, {
   ServerTableColumns,
@@ -8,7 +8,6 @@ import ServerTable, {
 import type { SortState } from "@/src/components/Table/types";
 import { makeLinkedTextCell, makeManagedByCell } from "@/src/components/TableCells/TableCells";
 import UserAutocomplete from "@/src/components/UserAutocomplete/UserAutocomplete";
-import { apiDelete, apiPageFetcher } from "@/src/utils/tableQuery";
 import { JoinedProjectView, RoleEnum, User } from "@/types";
 import { ArrowDropDown, ArrowDropUp } from "@mui/icons-material";
 import {
@@ -32,6 +31,7 @@ const activeFilter: ServerTableFilter[] = [
   {
     id: "active",
     label: "Active",
+    operator: "is",
     options: [
       { value: "true", label: "Active" },
       { value: "false", label: "Inactive" },
@@ -41,23 +41,20 @@ const activeFilter: ServerTableFilter[] = [
 
 const defaultSort: SortState<keyof JoinedProjectView & string> = { columnId: "name", direction: "asc" };
 
-const fetchOptions = {
-  searchFields: ["name", "netid", "email1"],
-  tiebreakers: [
-    { columnId: "name", direction: "asc" },
-    { columnId: "id", direction: "asc" },
-  ] satisfies SortState[],
-  filterOperators: { active: "is" } as const,
-};
+const searchFields = ["name", "netid", "email1"];
+
+const tiebreakers: SortState[] = [
+  { columnId: "name", direction: "asc" },
+  { columnId: "id", direction: "asc" },
+];
 
 interface ProjectUserTableProps {
   projectId: number;
 }
 
 const ProjectUserTable = ({ projectId }: ProjectUserTableProps) => {
-  const cacheKey = `/projects/${projectId}/users`;
-  const refresh = useServerTableRefresh(cacheKey);
-  const fetchPage = useMemo(() => apiPageFetcher<JoinedProjectView>(cacheKey, fetchOptions), [cacheKey]);
+  const endpoint = `/projects/${projectId}/users`;
+  const refresh = useServerTableRefresh(endpoint);
 
   const columns = useMemo(
     (): ServerTableColumns<JoinedProjectView> => ({
@@ -252,13 +249,14 @@ const ProjectUserTable = ({ projectId }: ProjectUserTableProps) => {
       </Collapse>
 
       <ServerTable
-        cacheKey={cacheKey}
-        fetchPage={fetchPage}
+        endpoint={endpoint}
         columns={columns}
         defaultSort={defaultSort}
+        tiebreakers={tiebreakers}
         defaultPageSize={10}
         urlPrefix="users."
         searchLabel="Search by Name, NetID, or Email"
+        searchFields={searchFields}
         filters={activeFilter}
         emptyMessage="No users"
       />

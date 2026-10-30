@@ -4,7 +4,6 @@ import { AuthGuard } from "@/src/components/AuthGuard";
 import ServerTable, { ServerTableColumns } from "@/src/components/Table/ServerTable";
 import type { SortState } from "@/src/components/Table/types";
 import { makeIconLinkCell } from "@/src/components/TableCells/TableCells";
-import { apiPageFetcher } from "@/src/utils/tableQuery";
 import type { Group } from "@/types";
 import { Edit } from "@mui/icons-material";
 
@@ -33,21 +32,21 @@ const columns: ServerTableColumns<Group> = {
 // Newest first
 const defaultSort: SortState<keyof Group & string> = { columnId: "id", direction: "desc" };
 
-const fetchPage = apiPageFetcher<Group>("/groups", {
-  searchFields: ["name"],
-  tiebreakers: [{ columnId: "id", direction: "asc" }],
-});
+const searchFields = ["name"];
+
+const tiebreakers: SortState[] = [{ columnId: "id", direction: "asc" }];
 
 function View() {
   return (
     <AuthGuard message="You must be logged in to view groups.">
       <ServerTable
-        cacheKey="/groups"
-        fetchPage={fetchPage}
+        endpoint="/groups"
         columns={columns}
         defaultSort={defaultSort}
+        tiebreakers={tiebreakers}
         defaultPageSize={50}
         searchLabel="Search by Group"
+        searchFields={searchFields}
         emptyMessage="No groups found."
       />
     </AuthGuard>

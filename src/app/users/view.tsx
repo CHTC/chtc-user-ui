@@ -4,7 +4,6 @@ import { AuthGuard } from "@/src/components/AuthGuard";
 import ServerTable, { ServerTableColumns } from "@/src/components/Table/ServerTable";
 import type { SortState } from "@/src/components/Table/types";
 import { DateCell, EmailCell, makeIconLinkCell, TruncatedTextCell } from "@/src/components/TableCells/TableCells";
-import { apiPageFetcher } from "@/src/utils/tableQuery";
 import type { User } from "@/types";
 import { Edit } from "@mui/icons-material";
 
@@ -35,21 +34,21 @@ const columns: ServerTableColumns<User> = {
 // Newest first
 const defaultSort: SortState<keyof User & string> = { columnId: "id", direction: "desc" };
 
-const fetchPage = apiPageFetcher<User>("/users", {
-  searchFields: ["name", "netid"],
-  tiebreakers: [{ columnId: "id", direction: "asc" }],
-});
+const searchFields = ["name", "netid"];
+
+const tiebreakers: SortState[] = [{ columnId: "id", direction: "asc" }];
 
 function View() {
   return (
     <AuthGuard message="You must be logged in to view users.">
       <ServerTable
-        cacheKey="/users"
-        fetchPage={fetchPage}
+        endpoint="/users"
         columns={columns}
         defaultSort={defaultSort}
+        tiebreakers={tiebreakers}
         defaultPageSize={50}
         searchLabel="Search by Name or NetID"
+        searchFields={searchFields}
         emptyMessage="No users found."
       />
     </AuthGuard>

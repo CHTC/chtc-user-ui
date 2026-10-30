@@ -1,10 +1,10 @@
+import { apiDelete } from "@/src/components/AuthProvider";
 import ActionButton from "@/src/components/ActionButton/ActionButton";
 import { useAlert } from "@/src/components/AlertProvider";
 import makeDeleteCell from "@/src/components/Table/DeleteCell/makeDeleteCell";
 import ServerTable, { ServerTableColumns, useServerTableRefresh } from "@/src/components/Table/ServerTable";
 import type { CellComponentProps, SortState } from "@/src/components/Table/types";
 import { DateCell, makeLinkedTextCell, makeManagedByCell } from "@/src/components/TableCells/TableCells";
-import { apiDelete, apiPageFetcher } from "@/src/utils/tableQuery";
 import { JoinedProjectView } from "@/types";
 import { Star, StarBorder } from "@mui/icons-material";
 import { Box, IconButton, TableCell } from "@mui/material";
@@ -17,13 +17,12 @@ interface UserProjectTableProps {
 
 const defaultSort: SortState<keyof JoinedProjectView & string> = { columnId: "project_name", direction: "asc" };
 
-const fetchOptions = {
-  searchFields: ["project_name"],
-  tiebreakers: [
-    { columnId: "project_name", direction: "asc" },
-    { columnId: "project_id", direction: "asc" },
-  ] satisfies SortState[],
-};
+const searchFields = ["project_name"];
+
+const tiebreakers: SortState[] = [
+  { columnId: "project_name", direction: "asc" },
+  { columnId: "project_id", direction: "asc" },
+];
 
 /** A filled star on the primary project; admins can star another project to make it primary */
 function makePrimaryProjectCell({ userId, adminView, onChange }: { userId: number; adminView: boolean; onChange: () => void }) {
@@ -67,9 +66,8 @@ function makePrimaryProjectCell({ userId, adminView, onChange }: { userId: numbe
 }
 
 const UserProjectTable = ({ userId, adminView = false }: UserProjectTableProps) => {
-  const cacheKey = `/users/${userId}/projects`;
-  const refresh = useServerTableRefresh(cacheKey);
-  const fetchPage = useMemo(() => apiPageFetcher<JoinedProjectView>(cacheKey, fetchOptions), [cacheKey]);
+  const endpoint = `/users/${userId}/projects`;
+  const refresh = useServerTableRefresh(endpoint);
 
   const columns = useMemo(
     (): ServerTableColumns<JoinedProjectView> => ({
@@ -123,13 +121,14 @@ const UserProjectTable = ({ userId, adminView = false }: UserProjectTableProps) 
 
   return (
     <ServerTable
-      cacheKey={cacheKey}
-      fetchPage={fetchPage}
+      endpoint={endpoint}
       columns={columns}
       defaultSort={defaultSort}
+      tiebreakers={tiebreakers}
       defaultPageSize={10}
       urlPrefix="projects."
       searchLabel="Search by Project Name"
+      searchFields={searchFields}
       emptyMessage="No projects"
     />
   );

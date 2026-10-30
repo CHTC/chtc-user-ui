@@ -4,7 +4,6 @@ import { AuthGuard } from "@/src/components/AuthGuard";
 import ServerTable, { ServerTableColumns } from "@/src/components/Table/ServerTable";
 import type { SortState } from "@/src/components/Table/types";
 import { DateCell, makeIconLinkCell, UrlCell } from "@/src/components/TableCells/TableCells";
-import { apiPageFetcher } from "@/src/utils/tableQuery";
 import type { Project } from "@/types";
 import { Edit } from "@mui/icons-material";
 
@@ -35,21 +34,21 @@ const columns: ServerTableColumns<Project> = {
 // Newest first
 const defaultSort: SortState<keyof Project & string> = { columnId: "id", direction: "desc" };
 
-const fetchPage = apiPageFetcher<Project>("/projects", {
-  searchFields: ["name"],
-  tiebreakers: [{ columnId: "id", direction: "asc" }],
-});
+const searchFields = ["name"];
+
+const tiebreakers: SortState[] = [{ columnId: "id", direction: "asc" }];
 
 function View() {
   return (
     <AuthGuard message="You must be logged in to view projects.">
       <ServerTable
-        cacheKey="/projects"
-        fetchPage={fetchPage}
+        endpoint="/projects"
         columns={columns}
         defaultSort={defaultSort}
+        tiebreakers={tiebreakers}
         defaultPageSize={50}
         searchLabel="Search by Project Name"
+        searchFields={searchFields}
         emptyMessage="No projects found."
       />
     </AuthGuard>

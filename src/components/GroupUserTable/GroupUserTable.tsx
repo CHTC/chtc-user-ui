@@ -1,10 +1,9 @@
-import { apiFetch } from "@/src/components/AuthProvider";
+import { apiDelete, apiFetch } from "@/src/components/AuthProvider";
 import makeDeleteCell from "@/src/components/Table/DeleteCell/makeDeleteCell";
 import ServerTable, { ServerTableColumns, useServerTableRefresh } from "@/src/components/Table/ServerTable";
 import type { SortState } from "@/src/components/Table/types";
 import { makeLinkedTextCell, makeManagedByCell } from "@/src/components/TableCells/TableCells";
 import UserAutocomplete from "@/src/components/UserAutocomplete/UserAutocomplete";
-import { apiDelete, apiPageFetcher } from "@/src/utils/tableQuery";
 import { GroupUserView, User } from "@/types";
 import { Grid, Stack, Typography } from "@mui/material";
 import { useMemo } from "react";
@@ -15,15 +14,13 @@ interface GroupUserTableProps {
 
 const defaultSort: SortState<keyof GroupUserView & string> = { columnId: "name", direction: "asc" };
 
-const fetchOptions = {
-  searchFields: ["name", "netid"],
-  tiebreakers: [{ columnId: "user_id", direction: "asc" }] satisfies SortState[],
-};
+const searchFields = ["name", "netid"];
+
+const tiebreakers: SortState[] = [{ columnId: "user_id", direction: "asc" }];
 
 const GroupUserTable = ({ groupId }: GroupUserTableProps) => {
-  const cacheKey = `/groups/${groupId}/users`;
-  const refresh = useServerTableRefresh(cacheKey);
-  const fetchPage = useMemo(() => apiPageFetcher<GroupUserView>(cacheKey, fetchOptions), [cacheKey]);
+  const endpoint = `/groups/${groupId}/users`;
+  const refresh = useServerTableRefresh(endpoint);
 
   const columns = useMemo(
     (): ServerTableColumns<GroupUserView> => ({
@@ -62,13 +59,14 @@ const GroupUserTable = ({ groupId }: GroupUserTableProps) => {
     <Grid container spacing={3}>
       <Grid size={{ xs: 12, md: 8 }}>
         <ServerTable
-          cacheKey={cacheKey}
-          fetchPage={fetchPage}
+          endpoint={endpoint}
           columns={columns}
           defaultSort={defaultSort}
+          tiebreakers={tiebreakers}
           defaultPageSize={10}
           urlPrefix="users."
           searchLabel="Search by Name or NetID"
+          searchFields={searchFields}
           emptyMessage="No users"
         />
       </Grid>

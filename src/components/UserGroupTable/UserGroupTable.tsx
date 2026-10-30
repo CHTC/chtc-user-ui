@@ -1,8 +1,8 @@
+import { apiDelete } from "@/src/components/AuthProvider";
 import makeDeleteCell from "@/src/components/Table/DeleteCell/makeDeleteCell";
 import ServerTable, { ServerTableColumns, useServerTableRefresh } from "@/src/components/Table/ServerTable";
 import type { SortState } from "@/src/components/Table/types";
 import { makeLinkedTextCell, makeManagedByCell } from "@/src/components/TableCells/TableCells";
-import { apiDelete, apiPageFetcher } from "@/src/utils/tableQuery";
 import { useRevalidateUserAndGroups, userGroupsKey } from "@/src/utils/userCache";
 import { UserGroupView } from "@/types";
 import { useMemo } from "react";
@@ -14,17 +14,15 @@ interface UserGroupTableProps {
 
 const defaultSort: SortState<keyof UserGroupView & string> = { columnId: "name", direction: "asc" };
 
-const fetchOptions = {
-  searchFields: ["name"],
-  tiebreakers: [{ columnId: "group_id", direction: "asc" }] satisfies SortState[],
-};
+const searchFields = ["name"];
+
+const tiebreakers: SortState[] = [{ columnId: "group_id", direction: "asc" }];
 
 const UserGroupTable = ({ userId, adminView = false }: UserGroupTableProps) => {
-  const cacheKey = userGroupsKey(userId);
-  const refresh = useServerTableRefresh(cacheKey);
+  const endpoint = userGroupsKey(userId);
+  const refresh = useServerTableRefresh(endpoint);
   // Removing a group also removes the submit nodes it grants, so refresh the user too.
   const revalidate = useRevalidateUserAndGroups(userId);
-  const fetchPage = useMemo(() => apiPageFetcher<UserGroupView>(cacheKey, fetchOptions), [cacheKey]);
 
   const columns = useMemo(
     (): ServerTableColumns<UserGroupView> => ({
@@ -71,13 +69,14 @@ const UserGroupTable = ({ userId, adminView = false }: UserGroupTableProps) => {
 
   return (
     <ServerTable
-      cacheKey={cacheKey}
-      fetchPage={fetchPage}
+      endpoint={endpoint}
       columns={columns}
       defaultSort={defaultSort}
+      tiebreakers={tiebreakers}
       defaultPageSize={10}
       urlPrefix="groups."
       searchLabel="Search by Group"
+      searchFields={searchFields}
       emptyMessage="No groups"
     />
   );

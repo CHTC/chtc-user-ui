@@ -5,7 +5,6 @@ import ServerTable, { ServerTableColumns } from "@/src/components/Table/ServerTa
 import type { SortState } from "@/src/components/Table/types";
 import { EmailCell, makeIconLinkCell } from "@/src/components/TableCells/TableCells";
 import { formatPhoneNumber } from "@/src/utils/format";
-import { apiPageFetcher } from "@/src/utils/tableQuery";
 import type { PiProjectView } from "@/types";
 import { Edit } from "@mui/icons-material";
 
@@ -29,25 +28,25 @@ const columns: ServerTableColumns<PiProjectView> = {
 // Newest first; the view has no id of its own, so this goes by the project's
 const defaultSort: SortState<keyof PiProjectView & string> = { columnId: "project_id", direction: "desc" };
 
+const searchFields = ["name", "netid"];
+
 // One row per PI per project, so it takes both ids to order rows uniquely
-const fetchPage = apiPageFetcher<PiProjectView>("/pi-projects", {
-  searchFields: ["name", "netid"],
-  tiebreakers: [
-    { columnId: "user_id", direction: "asc" },
-    { columnId: "project_id", direction: "asc" },
-  ],
-});
+const tiebreakers: SortState[] = [
+  { columnId: "user_id", direction: "asc" },
+  { columnId: "project_id", direction: "asc" },
+];
 
 function View() {
   return (
     <AuthGuard message="You must be logged in to view PI projects.">
       <ServerTable
-        cacheKey="/pi-projects"
-        fetchPage={fetchPage}
+        endpoint="/pi-projects"
         columns={columns}
         defaultSort={defaultSort}
+        tiebreakers={tiebreakers}
         defaultPageSize={50}
         searchLabel="Search by Name or NetID"
+        searchFields={searchFields}
         emptyMessage="No PIs found."
       />
     </AuthGuard>
