@@ -1,7 +1,8 @@
+import { useServerTableRefresh } from "@/src/components/Table/ServerTable";
 import { useCallback } from "react";
 import { useSWRConfig } from "swr";
 
-/** SWR keys for a user's record and for the group table driven by the same data. */
+/** SWR key for a user's record, and the endpoint of the group table driven by the same data. */
 export const userKey = (userId: number) => [`/users/${userId}`];
 export const userGroupsKey = (userId: number) => `/users/${userId}/groups`;
 
@@ -12,9 +13,10 @@ export const userGroupsKey = (userId: number) => `/users/${userId}/groups`;
  */
 export function useRevalidateUserAndGroups(userId: number | null) {
   const { mutate } = useSWRConfig();
+  const refreshGroups = useServerTableRefresh(userId ? userGroupsKey(userId) : "");
 
   return useCallback(async () => {
     if (!userId) return;
-    await Promise.all([mutate(userKey(userId)), mutate(userGroupsKey(userId))]);
-  }, [mutate, userId]);
+    await Promise.all([mutate(userKey(userId)), refreshGroups()]);
+  }, [mutate, refreshGroups, userId]);
 }

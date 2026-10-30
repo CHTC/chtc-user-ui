@@ -1,11 +1,15 @@
-import { apiFetch } from "@/src/components/AuthProvider";
-import ActionButton from "@/src/components/ActionButton/ActionButton";
-import EditLink from "@/src/components/EditLink/EditLink";
+import { apiDelete, apiFetch } from "@/src/components/AuthProvider";
+import makeDeleteCell from "@/src/components/Table/DeleteCell/makeDeleteCell";
+import ServerTable, {
+  ServerTableColumns,
+  ServerTableFilter,
+  useServerTableRefresh,
+} from "@/src/components/Table/ServerTable";
+import type { SortState } from "@/src/components/Table/types";
+import { makeLinkedTextCell, makeManagedByCell } from "@/src/components/TableCells/TableCells";
 import UserAutocomplete from "@/src/components/UserAutocomplete/UserAutocomplete";
-import ManagedBySelect from "@/src/components/ManagedBySelect/ManagedBySelect";
-import { useTableFetch } from "@/src/utils/useTableFetch";
 import { JoinedProjectView, RoleEnum, User } from "@/types";
-import { ArrowDropDown, ArrowDropUp, Delete } from "@mui/icons-material";
+import { ArrowDropDown, ArrowDropUp } from "@mui/icons-material";
 import {
   Alert,
   AlertTitle,
@@ -19,22 +23,77 @@ import {
   Select,
   Stack,
   Switch,
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableRow,
   Typography,
 } from "@mui/material";
-import { useState } from "react";
-import EmptyTableMessage from "../EmptyTableMessage/EmptyTableMessage";
+import { useMemo, useState } from "react";
+
+const activeFilter: ServerTableFilter[] = [
+  {
+    id: "active",
+    label: "Active",
+    operator: "is",
+    options: [
+      { value: "true", label: "Active" },
+      { value: "false", label: "Inactive" },
+    ],
+  },
+];
+
+const defaultSort: SortState<keyof JoinedProjectView & string> = { columnId: "name", direction: "asc" };
+
+const searchFields = ["name", "netid", "email1"];
+
+const tiebreakers: SortState[] = [
+  { columnId: "name", direction: "asc" },
+  { columnId: "id", direction: "asc" },
+];
 
 interface ProjectUserTableProps {
   projectId: number;
 }
 
 const ProjectUserTable = ({ projectId }: ProjectUserTableProps) => {
-  const { data: users, mutate } = useTableFetch<JoinedProjectView[]>(`/projects/${projectId}/users?netid=order_by.asc`);
+  const endpoint = `/projects/${projectId}/users`;
+  const refresh = useServerTableRefresh(endpoint);
+
+  const columns = useMemo(
+    (): ServerTableColumns<JoinedProjectView> => ({
+      name: {
+        id: "name",
+        name: "Name",
+        sortable: true,
+        CellComponent: makeLinkedTextCell<JoinedProjectView>({ href: (user) => `/users/edit/?id=${user.id}`, ariaLabel: "Go to user" }),
+      },
+      role: { id: "role", name: "Role", sortable: true },
+      last_note_ticket: { id: "last_note_ticket", name: "Tickets Assigned", sortable: true },
+      email1: { id: "email1", name: "Email", sortable: true },
+      netid: { id: "netid", name: "NetID", sortable: true },
+      active: {
+        id: "active",
+        name: "Active",
+        sortable: true,
+        value: (user) => (user.active == null ? "" : user.active ? "Yes" : "No"),
+      },
+      managed_by: {
+        id: "managed_by",
+        name: "Managed By",
+        CellComponent: makeManagedByCell<JoinedProjectView>({
+          patchUrl: (user) => `/projects/${projectId}/users/${user.id}`,
+          onSuccess: refresh,
+        }),
+      },
+      remove: {
+        id: "remove",
+        name: "Action",
+        CellComponent: makeDeleteCell<JoinedProjectView>({
+          mutate: refresh,
+          handleDelete: (user) => apiDelete(`/projects/${projectId}/users/${user.id}`),
+          confirmButtonProps: { "aria-label": "Remove User" },
+        }),
+      },
+    }),
+    [projectId, refresh],
+  );
 
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [role, setRole] = useState<RoleEnum | "">("");
@@ -67,7 +126,7 @@ const ProjectUserTable = ({ projectId }: ProjectUserTableProps) => {
       setIsPrimary(false);
       setOldPrimary(null);
       setShowAddForm(false);
-      mutate();
+      refresh();
     } finally {
       setIsSubmitting(false);
     }
@@ -189,50 +248,18 @@ const ProjectUserTable = ({ projectId }: ProjectUserTableProps) => {
         </Box>
       </Collapse>
 
-      <Table>
-        <TableHead>
-          <TableRow>
-            <TableCell>Name</TableCell>
-            <TableCell>Role</TableCell>
-            <TableCell>Tickets Assigned</TableCell>
-            <TableCell>Email</TableCell>
-            <TableCell>NetID</TableCell>
-            <TableCell>Active</TableCell>
-            <TableCell>Managed By</TableCell>
-            <TableCell>Action</TableCell>
-          </TableRow>
-        </TableHead>
-        <TableBody>
-          {users && users.length > 0 ?
-            (users || []).map((user) => (
-              <TableRow key={user.id}>
-                <TableCell><EditLink href={`/users/edit/?id=${user.id}`} ariaLabel="Go to user" />{" "}{user.name}</TableCell>
-                <TableCell>{user.role}</TableCell>
-                <TableCell>{user.last_note_ticket}</TableCell>
-                <TableCell>{user.email1}</TableCell>
-                <TableCell>{user.netid}</TableCell>
-                <TableCell>{user.active == null ? "" : user.active ? "Yes" : "No"}</TableCell>
-                <TableCell>
-                  <ManagedBySelect
-                    value={user.managed_by}
-                    patchUrl={`/projects/${projectId}/users/${user.id}`}
-                    onSuccess={mutate}
-                  />
-                </TableCell>
-                <TableCell>
-                  <ActionButton
-                    method="DELETE"
-                    icon={<Delete />}
-                    color="error"
-                    url={`/projects/${projectId}/users/${user.id}`}
-                    onSuccess={mutate}
-                    ariaLabel="Remove User"
-                  />
-                </TableCell>
-              </TableRow>
-            )) : <EmptyTableMessage message="No users" />}
-        </TableBody>
-      </Table>
+      <ServerTable
+        endpoint={endpoint}
+        columns={columns}
+        defaultSort={defaultSort}
+        tiebreakers={tiebreakers}
+        defaultPageSize={5}
+        urlPrefix="users."
+        searchLabel="Search by Name, NetID, or Email"
+        searchFields={searchFields}
+        filters={activeFilter}
+        emptyMessage="No users"
+      />
     </Box>
   );
 };

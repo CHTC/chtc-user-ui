@@ -21,6 +21,7 @@ import type {
   UserForm,
   UserProjectCreate,
 } from "@/types";
+import { apiErrorMessage } from "@/src/utils/formErrors";
 import React, { createContext, useCallback, useContext, useEffect, useState } from "react";
 
 export type LoginResult =
@@ -132,6 +133,14 @@ export async function apiFetch(endpoint: string, options: RequestInit = {}): Pro
     credentials: "include",
     headers,
   });
+}
+
+// makeDeleteCell's handleDelete need the API's error message if it fails
+export async function apiDelete(endpoint: string): Promise<void> {
+  const response = await apiFetch(endpoint, { method: "DELETE" });
+  if (!response.ok) {
+    throw new Error(await apiErrorMessage(response, "Delete failed"));
+  }
 }
 
 function buildQuery(params?: PaginationParams): string {

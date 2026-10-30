@@ -1,65 +1,74 @@
-import { apiFetch } from "@/src/components/AuthProvider";
-import ActionButton from "@/src/components/ActionButton/ActionButton";
-import { Delete } from "@mui/icons-material";
-import EditLink from "@/src/components/EditLink/EditLink";
-import ManagedBySelect from "@/src/components/ManagedBySelect/ManagedBySelect";
+import { apiDelete, apiFetch } from "@/src/components/AuthProvider";
+import makeDeleteCell from "@/src/components/Table/DeleteCell/makeDeleteCell";
+import ServerTable, { ServerTableColumns, useServerTableRefresh } from "@/src/components/Table/ServerTable";
+import type { SortState } from "@/src/components/Table/types";
+import { makeLinkedTextCell, makeManagedByCell } from "@/src/components/TableCells/TableCells";
 import UserAutocomplete from "@/src/components/UserAutocomplete/UserAutocomplete";
-import { useTableFetch } from "@/src/utils/useTableFetch";
 import { GroupUserView, User } from "@/types";
-import { Grid, Stack, Table, TableBody, TableCell, TableHead, TableRow, Typography } from "@mui/material";
-import EmptyTableMessage from "../EmptyTableMessage/EmptyTableMessage";
-
+import { Grid, Stack, Typography } from "@mui/material";
+import { useMemo } from "react";
 
 interface GroupUserTableProps {
   groupId: number;
 }
 
+const defaultSort: SortState<keyof GroupUserView & string> = { columnId: "name", direction: "asc" };
+
+const searchFields = ["name", "netid"];
+
+const tiebreakers: SortState[] = [{ columnId: "user_id", direction: "asc" }];
+
 const GroupUserTable = ({ groupId }: GroupUserTableProps) => {
-  const { data: users, mutate } = useTableFetch<GroupUserView[]>(`/groups/${groupId}/users`);
+  const endpoint = `/groups/${groupId}/users`;
+  const refresh = useServerTableRefresh(endpoint);
+
+  const columns = useMemo(
+    (): ServerTableColumns<GroupUserView> => ({
+      name: {
+        id: "name",
+        name: "Name",
+        sortable: true,
+        CellComponent: makeLinkedTextCell<GroupUserView>({
+          href: (user) => `/users/edit/?id=${user.user_id}`,
+          ariaLabel: "Go to user",
+        }),
+      },
+      netid: { id: "netid", name: "NetID", sortable: true },
+      managed_by: {
+        id: "managed_by",
+        name: "Managed By",
+        CellComponent: makeManagedByCell<GroupUserView>({
+          patchUrl: (user) => `/groups/${groupId}/users/${user.user_id}`,
+          onSuccess: refresh,
+        }),
+      },
+      remove: {
+        id: "remove",
+        name: "Action",
+        CellComponent: makeDeleteCell<GroupUserView>({
+          mutate: refresh,
+          handleDelete: (user) => apiDelete(`/groups/${groupId}/users/${user.user_id}`),
+          confirmButtonProps: { "aria-label": "Remove User" },
+        }),
+      },
+    }),
+    [groupId, refresh],
+  );
 
   return (
     <Grid container spacing={3}>
       <Grid size={{ xs: 12, md: 8 }}>
-        <Table>
-          <TableHead>
-            <TableRow>
-              <TableCell></TableCell>
-              <TableCell>Name</TableCell>
-              <TableCell>NetID</TableCell>
-              <TableCell>Managed By</TableCell>
-              <TableCell>Action</TableCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {users && users.length > 0 ?
-              (users || []).map((user) => (
-                <TableRow key={user.user_id}>
-                  <TableCell>
-                    <EditLink href={`/users/edit/?id=${user.user_id}`} ariaLabel="Go to user" />
-                  </TableCell>
-                  <TableCell>{user.name}</TableCell>
-                  <TableCell>{user.netid}</TableCell>
-                  <TableCell>
-                    <ManagedBySelect
-                      value={user.managed_by ?? "APPLICATION"}
-                      patchUrl={`/groups/${groupId}/users/${user.user_id}`}
-                      onSuccess={mutate}
-                    />
-                  </TableCell>
-                  <TableCell>
-                    <ActionButton
-                      method="DELETE"
-                      icon={<Delete />}
-                      color="error"
-                      url={`/groups/${groupId}/users/${user.user_id}`}
-                      onSuccess={mutate}
-                      ariaLabel="Remove User"
-                    />
-                  </TableCell>
-                </TableRow>
-              )) : <EmptyTableMessage message="No users" />}
-          </TableBody>
-        </Table>
+        <ServerTable
+          endpoint={endpoint}
+          columns={columns}
+          defaultSort={defaultSort}
+          tiebreakers={tiebreakers}
+          defaultPageSize={5}
+          urlPrefix="users."
+          searchLabel="Search by Name or NetID"
+          searchFields={searchFields}
+          emptyMessage="No users"
+        />
       </Grid>
 
       <Grid size={{ xs: 12, md: 4 }}>
@@ -72,7 +81,7 @@ const GroupUserTable = ({ groupId }: GroupUserTableProps) => {
                 method: "POST",
                 body: JSON.stringify({ user_id: user.id }),
               });
-              mutate();
+              refresh();
             }}
           />
         </Stack>

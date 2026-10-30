@@ -1,45 +1,55 @@
 "use client";
 
-import GenericTableView from "@/src/components/GenericTableView/GenericTableView";
-import { createCellRenderer } from "@/src/utils/cellRenderers";
+import { AuthGuard } from "@/src/components/AuthGuard";
+import ServerTable, { ServerTableColumns } from "@/src/components/Table/ServerTable";
+import type { SortState } from "@/src/components/Table/types";
+import { EmailCell, makeIconLinkCell } from "@/src/components/TableCells/TableCells";
+import { formatPhoneNumber } from "@/src/utils/format";
 import type { PiProjectView } from "@/types";
+import { Edit } from "@mui/icons-material";
 
-const headers = ["id", "Name", "Project Name", "Email", "Phone", "NetID"];
-const cellRenderer = createCellRenderer({ editPath: "/users/edit" });
+const columns: ServerTableColumns<PiProjectView> = {
+  edit: {
+    id: "edit",
+    name: "",
+    CellComponent: makeIconLinkCell<PiProjectView>({
+      href: (pi) => `/users/edit?id=${pi.user_id}`,
+      icon: <Edit />,
+      ariaLabel: "Edit user",
+    }),
+  },
+  name: { id: "name", name: "Name", sortable: true },
+  project_name: { id: "project_name", name: "Project Name", sortable: true },
+  email1: { id: "email1", name: "Email", sortable: true, CellComponent: EmailCell },
+  phone1: { id: "phone1", name: "Phone", value: (pi) => (pi.phone1 ? formatPhoneNumber(pi.phone1) : "") },
+  netid: { id: "netid", name: "NetID", sortable: true },
+};
+
+// Newest first; the view has no id of its own, so this goes by the project's
+const defaultSort: SortState<keyof PiProjectView & string> = { columnId: "project_id", direction: "desc" };
+
+const searchFields = ["name", "netid"];
+
+// One row per PI per project, so it takes both ids to order rows uniquely
+const tiebreakers: SortState[] = [
+  { columnId: "user_id", direction: "asc" },
+  { columnId: "project_id", direction: "asc" },
+];
 
 function View() {
   return (
-    <GenericTableView
-      headers={headers}
-      cellRenderer={cellRenderer}
-      sortableColumns={{
-        Name: "name",
-        "Project Name": "project_name",
-        Email: "email1",
-        NetID: "netid",
-      }}
-      query={async (client, opts, searchQuery) => {
-        const queryObj = searchQuery ? { or: `(name.ilike.${searchQuery},netid.ilike.${searchQuery})` } : undefined;
-        const result = await client.getPiProjects({
-          ...opts,
-          ...(queryObj && { query: queryObj }),
-        });
-
-        const data = result.data.map((pi: PiProjectView) => [
-          pi.user_id ?? "",
-          pi.name ?? "",
-          pi.project_name ?? "",
-          pi.email1 ?? "",
-          pi.phone1 ?? "",
-          pi.netid ?? "",
-        ]);
-
-        return { data, totalCount: result.totalCount };
-      }}
-      queryLabel="Search by Name or NetID"
-      timeColumn="Last Modified"
-      unauthenticatedMessage="You must be logged in to view PI projects."
-    />
+    <AuthGuard message="You must be logged in to view PI projects.">
+      <ServerTable
+        endpoint="/pi-projects"
+        columns={columns}
+        defaultSort={defaultSort}
+        tiebreakers={tiebreakers}
+        defaultPageSize={50}
+        searchLabel="Search by Name or NetID"
+        searchFields={searchFields}
+        emptyMessage="No PIs found."
+      />
+    </AuthGuard>
   );
 }
 

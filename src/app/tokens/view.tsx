@@ -1,43 +1,51 @@
 "use client";
 
-import GenericTableView from "@/src/components/GenericTableView/GenericTableView";
-import { createCellRenderer } from "@/src/utils/cellRenderers";
+import { AuthGuard } from "@/src/components/AuthGuard";
+import ServerTable, { ServerTableColumns } from "@/src/components/Table/ServerTable";
+import type { SortState } from "@/src/components/Table/types";
+import { DateCell, makeIconLinkCell } from "@/src/components/TableCells/TableCells";
+import type { TokenGet } from "@/types";
+import { Edit } from "@mui/icons-material";
 
-const headers = ["id", "Created By", "Description", "Created At", "Expires At"];
-const cellRenderer = createCellRenderer({ editPath: "/tokens/edit" });
+const columns: ServerTableColumns<TokenGet> = {
+  edit: {
+    id: "edit",
+    name: "",
+    CellComponent: makeIconLinkCell<TokenGet>({ href: (token) => `/tokens/edit?id=${token.id}`, icon: <Edit />, ariaLabel: "Edit token" }),
+  },
+  created_by: { id: "created_by", name: "Created By", sortable: true },
+  description: { id: "description", name: "Description", sortable: true },
+  created_at: {
+    id: "created_at",
+    name: "Created At",
+    sortable: true,
+    firstSortDirection: "desc",
+    CellComponent: DateCell,
+  },
+  expires_at: { id: "expires_at", name: "Expires At", sortable: true, CellComponent: DateCell },
+};
+
+// Newest first
+const defaultSort: SortState<keyof TokenGet & string> = { columnId: "id", direction: "desc" };
+
+const searchFields = ["description"];
+
+const tiebreakers: SortState[] = [{ columnId: "id", direction: "asc" }];
 
 function View() {
   return (
-    <GenericTableView
-      headers={headers}
-      cellRenderer={cellRenderer}
-      sortableColumns={{
-        "Created By": "created_by",
-        Description: "description",
-        "Created At": { column: "created_at", default: "desc" },
-        "Expires At": "expires_at",
-      }}
-      query={async (client, opts, searchQuery) => {
-        const queryObj = searchQuery ? { or: `(description.ilike.${searchQuery})` } : undefined;
-        const result = await client.getTokens({
-          ...opts,
-          ...(queryObj && { query: queryObj }),
-        });
-
-        const data = result.data.map((token) => [
-          token.id ?? "",
-          token.created_by ?? "",
-          token.description ?? "",
-          token.created_at ?? "",
-          token.expires_at ?? "",
-        ]);
-
-        return { data, totalCount: result.totalCount };
-      }}
-      queryLabel="Search by Description"
-      timeColumn="Created At"
-      unauthenticatedMessage="You must be logged in to view tokens."
-    />
+    <AuthGuard message="You must be logged in to view tokens.">
+      <ServerTable
+        endpoint="/tokens"
+        columns={columns}
+        defaultSort={defaultSort}
+        tiebreakers={tiebreakers}
+        defaultPageSize={50}
+        searchLabel="Search by Description"
+        searchFields={searchFields}
+        emptyMessage="No tokens found."
+      />
+    </AuthGuard>
   );
 }
 
