@@ -5,7 +5,7 @@ import ServerTable, {
   ServerTableFilter,
   useServerTableRefresh,
 } from "@/src/components/Table/ServerTable";
-import type { SortState } from "@/src/components/Table/types";
+import type { SortState } from "@chtc/web-components";
 import { makeLinkedTextCell, makeManagedByCell } from "@/src/components/TableCells/TableCells";
 import UserAutocomplete from "@/src/components/UserAutocomplete/UserAutocomplete";
 import { JoinedProjectView, RoleEnum, User } from "@/types";

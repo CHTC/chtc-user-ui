@@ -1,7 +1,7 @@
 import { apiDelete } from "@/src/components/AuthProvider";
 import makeDeleteCell from "@/src/components/Table/DeleteCell/makeDeleteCell";
 import ServerTable, { ServerTableColumns, useServerTableRefresh } from "@/src/components/Table/ServerTable";
-import type { SortState } from "@/src/components/Table/types";
+import type { SortState } from "@chtc/web-components";
 import { DateCell, makeIconLinkCell, TruncatedTextCell } from "@/src/components/TableCells/TableCells";
 import { Note } from "@/types";
 import { Edit } from "@mui/icons-material";

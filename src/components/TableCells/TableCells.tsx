@@ -2,7 +2,7 @@
 
 import EditLink from "@/src/components/EditLink/EditLink";
 import ManagedBySelect from "@/src/components/ManagedBySelect/ManagedBySelect";
-import type { CellComponentProps, TableData } from "@/src/components/Table/types";
+import type { CellComponentProps, TableData } from "@chtc/web-components";
 import TruncatedCell from "@/src/components/TruncatedCell/TruncatedCell";
 import type { EntityManagerEnum } from "@/types";
 import { IconButton, TableCell } from "@mui/material";

@@ -3,7 +3,7 @@ import ActionButton from "@/src/components/ActionButton/ActionButton";
 import { useAlert } from "@/src/components/AlertProvider";
 import makeDeleteCell from "@/src/components/Table/DeleteCell/makeDeleteCell";
 import ServerTable, { ServerTableColumns, useServerTableRefresh } from "@/src/components/Table/ServerTable";
-import type { CellComponentProps, SortState } from "@/src/components/Table/types";
+import type { CellComponentProps, SortState } from "@chtc/web-components";
 import { DateCell, makeLinkedTextCell, makeManagedByCell } from "@/src/components/TableCells/TableCells";
 import { JoinedProjectView } from "@/types";
 import { Star, StarBorder } from "@mui/icons-material";

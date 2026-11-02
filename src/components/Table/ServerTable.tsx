@@ -14,17 +14,15 @@ import {
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import useSWR, { useSWRConfig } from 'swr';
-import Table from './Table';
 import {
-  ActionConfig,
-  ColumnConfig,
-  SortState,
-  TableData,
-} from '@/src/components/Table/types';
-import {
+  Table,
   DEFAULT_PAGE_SIZE,
   DEFAULT_PAGE_SIZE_OPTIONS,
-} from '@/src/components/Table/constants';
+  type ActionConfig,
+  type ColumnConfig,
+  type SortState,
+  type TableData,
+} from '@chtc/web-components';
 import { apiFetch } from '@/src/components/AuthProvider';
 import { apiErrorMessage } from '@/src/utils/formErrors';
 

@@ -2,7 +2,7 @@
 
 import { AuthGuard } from "@/src/components/AuthGuard";
 import ServerTable, { ServerTableColumns } from "@/src/components/Table/ServerTable";
-import type { SortState } from "@/src/components/Table/types";
+import type { SortState } from "@chtc/web-components";
 import { EmailCell, makeIconLinkCell } from "@/src/components/TableCells/TableCells";
 import { formatPhoneNumber } from "@/src/utils/format";
 import type { PiProjectView } from "@/types";

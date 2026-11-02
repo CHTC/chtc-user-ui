@@ -1,7 +1,7 @@
 import { apiDelete, apiFetch } from "@/src/components/AuthProvider";
 import makeDeleteCell from "@/src/components/Table/DeleteCell/makeDeleteCell";
 import ServerTable, { ServerTableColumns, useServerTableRefresh } from "@/src/components/Table/ServerTable";
-import type { SortState } from "@/src/components/Table/types";
+import type { SortState } from "@chtc/web-components";
 import { makeLinkedTextCell, makeManagedByCell } from "@/src/components/TableCells/TableCells";
 import UserAutocomplete from "@/src/components/UserAutocomplete/UserAutocomplete";
 import { GroupUserView, User } from "@/types";

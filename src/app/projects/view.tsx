@@ -2,7 +2,7 @@
 
 import { AuthGuard } from "@/src/components/AuthGuard";
 import ServerTable, { ServerTableColumns } from "@/src/components/Table/ServerTable";
-import type { SortState } from "@/src/components/Table/types";
+import type { SortState } from "@chtc/web-components";
 import { DateCell, makeIconLinkCell, UrlCell } from "@/src/components/TableCells/TableCells";
 import type { Project } from "@/types";
 import { Edit } from "@mui/icons-material";
