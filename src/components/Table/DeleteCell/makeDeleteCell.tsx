@@ -1,7 +1,7 @@
 import { useAlert } from '@/src/components/AlertProvider';
 import { CellComponentProps, TableData } from '@/src/components/Table/types';
 import DeleteCell from '@/src/components/Table/DeleteCell/DeleteCell';
-import ConfirmButton from '@chtc/web-components/ConfirmButton';
+import { ConfirmButton } from '@chtc/web-components';
 
 interface MakeDeleteCellProps<R extends TableData> {
   mutate: () => void;

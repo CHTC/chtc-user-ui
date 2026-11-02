@@ -1,4 +1,4 @@
-import ConfirmButton from '@chtc/web-components/ConfirmButton';
+import { ConfirmButton } from '@chtc/web-components';
 import { TableCell } from '@mui/material';
 import { Delete } from '@mui/icons-material';
 
