@@ -80,15 +80,20 @@ export async function handleApiError(response: Response, defaultMessage: string)
 export async function apiErrorMessage(response: Response, defaultMessage: string): Promise<string> {
   const error = await handleApiError(response, defaultMessage);
   if (typeof error === "string") return error;
-  if (typeof error.detail === "string") return error.detail;
-  // A FastAPI validation error (422) is a list, one entry per bad field
-  if (Array.isArray(error.detail) && error.detail.length > 0) {
-    return error.detail
-      .map((err) => {
-        const field = err.loc.length > 1 ? err.loc[err.loc.length - 1] : err.loc[0];
-        return field ? `${field}: ${err.msg}` : err.msg;
-      })
-      .join("; ");
+  // The body parsed as JSON but may be anything, e.g. null or a bare string from a proxy
+  if (error && typeof error === "object") {
+    if (typeof error.detail === "string") return error.detail;
+    // A FastAPI validation error (422) is a list, one entry per bad field
+    if (Array.isArray(error.detail) && error.detail.length > 0) {
+      return error.detail
+        .map((err) => {
+          const loc = err?.loc ?? [];
+          const field = loc[loc.length - 1];
+          const msg = err?.msg ?? JSON.stringify(err);
+          return field ? `${field}: ${msg}` : msg;
+        })
+        .join("; ");
+    }
   }
   return `${defaultMessage}: ${response.statusText}`;
 }

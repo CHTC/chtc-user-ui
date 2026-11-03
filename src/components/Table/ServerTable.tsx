@@ -1,5 +1,17 @@
-'use client';
+"use client";
 
+import { apiFetch } from "@/src/components/AuthProvider";
+import { apiErrorMessage } from "@/src/utils/formErrors";
+import useDebounce from "@/src/utils/useDebounce";
+import {
+  DEFAULT_PAGE_SIZE,
+  DEFAULT_PAGE_SIZE_OPTIONS,
+  Table,
+  type ActionConfig,
+  type ColumnConfig,
+  type SortState,
+  type TableData,
+} from "@chtc/web-components";
 import {
   Alert,
   Box,
@@ -10,41 +22,24 @@ import {
   Select,
   TextField,
   Typography,
-} from '@mui/material';
-import { usePathname, useRouter, useSearchParams } from 'next/navigation';
-import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import useSWR, { useSWRConfig } from 'swr';
-import {
-  Table,
-  DEFAULT_PAGE_SIZE,
-  DEFAULT_PAGE_SIZE_OPTIONS,
-  type ActionConfig,
-  type ColumnConfig,
-  type SortState,
-  type TableData,
-} from '@chtc/web-components';
-import { apiFetch } from '@/src/components/AuthProvider';
-import { apiErrorMessage } from '@/src/utils/formErrors';
+} from "@mui/material";
+import { useSearchParams } from "next/navigation";
+import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import useSWR, { useSWRConfig } from "swr";
 
 // Sorting happens on the server, so a column only says whether it can be sorted by its id
-export type ServerColumnConfig<R extends TableData> = Omit<
-  ColumnConfig<R>,
-  'sort' | 'onSort'
-> & {
+export type ServerColumnConfig<R extends TableData> = Omit<ColumnConfig<R>, "sort" | "onSort"> & {
   sortable?: boolean;
-  firstSortDirection?: SortState['direction'];
+  firstSortDirection?: SortState["direction"];
 };
 
-export type ServerTableColumns<R extends TableData> = Record<
-  string,
-  ServerColumnConfig<R> | ActionConfig<R>
->;
+export type ServerTableColumns<R extends TableData> = Record<string, ServerColumnConfig<R> | ActionConfig<R>>;
 
 export interface ServerTableFilter {
   id: string;
   label: string;
   options: { value: string; label: string }[];
-  operator?: 'eq' | 'is'; // default is eq
+  operator?: "eq" | "is"; // default is eq
 }
 
 export interface ServerTableProps<R extends TableData> {
@@ -73,17 +68,17 @@ interface TablePage<R> {
   totalCount: number;
 }
 
-const isServerTableKey = (endpoint: string) => (key: unknown) =>
-  Array.isArray(key) && key[0] === endpoint;
+// Something with URLSearchParams.get: the router's ReadonlyURLSearchParams or a fresh URLSearchParams
+interface ParamSource {
+  get(name: string): string | null;
+}
+
+const isServerTableKey = (endpoint: string) => (key: unknown) => Array.isArray(key) && key[0] === endpoint;
 
 export function useServerTableRefresh(endpoint: string) {
   const { mutate } = useSWRConfig();
-  return useCallback(
-    () => mutate(isServerTableKey(endpoint)),
-    [mutate, endpoint]
-  );
+  return useCallback(() => mutate(isServerTableKey(endpoint)), [mutate, endpoint]);
 }
-
 
 const ServerTable = <R extends TableData>(props: ServerTableProps<R>) => {
   // Reading URL params needs a Suspense boundary for static export
@@ -100,15 +95,13 @@ const ServerTableContent = <R extends TableData>({
   defaultSort,
   tiebreakers,
   defaultPageSize = DEFAULT_PAGE_SIZE,
-  urlPrefix = '',
+  urlPrefix = "",
   searchLabel,
   searchFields,
   filters,
-  emptyMessage = 'No results',
+  emptyMessage = "No results",
 }: ServerTableProps<R>) => {
   const searchParams = useSearchParams();
-  const router = useRouter();
-  const pathname = usePathname();
 
   const keys = useMemo(
     () => ({
@@ -118,83 +111,76 @@ const ServerTableContent = <R extends TableData>({
       search: `${urlPrefix}q`,
       filter: (id: string) => `${urlPrefix}${id}`,
     }),
-    [urlPrefix]
+    [urlPrefix],
   );
 
   const sortableColumns = useMemo(
     () =>
       Object.values(columns)
-        .filter((column) => 'sortable' in column && column.sortable)
+        .filter((column) => "sortable" in column && column.sortable)
         .map((column) => column.id),
-    [columns]
+    [columns],
   );
 
-  const query = useMemo((): TableQuery => {
-    const page = parseInt(searchParams.get(keys.page) ?? '', 10);
-    const pageSize = parseInt(searchParams.get(keys.pageSize) ?? '', 10);
+  const parseQuery = useCallback(
+    (params: ParamSource): TableQuery => {
+      const page = parseInt(params.get(keys.page) ?? "", 10);
+      const pageSize = parseInt(params.get(keys.pageSize) ?? "", 10);
 
-    return {
-      page: page >= 1 ? page - 1 : 0,
-      pageSize: DEFAULT_PAGE_SIZE_OPTIONS.includes(pageSize)
-        ? pageSize
-        : defaultPageSize,
-      sort:
-        parseSort(searchParams.get(keys.sort), sortableColumns) ?? defaultSort,
-      search: searchParams.get(keys.search) ?? '',
-      filters: Object.fromEntries(
-        (filters ?? []).flatMap((filter) => {
-          const value = searchParams.get(keys.filter(filter.id));
-          return value !== null &&
-            filter.options.some((option) => option.value === value)
-            ? [[filter.id, value]]
-            : [];
-        })
-      ),
-    };
-  }, [searchParams, keys, defaultPageSize, defaultSort, sortableColumns, filters]);
+      return {
+        page: page >= 1 ? page - 1 : 0,
+        pageSize: DEFAULT_PAGE_SIZE_OPTIONS.includes(pageSize) ? pageSize : defaultPageSize,
+        sort: parseSort(params.get(keys.sort), sortableColumns) ?? defaultSort,
+        search: params.get(keys.search) ?? "",
+        filters: Object.fromEntries(
+          (filters ?? []).flatMap((filter) => {
+            const value = params.get(keys.filter(filter.id));
+            return value !== null && filter.options.some((option) => option.value === value)
+              ? [[filter.id, value]]
+              : [];
+          }),
+        ),
+      };
+    },
+    [keys, defaultPageSize, defaultSort, sortableColumns, filters],
+  );
+
+  const query = useMemo(() => parseQuery(searchParams), [parseQuery, searchParams]);
 
   const setQuery = useCallback(
     (changes: Partial<TableQuery>) => {
-      const next = { ...query, ...changes };
+      // Start from the live URL rather than this render's snapshot, so two changes that land
+      // before the next render (a debounced search and a filter click, say) don't undo each other
+      const params = new URLSearchParams(window.location.search);
+      const next = { ...parseQuery(params), ...changes };
 
       if (changes.page === undefined) {
         next.page = 0;
       }
 
-      const params = new URLSearchParams(searchParams.toString());
       const set = (key: string, value: string | undefined) =>
         value === undefined ? params.delete(key) : params.set(key, value);
 
       set(keys.page, next.page > 0 ? String(next.page + 1) : undefined);
-      set(
-        keys.pageSize,
-        next.pageSize !== defaultPageSize ? String(next.pageSize) : undefined
-      );
-      set(
-        keys.sort,
-        next.sort && !sameSort(next.sort, defaultSort)
-          ? formatSort(next.sort)
-          : undefined
-      );
+      set(keys.pageSize, next.pageSize !== defaultPageSize ? String(next.pageSize) : undefined);
+      set(keys.sort, next.sort && !sameSort(next.sort, defaultSort) ? formatSort(next.sort) : undefined);
       set(keys.search, next.search || undefined);
-      (filters ?? []).forEach((filter) =>
-        set(keys.filter(filter.id), next.filters[filter.id])
-      );
+      (filters ?? []).forEach((filter) => set(keys.filter(filter.id), next.filters[filter.id]));
 
       const queryString = params.toString();
+      const { pathname } = window.location;
 
-      router.replace(queryString ? `${pathname}?${queryString}` : pathname, {
-        scroll: false,
-      });
+      // Table state is client-side only, so update the URL in place; Next keeps useSearchParams in
+      // sync with replaceState and doesn't re-run the route (which would reset the page title)
+      window.history.replaceState(null, "", queryString ? `${pathname}?${queryString}` : pathname);
     },
-    [query, searchParams, keys, defaultPageSize, defaultSort, filters, router, pathname]
+    [parseQuery, keys, defaultPageSize, defaultSort, filters],
   );
 
   const { data, error, isLoading } = useSWR(
     [endpoint, query],
-    ([, q]: [string, TableQuery]) =>
-      fetchPage<R>(endpoint, q, { tiebreakers, searchFields, filters }),
-    { keepPreviousData: true }
+    ([, q]: [string, TableQuery]) => fetchPage<R>(endpoint, q, { tiebreakers, searchFields, filters }),
+    { keepPreviousData: true },
   );
 
   // Step back when the page runs past the end, e.g. after deleting the last row on the last page
@@ -207,8 +193,8 @@ const ServerTableContent = <R extends TableData>({
   const tableColumns = useMemo(
     () =>
       Object.values(columns).map((column) => {
-        if (!('sortable' in column)) return column;
-        const { sortable, firstSortDirection = 'asc', ...rest } = column;
+        if (!("sortable" in column)) return column;
+        const { sortable, firstSortDirection = "asc", ...rest } = column;
         if (!sortable) return rest;
         return {
           ...rest,
@@ -224,7 +210,7 @@ const ServerTableContent = <R extends TableData>({
             }),
         };
       }),
-    [columns, query.sort, setQuery]
+    [columns, query.sort, setQuery],
   );
 
   const rows = data?.data ?? [];
@@ -233,33 +219,25 @@ const ServerTableContent = <R extends TableData>({
   return (
     <Box>
       {(searchLabel || filters?.length) && (
-        <Box sx={{ display: 'flex', gap: 2, mb: 2, flexWrap: 'wrap' }}>
+        <Box sx={{ display: "flex", gap: 2, mb: 2, flexWrap: "wrap" }}>
           {searchLabel && (
-            <SearchField
-              label={searchLabel}
-              value={query.search}
-              onChange={(search) => setQuery({ search })}
-            />
+            <SearchField label={searchLabel} value={query.search} onChange={(search) => setQuery({ search })} />
           )}
           {filters?.map((filter) => (
-            <FormControl key={filter.id} size='small' sx={{ minWidth: 160 }}>
-              <InputLabel id={`${urlPrefix}${filter.id}-filter`}>
-                {filter.label}
-              </InputLabel>
+            <FormControl key={filter.id} size="small" sx={{ minWidth: 160 }}>
+              <InputLabel id={`${urlPrefix}${filter.id}-filter`}>{filter.label}</InputLabel>
               <Select
                 labelId={`${urlPrefix}${filter.id}-filter`}
                 label={filter.label}
-                value={query.filters[filter.id] ?? ''}
+                value={query.filters[filter.id] ?? ""}
                 onChange={(e) => {
                   const { [filter.id]: _previous, ...others } = query.filters;
                   setQuery({
-                    filters: e.target.value
-                      ? { ...others, [filter.id]: e.target.value }
-                      : others,
+                    filters: e.target.value ? { ...others, [filter.id]: e.target.value } : others,
                   });
                 }}
               >
-                <MenuItem value=''>All</MenuItem>
+                <MenuItem value="">All</MenuItem>
                 {filter.options.map((option) => (
                   <MenuItem key={option.value} value={option.value}>
                     {option.label}
@@ -272,12 +250,11 @@ const ServerTableContent = <R extends TableData>({
       )}
 
       {error && (
-        <Alert severity='error' sx={{ mb: 2 }}>
-          {error instanceof Error ? error.message : 'Failed to load data'}
+        <Alert severity="error" sx={{ mb: 2 }}>
+          {error instanceof Error ? error.message : "Failed to load data"}
         </Alert>
       )}
 
-   
       <Box sx={{ height: 4 }}>{isLoading && <LinearProgress />}</Box>
 
       <Table
@@ -298,13 +275,16 @@ const ServerTableContent = <R extends TableData>({
       />
 
       {!isLoading && !error && rows.length === 0 && (
-        <Typography color='text.secondary' sx={{ p: 2, textAlign: 'center' }}>
+        <Typography color="text.secondary" sx={{ p: 2, textAlign: "center" }}>
           {emptyMessage}
         </Typography>
       )}
     </Box>
   );
 };
+
+// The API splits an or=(...) group on commas and brackets it with parentheses, so those can't be searched for
+const UNSEARCHABLE = /[,()]/;
 
 /**
  * Page fetch helper for translating props and making list requests
@@ -316,7 +296,7 @@ async function fetchPage<R>(
     tiebreakers = [],
     searchFields = [],
     filters = [],
-  }: Pick<ServerTableProps<TableData>, 'tiebreakers' | 'searchFields' | 'filters'>
+  }: Pick<ServerTableProps<TableData>, "tiebreakers" | "searchFields" | "filters">,
 ): Promise<TablePage<R>> {
   const params = new URLSearchParams({
     page: String(query.page),
@@ -331,46 +311,37 @@ async function fetchPage<R>(
     params.append(columnId, `order_by.${direction}`);
   });
 
-  // The API splits or=(...) on commas, so they can't appear in the search term
-  const search = query.search.replace(/[,()]/g, ' ').trim();
+  const search = query.search.replace(new RegExp(UNSEARCHABLE.source, "g"), " ").replace(/\s+/g, " ").trim();
   if (search && searchFields.length > 0) {
-    params.append(
-      'or',
-      `(${searchFields.map((field) => `${field}.ilike.${search}`).join(',')})`
-    );
+    params.append("or", `(${searchFields.map((field) => `${field}.ilike.${search}`).join(",")})`);
   }
 
   Object.entries(query.filters).forEach(([id, value]) => {
-    const operator = filters.find((filter) => filter.id === id)?.operator ?? 'eq';
+    const operator = filters.find((filter) => filter.id === id)?.operator ?? "eq";
     params.append(id, `${operator}.${value}`);
   });
 
   const response = await apiFetch(`${endpoint}?${params}`);
   if (!response.ok) {
-    throw new Error(await apiErrorMessage(response, 'Failed to load data'));
+    throw new Error(await apiErrorMessage(response, "Failed to load data"));
   }
 
   return {
     data: await response.json(),
-    totalCount: parseInt(response.headers.get('X-Total-Count') ?? '0', 10),
+    totalCount: parseInt(response.headers.get("X-Total-Count") ?? "0", 10),
   };
 }
 
 // Sorts are written to the URL as the column id, prefixed with "-" when descending
 function formatSort(sort: SortState): string {
-  return `${sort.direction === 'desc' ? '-' : ''}${sort.columnId}`;
+  return `${sort.direction === "desc" ? "-" : ""}${sort.columnId}`;
 }
 
-function parseSort(
-  value: string | null,
-  sortableColumns: string[]
-): SortState | undefined {
+function parseSort(value: string | null, sortableColumns: string[]): SortState | undefined {
   if (!value) return undefined;
-  const direction = value.startsWith('-') ? 'desc' : 'asc';
-  const columnId = value.replace(/^-/, '');
-  return sortableColumns.includes(columnId)
-    ? { columnId, direction }
-    : undefined;
+  const direction = value.startsWith("-") ? "desc" : "asc";
+  const columnId = value.replace(/^-/, "");
+  return sortableColumns.includes(columnId) ? { columnId, direction } : undefined;
 }
 
 function sameSort(a: SortState, b: SortState | undefined): boolean {
@@ -387,39 +358,40 @@ const SearchField = ({
   onChange: (value: string) => void;
 }) => {
   const [input, setInput] = useState(value);
-  const timer = useRef<ReturnType<typeof setTimeout>>(undefined);
-  const lastReported = useRef(value);
-  // The debounce timer fires after other URL changes (a filter, the Back button) may have
-  // happened, so it reads the latest onChange rather than the one captured on the keystroke
-  const onChangeRef = useRef(onChange);
-  useEffect(() => {
-    onChangeRef.current = onChange;
-  }, [onChange]);
+  const debounced = useDebounce(input, 300);
 
-  // The URL changed from elsewhere, e.g. the Back button: show it and drop any pending keystroke
+  // The debounce effect only runs when the debounced text changes, so it reads the latest
+  // value and onChange through a ref instead of listing them as dependencies
+  const latest = useRef({ value, onChange });
+  useEffect(() => {
+    latest.current = { value, onChange };
+  }, [value, onChange]);
+
+  // What this field last wrote to the URL, so a URL change it caused doesn't clobber newer typing
+  const lastReported = useRef(value);
+
+  useEffect(() => {
+    if (debounced !== latest.current.value) {
+      lastReported.current = debounced;
+      latest.current.onChange(debounced);
+    }
+  }, [debounced]);
+
+  // The URL changed from elsewhere, e.g. the Back button: show it
   useEffect(() => {
     if (value !== lastReported.current) {
-      clearTimeout(timer.current);
       lastReported.current = value;
       setInput(value);
     }
   }, [value]);
-  useEffect(() => () => clearTimeout(timer.current), []);
 
   return (
     <TextField
       label={label}
-      size='small'
+      size="small"
       value={input}
-      onChange={(e) => {
-        const next = e.target.value;
-        setInput(next);
-        clearTimeout(timer.current);
-        timer.current = setTimeout(() => {
-          lastReported.current = next;
-          onChangeRef.current(next);
-        }, 300); // debounce
-      }}
+      onChange={(e) => setInput(e.target.value)}
+      helperText={UNSEARCHABLE.test(input) ? "Commas and parentheses are ignored" : undefined}
       sx={{ width: 300 }}
     />
   );

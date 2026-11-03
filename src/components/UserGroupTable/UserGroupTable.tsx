@@ -58,7 +58,7 @@ const UserGroupTable = ({ userId, adminView = false }: UserGroupTableProps) => {
           CellComponent: makeDeleteCell<UserGroupView>({
             mutate: revalidate,
             deleteUrl: (group) => `/groups/${group.group_id}/users/${userId}`,
-            confirmButtonProps: { "aria-label": "Remove from Group" },
+            ariaLabel: "Remove from Group",
           }),
         },
       }),
