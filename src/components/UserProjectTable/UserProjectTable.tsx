@@ -110,7 +110,7 @@ const UserProjectTable = ({ userId, adminView = false }: UserProjectTableProps) 
           CellComponent: makeDeleteCell<JoinedProjectView>({
             mutate: refresh,
             deleteUrl: (project) => `/projects/${project.project_id}/users/${userId}`,
-            confirmButtonProps: { "aria-label": "Remove from Project" },
+            ariaLabel: "Remove from Project",
           }),
         },
       }),

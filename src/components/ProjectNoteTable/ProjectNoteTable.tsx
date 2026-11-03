@@ -44,7 +44,7 @@ const ProjectNoteTable = ({ projectId }: ProjectNoteTableProps) => {
         CellComponent: makeDeleteCell<Note>({
           mutate: refresh,
           deleteUrl: (note) => `/projects/${projectId}/notes/${note.id}`,
-          confirmButtonProps: { "aria-label": "Delete Note" },
+          ariaLabel: "Delete Note",
         }),
       },
     }),
