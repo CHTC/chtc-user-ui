@@ -3,22 +3,14 @@
 import type {
   Group,
   GroupCreateUpdate,
-  JoinedProjectView,
   Note,
   NoteCreate,
-  PaginatedResponse,
-  PaginationParams,
-  PiProjectView,
   Project,
   ProjectCreateUpdate,
-  RouteGet,
-  SubmitNode,
-  TokenGet,
   TokenGetFull,
   TokenPost,
   User,
   UserCreate,
-  UserForm,
   UserProjectCreate,
 } from "@/types";
 import React, { createContext, useCallback, useContext, useEffect, useState } from "react";
@@ -39,50 +31,32 @@ export type ApiClient = {
   getCurrentUser: () => Promise<User>;
 
   // Users
-  getUsers: (params?: PaginationParams) => Promise<PaginatedResponse<User[]>>;
   getUser: (userId: number) => Promise<User>;
   createUser: (user: UserCreate) => Promise<User>;
   deleteUser: (userId: number) => Promise<void>;
-  getUserProjects: (userId: number, params?: PaginationParams) => Promise<JoinedProjectView[]>;
-  getUserApplications: (params?: PaginationParams) => Promise<PaginatedResponse<UserForm[]>>;
 
   // Groups
-  getGroups: (params?: PaginationParams) => Promise<PaginatedResponse<Group[]>>;
   getGroup: (groupId: number) => Promise<Group>;
   createGroup: (group: GroupCreateUpdate) => Promise<Group>;
   updateGroup: (groupId: number, group: GroupCreateUpdate) => Promise<Group>;
   deleteGroup: (groupId: number) => Promise<void>;
-  getGroupUsers: (groupId: number, params?: PaginationParams) => Promise<User[]>;
   addUserToGroup: (groupId: number, userId: number) => Promise<Record<string, unknown>>;
   removeUserFromGroup: (groupId: number, userId: number) => Promise<void>;
 
   // Projects
-  getProjects: (params?: PaginationParams) => Promise<PaginatedResponse<Project[]>>;
   getProject: (projectId: number) => Promise<Project>;
   createProject: (project: ProjectCreateUpdate) => Promise<Project>;
   updateProject: (projectId: number, project: ProjectCreateUpdate) => Promise<Project>;
   deleteProject: (projectId: number) => Promise<void>;
-  getProjectUsers: (projectId: number, params?: PaginationParams) => Promise<JoinedProjectView[]>;
   addUserToProject: (projectId: number, userProject: UserProjectCreate) => Promise<Record<string, unknown>>;
   removeUserFromProject: (projectId: number, userId: number) => Promise<void>;
-  getProjectNotes: (projectId: number, params?: PaginationParams) => Promise<Note[]>;
   addNoteToProject: (projectId: number, note: NoteCreate) => Promise<Note>;
   deleteNoteFromProject: (projectId: number, noteId: number) => Promise<void>;
 
-  // PI Projects
-  getPiProjects: (params?: PaginationParams) => Promise<PaginatedResponse<PiProjectView[]>>;
-
-  // Submit Nodes
-  getSubmitNodes: (params?: PaginationParams) => Promise<PaginatedResponse<SubmitNode[]>>;
-
   // Tokens
-  getTokens: (params?: PaginationParams) => Promise<PaginatedResponse<TokenGet[]>>;
   getToken: (tokenId: number) => Promise<TokenGetFull>;
   createToken: (token: TokenPost) => Promise<TokenGetFull>;
   deleteToken: (tokenId: number) => Promise<void>;
-
-  // Routes
-  getRoutes: (params?: PaginationParams) => Promise<PaginatedResponse<RouteGet[]>>;
 };
 
 type AuthContextValue = {
@@ -134,28 +108,6 @@ export async function apiFetch(endpoint: string, options: RequestInit = {}): Pro
   });
 }
 
-function buildQuery(params?: PaginationParams): string {
-  if (!params) return "";
-  const query = new URLSearchParams();
-  if (params.page !== undefined) query.append("page", params.page.toString());
-  if (params.page_size !== undefined) query.append("page_size", params.page_size.toString());
-  if (params.query) {
-    Object.entries(params.query).forEach(([key, value]) => {
-      if (Array.isArray(value)) {
-        // Support duplicate keys by appending each value
-        value.forEach((v) => query.append(key, v));
-      } else {
-        query.append(key, value);
-      }
-    });
-  }
-  // Add sorting: uses format column=order_by.asc or column=order_by.desc
-  if (params.sortColumn && params.sortDirection) {
-    query.append(params.sortColumn, `order_by.${params.sortDirection}`);
-  }
-  return query.toString() ? `?${query}` : "";
-}
-
 export function AuthClientProvider({ children }: { children: React.ReactNode }) {
 
   const [loading, setLoading] = useState(true);
@@ -197,14 +149,6 @@ export function AuthClientProvider({ children }: { children: React.ReactNode }) 
     }, []),
 
     // Users
-    getUsers: useCallback(async (params?: PaginationParams): Promise<PaginatedResponse<User[]>> => {
-      const response = await apiFetch(`/users${buildQuery(params)}`);
-      if (!response.ok) throw new Error(`Failed to get users: ${response.statusText}`);
-      const totalCount = parseInt(response.headers.get("X-Total-Count") || "0", 10);
-      const data = await response.json();
-      return { data, totalCount };
-    }, []),
-
     getUser: useCallback(async (userId: number): Promise<User> => {
       const response = await apiFetch(`/users/${userId}`);
       if (!response.ok) throw new Error(`Failed to get user: ${response.statusText}`);
@@ -225,29 +169,7 @@ export function AuthClientProvider({ children }: { children: React.ReactNode }) 
       if (!response.ok) throw new Error(`Failed to delete user: ${response.statusText}`);
     }, []),
 
-    getUserProjects: useCallback(async (userId: number, params?: PaginationParams): Promise<JoinedProjectView[]> => {
-      const response = await apiFetch(`/users/${userId}/projects${buildQuery(params)}`);
-      if (!response.ok) throw new Error(`Failed to get user projects: ${response.statusText}`);
-      return response.json();
-    }, []),
-
-    getUserApplications: useCallback(async (params?: PaginationParams): Promise<PaginatedResponse<UserForm[]>> => {
-      const response = await apiFetch(`/forms/user-applications${buildQuery(params)}`);
-      if (!response.ok) throw new Error(`Failed to get user applications: ${response.statusText}`);
-      const totalCount = parseInt(response.headers.get("X-Total-Count") || "0", 10);
-      const data = await response.json();
-      return { data, totalCount };
-    }, []),
-
     // Groups
-    getGroups: useCallback(async (params?: PaginationParams): Promise<PaginatedResponse<Group[]>> => {
-      const response = await apiFetch(`/groups${buildQuery(params)}`);
-      if (!response.ok) throw new Error(`Failed to get groups: ${response.statusText}`);
-      const totalCount = parseInt(response.headers.get("X-Total-Count") || "0", 10);
-      const data = await response.json();
-      return { data, totalCount };
-    }, []),
-
     getGroup: useCallback(async (groupId: number): Promise<Group> => {
       const response = await apiFetch(`/groups/${groupId}`);
       if (!response.ok) throw new Error(`Failed to get group: ${response.statusText}`);
@@ -277,12 +199,6 @@ export function AuthClientProvider({ children }: { children: React.ReactNode }) 
       if (!response.ok) throw new Error(`Failed to delete group: ${response.statusText}`);
     }, []),
 
-    getGroupUsers: useCallback(async (groupId: number, params?: PaginationParams): Promise<User[]> => {
-      const response = await apiFetch(`/groups/${groupId}/users${buildQuery(params)}`);
-      if (!response.ok) throw new Error(`Failed to get group users: ${response.statusText}`);
-      return response.json();
-    }, []),
-
     addUserToGroup: useCallback(async (groupId: number, userId: number): Promise<Record<string, unknown>> => {
       const response = await apiFetch(`/groups/${groupId}/users`, {
         method: "POST",
@@ -298,14 +214,6 @@ export function AuthClientProvider({ children }: { children: React.ReactNode }) 
     }, []),
 
     // Projects
-    getProjects: useCallback(async (params?: PaginationParams): Promise<PaginatedResponse<Project[]>> => {
-      const response = await apiFetch(`/projects${buildQuery(params)}`);
-      if (!response.ok) throw new Error(`Failed to get projects: ${response.statusText}`);
-      const totalCount = parseInt(response.headers.get("X-Total-Count") || "0", 10);
-      const data = await response.json();
-      return { data, totalCount };
-    }, []),
-
     getProject: useCallback(async (projectId: number): Promise<Project> => {
       const response = await apiFetch(`/projects/${projectId}`);
       if (!response.ok) throw new Error(`Failed to get project: ${response.statusText}`);
@@ -335,12 +243,6 @@ export function AuthClientProvider({ children }: { children: React.ReactNode }) 
       if (!response.ok) throw new Error(`Failed to delete project: ${response.statusText}`);
     }, []),
 
-    getProjectUsers: useCallback(async (projectId: number, params?: PaginationParams): Promise<JoinedProjectView[]> => {
-      const response = await apiFetch(`/projects/${projectId}/users${buildQuery(params)}`);
-      if (!response.ok) throw new Error(`Failed to get project users: ${response.statusText}`);
-      return response.json();
-    }, []),
-
     addUserToProject: useCallback(
       async (projectId: number, userProject: UserProjectCreate): Promise<Record<string, unknown>> => {
         const response = await apiFetch(`/projects/${projectId}/users`, {
@@ -358,12 +260,6 @@ export function AuthClientProvider({ children }: { children: React.ReactNode }) 
       if (!response.ok) throw new Error(`Failed to remove user from project: ${response.statusText}`);
     }, []),
 
-    getProjectNotes: useCallback(async (projectId: number, params?: PaginationParams): Promise<Note[]> => {
-      const response = await apiFetch(`/projects/${projectId}/notes${buildQuery(params)}`);
-      if (!response.ok) throw new Error(`Failed to get project notes: ${response.statusText}`);
-      return response.json();
-    }, []),
-
     addNoteToProject: useCallback(async (projectId: number, note: NoteCreate): Promise<Note> => {
       const response = await apiFetch(`/projects/${projectId}/notes`, {
         method: "POST",
@@ -378,33 +274,7 @@ export function AuthClientProvider({ children }: { children: React.ReactNode }) 
       if (!response.ok) throw new Error(`Failed to delete note from project: ${response.statusText}`);
     }, []),
 
-    // PI Projects
-    getPiProjects: useCallback(async (params?: PaginationParams): Promise<PaginatedResponse<PiProjectView[]>> => {
-      const response = await apiFetch(`/pi-projects${buildQuery(params)}`);
-      if (!response.ok) throw new Error(`Failed to get PI projects: ${response.statusText}`);
-      const totalCount = parseInt(response.headers.get("X-Total-Count") || "0", 10);
-      const data = await response.json();
-      return { data, totalCount };
-    }, []),
-
-    // Submit Nodes
-    getSubmitNodes: useCallback(async (params?: PaginationParams): Promise<PaginatedResponse<SubmitNode[]>> => {
-      const response = await apiFetch(`/submit_nodes${buildQuery(params)}`);
-      if (!response.ok) throw new Error(`Failed to get submit nodes: ${response.statusText}`);
-      const totalCount = parseInt(response.headers.get("X-Total-Count") || "0", 10);
-      const data = await response.json();
-      return { data, totalCount };
-    }, []),
-
     // Tokens
-    getTokens: useCallback(async (params?: PaginationParams): Promise<PaginatedResponse<TokenGet[]>> => {
-      const response = await apiFetch(`/tokens${buildQuery(params)}`);
-      if (!response.ok) throw new Error(`Failed to get tokens: ${response.statusText}`);
-      const totalCount = parseInt(response.headers.get("X-Total-Count") || "0", 10);
-      const data = await response.json();
-      return { data, totalCount };
-    }, []),
-
     getToken: useCallback(async (tokenId: number): Promise<TokenGetFull> => {
       const response = await apiFetch(`/tokens/${tokenId}`);
       if (!response.ok) throw new Error(`Failed to get token: ${response.statusText}`);
@@ -423,15 +293,6 @@ export function AuthClientProvider({ children }: { children: React.ReactNode }) 
     deleteToken: useCallback(async (tokenId: number): Promise<void> => {
       const response = await apiFetch(`/tokens/${tokenId}`, { method: "DELETE" });
       if (!response.ok) throw new Error(`Failed to delete token: ${response.statusText}`);
-    }, []),
-
-    // Routes
-    getRoutes: useCallback(async (params?: PaginationParams): Promise<PaginatedResponse<RouteGet[]>> => {
-      const response = await apiFetch(`/routes${buildQuery(params)}`);
-      if (!response.ok) throw new Error(`Failed to get routes: ${response.statusText}`);
-      const totalCount = parseInt(response.headers.get("X-Total-Count") || "0", 10);
-      const data = await response.json();
-      return { data, totalCount };
     }, []),
   };
 
