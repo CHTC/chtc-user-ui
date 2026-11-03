@@ -70,18 +70,23 @@ export function makeLinkedTextCell<R extends TableData>({ href, ariaLabel }: Lin
 export function makeManagedByCell<R extends TableData>({
   patchUrl,
   onSuccess,
+  show,
 }: {
   patchUrl: (row: R) => string;
   onSuccess?: () => void;
+  /** Leaves the cell empty for rows without a direct membership to manage */
+  show?: (row: R) => boolean;
 }) {
   const ManagedByCell = ({ row, value }: CellComponentProps<R, keyof R>) => (
     <TableCell>
-      <ManagedBySelect
-        key={patchUrl(row)}
-        value={(value as EntityManagerEnum | null) ?? "APPLICATION"}
-        patchUrl={patchUrl(row)}
-        onSuccess={onSuccess}
-      />
+      {(!show || show(row)) && (
+        <ManagedBySelect
+          key={patchUrl(row)}
+          value={(value as EntityManagerEnum | null) ?? "APPLICATION"}
+          patchUrl={patchUrl(row)}
+          onSuccess={onSuccess}
+        />
+      )}
     </TableCell>
   );
   ManagedByCell.displayName = "ManagedByCell";

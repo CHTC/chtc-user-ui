@@ -1,11 +1,14 @@
 "use client";
 
 import { AuthGuard } from "@/src/components/AuthGuard";
+import { useAuthClient } from "@/src/components/AuthProvider";
 import ServerTable, { ServerTableColumns } from "@/src/components/Table/ServerTable";
 import type { SortState } from "@chtc/web-components";
 import { DateCell, makeIconLinkCell, UrlCell } from "@/src/components/TableCells/TableCells";
 import type { Project } from "@/types";
 import { Edit } from "@mui/icons-material";
+import { Box, FormControlLabel, Switch } from "@mui/material";
+import { useMemo, useState } from "react";
 
 const columns: ServerTableColumns<Project> = {
   edit: {
@@ -29,6 +32,7 @@ const columns: ServerTableColumns<Project> = {
     firstSortDirection: "desc",
     CellComponent: DateCell,
   },
+  expires_at: { id: "expires_at", name: "Expires", sortable: true, CellComponent: DateCell },
 };
 
 // Newest first
@@ -39,8 +43,21 @@ const searchFields = ["name"];
 const tiebreakers: SortState[] = [{ columnId: "id", direction: "asc" }];
 
 function View() {
+  const { currentUser } = useAuthClient();
+  // The API hides expired projects by default; only staff may ask for them
+  const [showExpired, setShowExpired] = useState(false);
+  const params = useMemo(() => (showExpired ? { include_expired: "true" } : undefined), [showExpired]);
+
   return (
     <AuthGuard message="You must be logged in to view projects.">
+      {currentUser?.is_admin && (
+        <Box sx={{ mb: 1 }}>
+          <FormControlLabel
+            control={<Switch checked={showExpired} onChange={(e) => setShowExpired(e.target.checked)} />}
+            label="Show expired"
+          />
+        </Box>
+      )}
       <ServerTable
         endpoint="/projects"
         columns={columns}
@@ -49,6 +66,7 @@ function View() {
         defaultPageSize={50}
         searchLabel="Search by Project Name"
         searchFields={searchFields}
+        params={params}
         emptyMessage="No projects found."
       />
     </AuthGuard>

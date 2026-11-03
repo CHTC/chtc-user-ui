@@ -5,8 +5,12 @@ import useSWR from "swr";
 /** SWR key for a project's record. Shared so every caller hits the same cache entry. */
 export const projectKey = (projectId: number) => [`/projects/${projectId}`];
 
+/** A 403 means the viewer may not open this project; pages show a message instead of crashing */
+export class ProjectForbiddenError extends Error {}
+
 const projectFetcher = async (projectId: number): Promise<Project> => {
   const response = await apiFetch(`/projects/${projectId}`);
+  if (response.status === 403) throw new ProjectForbiddenError("Forbidden");
   if (!response.ok) {
     throw new Error(`Failed to fetch project with id ${projectId}: ${response.statusText}`);
   }

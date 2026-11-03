@@ -7,24 +7,28 @@ interface MakeDeleteCellProps<R extends TableData> {
   mutate: () => void;
   deleteUrl: (row: R) => string;
   ariaLabel: string;
+  /** Leaves the cell empty for rows that can't be removed here, e.g. access through another group */
+  canDelete?: (row: R) => boolean;
 }
 
 /** A trash can that asks for confirmation, sends a DELETE to the row's URL, and refreshes the table */
-function makeDeleteCell<R extends TableData>({ mutate, deleteUrl, ariaLabel }: MakeDeleteCellProps<R>) {
+function makeDeleteCell<R extends TableData>({ mutate, deleteUrl, ariaLabel, canDelete }: MakeDeleteCellProps<R>) {
   const DeleteCell = ({ row }: CellComponentProps<R, keyof R>) => {
     const url = deleteUrl(row);
     return (
       <TableCell>
         {/* Table keys rows by index, so without a per-row key the next row would inherit an open Confirm after a delete */}
-        <ActionButton
-          key={url}
-          url={url}
-          method="DELETE"
-          icon={<Delete />}
-          color="error"
-          ariaLabel={ariaLabel}
-          onSuccess={mutate}
-        />
+        {(!canDelete || canDelete(row)) && (
+          <ActionButton
+            key={url}
+            url={url}
+            method="DELETE"
+            icon={<Delete />}
+            color="error"
+            ariaLabel={ariaLabel}
+            onSuccess={mutate}
+          />
+        )}
       </TableCell>
     );
   };

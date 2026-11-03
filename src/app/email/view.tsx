@@ -68,7 +68,7 @@ async function fetchEmails(filters: CommittedFilters): Promise<string[]> {
 
   if (projectId !== null) {
     // By project (all filters server-side)
-    if (role === "pi") params.role = "eq.PI";
+    if (role === "pi") params.is_pi = "eq.true";
 
     const res = await apiFetch(`/projects/${projectId}/users${qs(params)}`);
     if (!res.ok) throw new Error(await res.text());

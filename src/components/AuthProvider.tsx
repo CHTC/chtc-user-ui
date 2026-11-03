@@ -3,6 +3,8 @@
 import type {
   Group,
   GroupCreateUpdate,
+  GroupMember,
+  GroupMemberCreate,
   Note,
   NoteCreate,
   Project,
@@ -40,7 +42,7 @@ export type ApiClient = {
   createGroup: (group: GroupCreateUpdate) => Promise<Group>;
   updateGroup: (groupId: number, group: GroupCreateUpdate) => Promise<Group>;
   deleteGroup: (groupId: number) => Promise<void>;
-  addUserToGroup: (groupId: number, userId: number) => Promise<Record<string, unknown>>;
+  addGroupMember: (groupId: number, member: GroupMemberCreate) => Promise<GroupMember>;
   removeUserFromGroup: (groupId: number, userId: number) => Promise<void>;
 
   // Projects
@@ -199,17 +201,17 @@ export function AuthClientProvider({ children }: { children: React.ReactNode }) 
       if (!response.ok) throw new Error(`Failed to delete group: ${response.statusText}`);
     }, []),
 
-    addUserToGroup: useCallback(async (groupId: number, userId: number): Promise<Record<string, unknown>> => {
-      const response = await apiFetch(`/groups/${groupId}/users`, {
+    addGroupMember: useCallback(async (groupId: number, member: GroupMemberCreate): Promise<GroupMember> => {
+      const response = await apiFetch(`/groups/${groupId}/members`, {
         method: "POST",
-        body: JSON.stringify({ id: userId }),
+        body: JSON.stringify(member),
       });
-      if (!response.ok) throw new Error(`Failed to add user to group: ${response.statusText}`);
+      if (!response.ok) throw new Error(`Failed to add member to group: ${response.statusText}`);
       return response.json();
     }, []),
 
     removeUserFromGroup: useCallback(async (groupId: number, userId: number): Promise<void> => {
-      const response = await apiFetch(`/groups/${groupId}/users/${userId}`, { method: "DELETE" });
+      const response = await apiFetch(`/groups/${groupId}/members/users/${userId}`, { method: "DELETE" });
       if (!response.ok) throw new Error(`Failed to remove user from group: ${response.statusText}`);
     }, []),
 

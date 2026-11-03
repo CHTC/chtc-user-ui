@@ -1,5 +1,4 @@
-import { Add } from "@mui/icons-material";
-import { Box, Button, Link, Typography } from "@mui/material";
+import { Box, Link, Typography } from "@mui/material";
 
 export default function RootLayout({
   children,
@@ -8,13 +7,10 @@ export default function RootLayout({
 }>) {
   return (
     <>
-      <Typography variant={"h3"} component="h1" sx={{ mb: 2, display: "flex", justifyContent: "space-between" }}>
+      <Typography variant={"h3"} component="h1" sx={{ mb: 2 }}>
         <Link href="/groups/" style={{ textDecoration: "none", color: "inherit" }}>
           Groups
         </Link>
-        <Button startIcon={<Add />} href={`/groups/create/`} >
-          Add Group
-        </Button>
       </Typography>
       <Box>{children}</Box>
     </>

@@ -53,6 +53,11 @@ export interface ServerTableProps<R extends TableData> {
   searchFields?: string[]; // not case sensitive
   filters?: ServerTableFilter[];
   emptyMessage?: string;
+  /**
+   * Sent with every request but not kept in the URL, e.g. a page's own toggle or filter form.
+   * A repeated value sends the key more than once (two bounds on one column).
+   */
+  params?: Record<string, string | string[]>;
 }
 
 interface TableQuery {
@@ -100,6 +105,7 @@ const ServerTableContent = <R extends TableData>({
   searchFields,
   filters,
   emptyMessage = "No results",
+  params,
 }: ServerTableProps<R>) => {
   const searchParams = useSearchParams();
 
@@ -177,11 +183,22 @@ const ServerTableContent = <R extends TableData>({
     [parseQuery, keys, defaultPageSize, defaultSort, filters],
   );
 
+  // The extra params are part of the key so a changed toggle or filter fetches again
+  const paramsKey = JSON.stringify(params ?? {});
   const { data, error, isLoading } = useSWR(
-    [endpoint, query],
-    ([, q]: [string, TableQuery]) => fetchPage<R>(endpoint, q, { tiebreakers, searchFields, filters }),
+    [endpoint, query, paramsKey],
+    ([, q]: [string, TableQuery, string]) => fetchPage<R>(endpoint, q, { tiebreakers, searchFields, filters, params }),
     { keepPreviousData: true },
   );
+
+  // A changed toggle or filter starts again from the first page, since the old page number may
+  // not mean anything in the new results
+  const lastParamsKey = useRef(paramsKey);
+  useEffect(() => {
+    if (paramsKey === lastParamsKey.current) return;
+    lastParamsKey.current = paramsKey;
+    if (query.page > 0) setQuery({});
+  }, [paramsKey, query.page, setQuery]);
 
   // Step back when the page runs past the end, e.g. after deleting the last row on the last page
   useEffect(() => {
@@ -296,12 +313,17 @@ async function fetchPage<R>(
     tiebreakers = [],
     searchFields = [],
     filters = [],
-  }: Pick<ServerTableProps<TableData>, "tiebreakers" | "searchFields" | "filters">,
+    params: extraParams = {},
+  }: Pick<ServerTableProps<TableData>, "tiebreakers" | "searchFields" | "filters" | "params">,
 ): Promise<TablePage<R>> {
   const params = new URLSearchParams({
     page: String(query.page),
     page_size: String(query.pageSize),
   });
+
+  Object.entries(extraParams).forEach(([key, value]) =>
+    (Array.isArray(value) ? value : [value]).forEach((v) => params.append(key, v)),
+  );
 
   // The API applies sorts in the order they appear, so the chosen sort goes first
   const sortedColumns = new Set<string>();

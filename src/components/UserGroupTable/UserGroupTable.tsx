@@ -1,21 +1,37 @@
+import MembershipPaths from "@/src/components/MembershipPaths/MembershipPaths";
 import makeDeleteCell from "@/src/components/Table/DeleteCell/makeDeleteCell";
 import ServerTable, { ServerTableColumns, useServerTableRefresh } from "@/src/components/Table/ServerTable";
-import type { SortState } from "@chtc/web-components";
+import type { CellComponentProps, SortState } from "@chtc/web-components";
 import { makeLinkedTextCell, makeManagedByCell } from "@/src/components/TableCells/TableCells";
 import { useRevalidateUserAndGroups, userGroupsKey } from "@/src/utils/userCache";
-import { UserGroupView } from "@/types";
+import { UserGroupsView } from "@/types";
+import { TableCell } from "@mui/material";
 import { useMemo } from "react";
 
 interface UserGroupTableProps {
   userId: number;
+  /** Staff view: links to groups and shows the managed-by and remove controls */
   adminView?: boolean;
 }
 
-const defaultSort: SortState<keyof UserGroupView & string> = { columnId: "name", direction: "asc" };
+const defaultSort: SortState<keyof UserGroupsView & string> = { columnId: "name", direction: "asc" };
 
 const searchFields = ["name"];
 
 const tiebreakers: SortState[] = [{ columnId: "group_id", direction: "asc" }];
+
+// Only a direct membership has a managed-by and can be removed; access through another group can't
+const isDirect = (group: UserGroupsView) => group.direct;
+
+function makeAccessCell(linkGroups: boolean) {
+  const AccessCell = ({ row }: CellComponentProps<UserGroupsView, keyof UserGroupsView>) => (
+    <TableCell>
+      <MembershipPaths direct={row.direct} paths={row.paths} path_names={row.path_names} linkGroups={linkGroups} />
+    </TableCell>
+  );
+  AccessCell.displayName = "AccessCell";
+  return AccessCell;
+}
 
 const UserGroupTable = ({ userId, adminView = false }: UserGroupTableProps) => {
   const endpoint = userGroupsKey(userId);
@@ -24,40 +40,37 @@ const UserGroupTable = ({ userId, adminView = false }: UserGroupTableProps) => {
   const revalidate = useRevalidateUserAndGroups(userId);
 
   const columns = useMemo(
-    (): ServerTableColumns<UserGroupView> => ({
+    (): ServerTableColumns<UserGroupsView> => ({
       name: {
         id: "name",
         name: "Name",
         sortable: true,
         ...(adminView && {
-          CellComponent: makeLinkedTextCell<UserGroupView>({
+          CellComponent: makeLinkedTextCell<UserGroupsView>({
             href: (group) => `/groups/edit/?id=${group.group_id}`,
             ariaLabel: "Go to group",
           }),
         }),
       },
-      // The API sorts point_of_contact by user id, not name, so this column isn't sortable
-      point_of_contact: {
-        id: "point_of_contact",
-        name: "Point Of Contact",
-        value: (group) => group.point_of_contact?.name ?? group.point_of_contact?.email1 ?? "",
-      },
       unix_gid: { id: "unix_gid", name: "Unix GID", sortable: true },
-      managed_by: {
-        id: "managed_by",
-        name: "Managed By",
-        CellComponent: makeManagedByCell<UserGroupView>({
-          patchUrl: (group) => `/groups/${group.group_id}/users/${userId}`,
-          onSuccess: refresh,
-        }),
-      },
+      access: { id: "access", name: "Access", CellComponent: makeAccessCell(adminView) },
       ...(adminView && {
+        managed_by: {
+          id: "managed_by",
+          name: "Managed By",
+          CellComponent: makeManagedByCell<UserGroupsView>({
+            patchUrl: (group) => `/groups/${group.group_id}/members/users/${userId}`,
+            onSuccess: refresh,
+            show: (group) => isDirect(group) && !!group.managed_by,
+          }),
+        },
         remove: {
           id: "remove",
           name: "Action",
-          CellComponent: makeDeleteCell<UserGroupView>({
+          CellComponent: makeDeleteCell<UserGroupsView>({
             mutate: revalidate,
-            deleteUrl: (group) => `/groups/${group.group_id}/users/${userId}`,
+            deleteUrl: (group) => `/groups/${group.group_id}/members/users/${userId}`,
+            canDelete: isDirect,
             ariaLabel: "Remove from Group",
           }),
         },

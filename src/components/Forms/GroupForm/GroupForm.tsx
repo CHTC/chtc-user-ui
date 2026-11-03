@@ -1,67 +1,113 @@
 "use client";
 
 import FormErrorAlert from "@/src/components/FormErrorAlert/FormErrorAlert";
-import UserAutocomplete from "@/src/components/UserAutocomplete/UserAutocomplete";
+import GroupAutocomplete from "@/src/components/GroupAutocomplete/GroupAutocomplete";
 import { ApiError } from "@/src/utils/formErrors";
 import { useFormState } from "@/src/utils/useFormState";
-import type { Group, GroupCreateUpdate, User } from "@/types";
-import { Box, Button, Checkbox, FormControlLabel, Stack, TextField } from "@mui/material";
+import type { Group, GroupAdministration, GroupCreateUpdate } from "@/types";
+import {
+  Box,
+  Button,
+  FormControl,
+  FormControlLabel,
+  FormLabel,
+  Radio,
+  RadioGroup,
+  Stack,
+  TextField,
+} from "@mui/material";
 import React from "react";
 
 export type GroupFormMode = "create" | "edit";
 
+/** "existing" is form-only: it sends owner_group_id instead of administration */
+type AdministrationChoice = GroupAdministration | "existing";
+
 export interface GroupFormValues {
   name: string;
-  point_of_contact: User | null;
+  description: string;
   unix_gid: string;
-  has_groupdir: boolean;
+  expires_at: string;
+  owner_group: Partial<Group> | null;
+  administration: AdministrationChoice;
 }
 
 export interface GroupFormProps {
   mode: GroupFormMode;
-  /**
-   * Initial values for the form. Can come from either a GroupCreate payload
-   * (e.g. when editing unsaved data) or a GroupUpdate/group API response.
-   */
   initialValues?: Partial<Group>;
-  /**
-   * Called with cleaned form values converted to API payload shape.
-   * For create, treat it as GroupCreate; for edit, as GroupUpdate.
-   */
+  /** Edit mode: the group named by initialValues.owner_group_id, which the form cannot look up itself */
+  ownerGroup?: Partial<Group> | null;
+  /** False renders every field disabled with no Save button (non-staff view the page, only staff edit metadata) */
+  canEdit?: boolean;
   onSubmit: (payload: GroupCreateUpdate) => Promise<void> | void;
   isSubmitting?: boolean;
   error?: string | ApiError | null;
+  /** Rendered next to the GID field, e.g. the "Allocate GID" button */
+  gidAction?: React.ReactNode;
+  /** Rendered after Save, e.g. the delete button */
+  extraActions?: React.ReactNode;
 }
 
-function normalizeInitialValues(initial?: Partial<Group>): GroupFormValues {
+// datetime-local wants "YYYY-MM-DDTHH:mm"; the API sends ISO strings without a timezone
+function toInputDateTime(value: string | null | undefined): string {
+  return value ? value.slice(0, 16) : "";
+}
+
+function normalizeInitialValues(initial?: Partial<Group>, ownerGroup?: Partial<Group> | null): GroupFormValues {
   return {
     name: initial?.name ?? "",
-    point_of_contact: initial?.point_of_contact ?? null,
+    description: initial?.description ?? "",
     unix_gid: initial?.unix_gid !== undefined && initial?.unix_gid !== null ? String(initial.unix_gid) : "",
-    has_groupdir: initial?.has_groupdir ?? true,
+    expires_at: toInputDateTime(initial?.expires_at),
+    owner_group: ownerGroup ?? (initial?.owner_group_id ? { id: initial.owner_group_id, name: `Group ${initial.owner_group_id}` } : null),
+    administration: "none",
   };
 }
 
-// Field name mappings for error display
 const FIELD_NAME_MAP: Record<string, string> = {
   name: "Name",
-  point_of_contact: "Point of Contact",
+  description: "Description",
   unix_gid: "Unix GID",
-  has_groupdir: "Has Group Directory",
+  expires_at: "Expires",
+  owner_group_id: "Owner group",
+  administration: "Administration",
 };
 
-export const GroupForm: React.FC<GroupFormProps> = ({ mode, initialValues, onSubmit, isSubmitting = false, error }) => {
-  const { values, handleChange } = useFormState<GroupFormValues>(() => normalizeInitialValues(initialValues));
+export const GroupForm: React.FC<GroupFormProps> = ({
+  mode,
+  initialValues,
+  ownerGroup,
+  canEdit = true,
+  onSubmit,
+  isSubmitting = false,
+  error,
+  gidAction,
+  extraActions,
+}) => {
+  const { values, handleChange } = useFormState<GroupFormValues>(() => normalizeInitialValues(initialValues, ownerGroup));
+  const disabled = isSubmitting || !canEdit;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     const payload: GroupCreateUpdate = {
       name: values.name.trim(),
-      point_of_contact: values.point_of_contact?.id || null,
+      description: values.description.trim() || null,
       unix_gid: values.unix_gid ? Number(values.unix_gid) : null,
-      has_groupdir: values.has_groupdir,
+      expires_at: values.expires_at || null,
     };
+
+    if (mode === "create") {
+      // The API rejects a body carrying both, so exactly one of the two is sent
+      if (values.administration === "existing") {
+        payload.owner_group_id = values.owner_group?.id ?? null;
+      } else {
+        payload.administration = values.administration;
+      }
+    } else {
+      // Always sent on edit: null means staff only
+      payload.owner_group_id = values.owner_group?.id ?? null;
+    }
 
     await onSubmit(payload);
   };
@@ -77,42 +123,91 @@ export const GroupForm: React.FC<GroupFormProps> = ({ mode, initialValues, onSub
           onChange={(e) => handleChange("name", e.target.value)}
           required
           fullWidth
-          disabled={isSubmitting}
-        />
-
-        <UserAutocomplete
-          label="Point of Contact"
-          value={values.point_of_contact ?? undefined}
-          onSelect={(user) => handleChange("point_of_contact", user)}
-          defaultFilter={{
-            is_admin: "is.true",
-          }}
+          disabled={disabled}
         />
 
         <TextField
-          label="Unix GID"
-          value={values.unix_gid}
-          onChange={(e) => handleChange("unix_gid", e.target.value)}
+          label="Description"
+          value={values.description}
+          onChange={(e) => handleChange("description", e.target.value)}
           fullWidth
-          disabled={isSubmitting}
-          helperText={"Leave blank to auto-assign"}
+          multiline
+          minRows={2}
+          disabled={disabled}
         />
 
-        <FormControlLabel
-          control={
-            <Checkbox
-              checked={values.has_groupdir}
-              onChange={(e) => handleChange("has_groupdir", e.target.checked)}
-              disabled={isSubmitting}
-            />
-          }
-          label="Has Group Directory"
+        <Box sx={{ display: "flex", gap: 2, alignItems: "flex-start" }}>
+          <TextField
+            label="Unix GID"
+            value={values.unix_gid}
+            onChange={(e) => handleChange("unix_gid", e.target.value)}
+            fullWidth
+            disabled={disabled}
+            helperText={
+              mode === "create"
+                ? "Leave blank for no unix group; you can allocate one from the group page"
+                : undefined
+            }
+          />
+          {mode === "edit" && !values.unix_gid && gidAction}
+        </Box>
+
+        <TextField
+          label="Expires"
+          type="datetime-local"
+          value={values.expires_at}
+          onChange={(e) => handleChange("expires_at", e.target.value)}
+          fullWidth
+          disabled={disabled}
+          slotProps={{ inputLabel: { shrink: true } }}
         />
+
+        {mode === "create" ? (
+          <FormControl>
+            <FormLabel id="group-administration-label">Administration</FormLabel>
+            <RadioGroup
+              aria-labelledby="group-administration-label"
+              value={values.administration}
+              onChange={(e) => handleChange("administration", e.target.value as AdministrationChoice)}
+            >
+              <FormControlLabel value="none" control={<Radio />} label="Staff only" disabled={disabled} />
+              <FormControlLabel value="owners" control={<Radio />} label="Owners group" disabled={disabled} />
+              <FormControlLabel
+                value="owners_and_managers"
+                control={<Radio />}
+                label="Owners and managers groups"
+                disabled={disabled}
+              />
+              <FormControlLabel value="existing" control={<Radio />} label="Existing owner group" disabled={disabled} />
+            </RadioGroup>
+            {values.administration === "existing" && (
+              <Box sx={{ mt: 1 }}>
+                <GroupAutocomplete
+                  label="Owner group"
+                  value={values.owner_group ?? undefined}
+                  onSelect={(group) => handleChange("owner_group", group)}
+                  required
+                  disabled={disabled}
+                />
+              </Box>
+            )}
+          </FormControl>
+        ) : (
+          <GroupAutocomplete
+            label="Owner group (clear for staff only)"
+            value={values.owner_group ?? undefined}
+            onSelect={(group) => handleChange("owner_group", group)}
+            disabled={disabled}
+          />
+        )}
 
         <Box sx={{ display: "flex", gap: 2, mt: 2 }}>
-          <Button type="submit" variant="contained" color="primary" disabled={isSubmitting}>
-            {mode === "create" ? "Create" : "Save"}
-          </Button>
+          {canEdit && (
+            <Button type="submit" variant="contained" color="primary" disabled={isSubmitting}>
+              {mode === "create" ? "Create" : "Save"}
+            </Button>
+          )}
+          {extraActions}
         </Box>
       </Stack>
     </Box>

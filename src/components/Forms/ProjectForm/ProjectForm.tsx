@@ -1,12 +1,15 @@
 "use client";
 
 import FormErrorAlert from "@/src/components/FormErrorAlert/FormErrorAlert";
+import { useAuthClient } from "@/src/components/AuthProvider";
+import { GenericAutocomplete } from "@/src/components/GenericAutocomplete/GenericAutocomplete";
 import UserAutocomplete from "@/src/components/UserAutocomplete/UserAutocomplete";
+import UserAutocompleteMultiple from "@/src/components/UserAutocompleteMultiple/UserAutocompleteMultiple";
 import CollegeDepartmentAutocomplete from "@/src/components/CollegeDepartmentAutocomplete/CollegeDepartmentAutocomplete";
 import FieldOfScienceAutocomplete from "@/src/components/FieldOfScienceAutocomplete/FieldOfScienceAutocomplete";
 import { ApiError } from "@/src/utils/formErrors";
 import { useFormState } from "@/src/utils/useFormState";
-import { CollegeAndDepartment, FieldsOfScience, FormMode, Project, ProjectCreateUpdate, User } from "@/types";
+import { CollegeAndDepartment, FieldsOfScience, FormMode, Group, Project, ProjectCreateUpdate, User } from "@/types";
 import { Box, Button, FormControl, InputLabel, MenuItem, Select, Stack, TextField } from "@mui/material";
 import React from "react";
 
@@ -15,7 +18,10 @@ export interface ProjectFormValues {
   display_name: string;
   description: string;
   accounting_group: string;
-  pi: string; // stringified user ID
+  expires_at: string; // datetime-local value, "" when unset
+  pi_group: Partial<Group> | null;
+  project_group: Partial<Group> | null;
+  pi_ids: User[]; // create only
   staff1: User | null;
   staff2: User | null;
   college_and_department: CollegeAndDepartment | null;
@@ -49,7 +55,11 @@ function normalizeInitialValues(initial?: Partial<Project>): ProjectFormValues {
     display_name: initial?.display_name ?? "",
     description: initial?.description ?? "",
     accounting_group: initial?.accounting_group ?? "",
-    pi: initial?.pi !== undefined && initial?.pi !== null ? String(initial.pi) : "",
+    // The API returns an ISO string, possibly with seconds; datetime-local wants minutes only
+    expires_at: initial?.expires_at ? initial.expires_at.slice(0, 16) : "",
+    pi_group: initial?.pi_group_id ? { id: initial.pi_group_id } : null,
+    project_group: initial?.project_group_id ? { id: initial.project_group_id } : null,
+    pi_ids: [],
     staff1: initial?.staff1 ?? null,
     staff2: initial?.staff2 ?? null,
     college_and_department: initial?.college_and_department ?? null,
@@ -68,7 +78,10 @@ const FIELD_NAME_MAP: Record<string, string> = {
   display_name: "Display Name",
   description: "Description",
   accounting_group: "Accounting Group",
-  pi: "PI",
+  expires_at: "Expires",
+  pi_group_id: "PI Group",
+  project_group_id: "Project Group",
+  pi_ids: "PIs",
   staff1: "Staff 1",
   staff2: "Staff 2",
   college_and_department_id: "College / Department",
@@ -88,6 +101,9 @@ export const ProjectForm: React.FC<ProjectFormProps> = ({
   error,
 }) => {
   const { values, handleChange } = useFormState<ProjectFormValues>(() => normalizeInitialValues(initialValues));
+  const { currentUser } = useAuthClient();
+  // Staff-only fields are disabled for a PI and left out of the PUT body: the API 403s if they are present at all
+  const isStaff = !!currentUser?.is_admin;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -96,10 +112,7 @@ export const ProjectForm: React.FC<ProjectFormProps> = ({
       name: values.name.trim(),
       display_name: values.display_name.trim() || null,
       description: values.description || null,
-      accounting_group: values.accounting_group.trim(),
-      pi: values.pi ? Number(values.pi) : null,
-      staff1: values.staff1?.id ?? null,
-      staff2: values.staff2?.id ?? null,
+      expires_at: values.expires_at || null,
       college_and_department_id: values.college_and_department?.id ?? null,
       fos_id: values.field_of_science?.fos_id ?? null,
       status: values.status || null,
@@ -108,6 +121,16 @@ export const ProjectForm: React.FC<ProjectFormProps> = ({
       ticket: values.ticket ? Number(values.ticket) : null,
       last_contact: values.last_contact || null,
     };
+
+    if (isStaff) {
+      payload.accounting_group = values.accounting_group.trim();
+      payload.staff1 = values.staff1?.id ?? null;
+      payload.staff2 = values.staff2?.id ?? null;
+      // Leaving a group blank on create asks the API to generate all three groups
+      if (values.pi_group?.id) payload.pi_group_id = values.pi_group.id;
+      if (values.project_group?.id) payload.project_group_id = values.project_group.id;
+      if (mode === "create" && values.pi_ids.length > 0) payload.pi_ids = values.pi_ids.map((u) => u.id);
+    }
 
     await onSubmit(payload);
   };
@@ -150,9 +173,9 @@ export const ProjectForm: React.FC<ProjectFormProps> = ({
           label="Accounting Group"
           value={values.accounting_group}
           onChange={(e) => handleChange("accounting_group", e.target.value)}
-          required
+          required={isStaff}
           fullWidth
-          disabled={isSubmitting}
+          disabled={isSubmitting || !isStaff}
         />
 
         <UserAutocomplete
@@ -162,6 +185,7 @@ export const ProjectForm: React.FC<ProjectFormProps> = ({
           defaultFilter={{
             is_admin: "is.true",
           }}
+          disabled={isSubmitting || !isStaff}
         />
 
         <UserAutocomplete
@@ -171,6 +195,48 @@ export const ProjectForm: React.FC<ProjectFormProps> = ({
           defaultFilter={{
             is_admin: "is.true",
           }}
+          disabled={isSubmitting || !isStaff}
+        />
+
+        {mode === "create" && (
+          <UserAutocompleteMultiple
+            value={values.pi_ids}
+            dataUrl="/users"
+            onSelect={(users) => handleChange("pi_ids", users)}
+            disabled={isSubmitting || !isStaff}
+          />
+        )}
+
+        <GenericAutocomplete<Group>
+          endpoint="/groups"
+          label="PI Group"
+          value={values.pi_group}
+          onSelect={(group) => handleChange("pi_group", group)}
+          getOptionLabel={(option) => option?.name ?? ""}
+          searchFields={["name"]}
+          helperText={mode === "create" ? "Leave blank to generate the PI, managers and project groups" : undefined}
+          disabled={isSubmitting || !isStaff}
+        />
+
+        <GenericAutocomplete<Group>
+          endpoint="/groups"
+          label="Project Group"
+          value={values.project_group}
+          onSelect={(group) => handleChange("project_group", group)}
+          getOptionLabel={(option) => option?.name ?? ""}
+          searchFields={["name"]}
+          helperText={mode === "create" ? "Leave blank to generate the PI, managers and project groups" : undefined}
+          disabled={isSubmitting || !isStaff}
+        />
+
+        <TextField
+          label="Expires"
+          value={values.expires_at}
+          onChange={(e) => handleChange("expires_at", e.target.value)}
+          fullWidth
+          disabled={isSubmitting}
+          type={"datetime-local"}
+          slotProps={{ inputLabel: { shrink: true } }}
         />
 
         <CollegeDepartmentAutocomplete

@@ -5,14 +5,17 @@ import ServerTable, { ServerTableColumns, useServerTableRefresh } from "@/src/co
 import type { CellComponentProps, SortState } from "@chtc/web-components";
 import { DateCell, makeLinkedTextCell, makeManagedByCell } from "@/src/components/TableCells/TableCells";
 import { JoinedProjectView } from "@/types";
-import { Star, StarBorder } from "@mui/icons-material";
-import { Box, IconButton, TableCell } from "@mui/material";
+import { Check, Star, StarBorder } from "@mui/icons-material";
+import { Box, IconButton, TableCell, Tooltip } from "@mui/material";
 import { useMemo } from "react";
 
 interface UserProjectTableProps {
   userId: number;
+  /** Staff view: shows the primary, managed-by and remove controls */
   adminView?: boolean;
 }
+
+type ProjectCellProps = CellComponentProps<JoinedProjectView, keyof JoinedProjectView>;
 
 const defaultSort: SortState<keyof JoinedProjectView & string> = { columnId: "project_name", direction: "asc" };
 
@@ -23,9 +26,21 @@ const tiebreakers: SortState[] = [
   { columnId: "project_id", direction: "asc" },
 ];
 
+const PiCell = ({ row }: ProjectCellProps) => (
+  <TableCell>{row.is_pi && <Check aria-label="PI" color="success" />}</TableCell>
+);
+
 /** A filled star on the primary project; admins can star another project to make it primary */
-function makePrimaryProjectCell({ userId, adminView, onChange }: { userId: number; adminView: boolean; onChange: () => void }) {
-  const PrimaryProjectCell = ({ row: project }: CellComponentProps<JoinedProjectView, keyof JoinedProjectView>) => {
+function makePrimaryProjectCell({
+  userId,
+  adminView,
+  onChange,
+}: {
+  userId: number;
+  adminView: boolean;
+  onChange: () => void;
+}) {
+  const PrimaryProjectCell = ({ row: project }: ProjectCellProps) => {
     const { showAlert } = useAlert();
 
     return (
@@ -35,7 +50,12 @@ function makePrimaryProjectCell({ userId, adminView, onChange }: { userId: numbe
           // The primary project is changed by starring another one, so this does nothing
           // Same 48px box and padding as ConfirmButton so the stars line up
           <Box sx={{ width: 48, height: 48, p: 0.5 }}>
-            <IconButton aria-label={`${project.project_name} is the primary project`} color="error" disableRipple sx={{ cursor: "default" }}>
+            <IconButton
+              aria-label={`${project.project_name} is the primary project`}
+              color="error"
+              disableRipple
+              sx={{ cursor: "default" }}
+            >
               <Star />
             </IconButton>
           </Box>
@@ -43,9 +63,9 @@ function makePrimaryProjectCell({ userId, adminView, onChange }: { userId: numbe
           adminView && (
             <ActionButton
               key={project.project_id}
-              url={`/users/${userId}/projects/${project.project_id}`}
+              url={`/users/${userId}`}
               method="PATCH"
-              body={{ is_primary: true }}
+              body={{ primary_project_id: project.project_id }}
               icon={<StarBorder />}
               color="error"
               ariaLabel={`Make ${project.project_name} the primary project`}
@@ -64,6 +84,28 @@ function makePrimaryProjectCell({ userId, adminView, onChange }: { userId: numbe
   return PrimaryProjectCell;
 }
 
+/** Remove for a direct member; otherwise access comes through another group and is removed there */
+function makeRemoveCell({ userId, onRemove }: { userId: number; onRemove: () => void }) {
+  const DeleteCell = makeDeleteCell<JoinedProjectView>({
+    mutate: onRemove,
+    deleteUrl: (project) => `/projects/${project.project_id}/users/${userId}`,
+    ariaLabel: "Remove from Project",
+  });
+  const RemoveCell = (props: ProjectCellProps) =>
+    props.row.managed_by ? (
+      <DeleteCell {...props} />
+    ) : (
+      <TableCell>
+        {/* This view carries no paths, so it cannot say which group; the project page can */}
+        <Tooltip title="Access comes through another group. See the project's members table for the path.">
+          <span>via group</span>
+        </Tooltip>
+      </TableCell>
+    );
+  RemoveCell.displayName = "RemoveCell";
+  return RemoveCell;
+}
+
 const UserProjectTable = ({ userId, adminView = false }: UserProjectTableProps) => {
   const endpoint = `/users/${userId}/projects`;
   const refresh = useServerTableRefresh(endpoint);
@@ -79,11 +121,12 @@ const UserProjectTable = ({ userId, adminView = false }: UserProjectTableProps) 
           ariaLabel: "Go to project",
         }),
       },
-      role: { id: "role", name: "Role", sortable: true },
+      is_pi: { id: "is_pi", name: "PI", sortable: true, firstSortDirection: "desc", CellComponent: PiCell },
       is_primary: {
         id: "is_primary",
-        name: "Is Primary",
+        name: "Primary",
         sortable: true,
+        firstSortDirection: "desc",
         CellComponent: makePrimaryProjectCell({ userId, adminView, onChange: refresh }),
       },
       project_status: { id: "project_status", name: "Status", sortable: true },
@@ -99,19 +142,17 @@ const UserProjectTable = ({ userId, adminView = false }: UserProjectTableProps) 
         managed_by: {
           id: "managed_by",
           name: "Managed By",
+          // managed_by is null when access comes only through another group
           CellComponent: makeManagedByCell<JoinedProjectView>({
-            patchUrl: (project) => `/projects/${project.project_id}/users/${userId}`,
+            patchUrl: (project) => `/groups/${project.project_project_group_id}/members/users/${userId}`,
             onSuccess: refresh,
+            show: (project) => !!project.managed_by && !!project.project_project_group_id,
           }),
         },
         remove: {
           id: "remove",
           name: "Action",
-          CellComponent: makeDeleteCell<JoinedProjectView>({
-            mutate: refresh,
-            deleteUrl: (project) => `/projects/${project.project_id}/users/${userId}`,
-            ariaLabel: "Remove from Project",
-          }),
+          CellComponent: makeRemoveCell({ userId, onRemove: refresh }),
         },
       }),
     }),

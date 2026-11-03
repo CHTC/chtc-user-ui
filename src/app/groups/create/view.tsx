@@ -1,16 +1,17 @@
 "use client";
 
 import { AuthGuard } from "@/src/components/AuthGuard";
-import { apiFetch } from "@/src/components/AuthProvider";
+import { apiFetch, useAuthClient } from "@/src/components/AuthProvider";
 import { GroupForm } from "@/src/components/Forms/GroupForm/GroupForm";
 import { ApiError } from "@/src/utils/formErrors";
 import type { GroupCreateUpdate } from "@/types";
-import { Box, Breadcrumbs, Typography } from "@mui/material";
+import { Alert, Box, Breadcrumbs, Typography } from "@mui/material";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
 function View() {
   const router = useRouter();
+  const { currentUser } = useAuthClient();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | ApiError | null>(null);
 
@@ -51,7 +52,13 @@ function View() {
         <Breadcrumbs>
           <Typography color="text.primary">Create Group</Typography>
         </Breadcrumbs>
-        <GroupForm mode="create" onSubmit={handleSubmit} isSubmitting={isSubmitting} error={error} />
+        {currentUser?.is_admin ? (
+          <GroupForm mode="create" onSubmit={handleSubmit} isSubmitting={isSubmitting} error={error} />
+        ) : (
+          <Alert severity="warning" sx={{ mt: 2 }}>
+            Only staff can create groups.
+          </Alert>
+        )}
       </Box>
     </AuthGuard>
   );

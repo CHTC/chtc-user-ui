@@ -2,6 +2,7 @@ import { GenericAutocomplete } from "@/src/components/GenericAutocomplete/Generi
 import type { Group } from "@/types";
 
 interface GroupAutocompleteProps {
+  label?: string;
   value?: Partial<Group>;
   onSelect: (group: Group | null) => void;
   defaultFilter?: Record<string, string>;
@@ -9,11 +10,11 @@ interface GroupAutocompleteProps {
   disabled?: boolean;
 }
 
-const GroupAutocomplete = ({ value, onSelect, defaultFilter, required, disabled }: GroupAutocompleteProps) => {
+const GroupAutocomplete = ({ label, value, onSelect, defaultFilter, required, disabled }: GroupAutocompleteProps) => {
   return (
     <GenericAutocomplete<Group>
       endpoint="/groups"
-      label="Select Group"
+      label={label ?? "Select Group"}
       value={value}
       onSelect={onSelect}
       defaultFilter={defaultFilter}

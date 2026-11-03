@@ -4,7 +4,7 @@ import { apiFetch } from "@/src/components/AuthProvider";
 import FormErrorAlert from "@/src/components/FormErrorAlert/FormErrorAlert";
 import ProjectAutocomplete from "@/src/components/ProjectAutocomplete/ProjectAutocomplete";
 import { ApiError } from "@/src/utils/formErrors";
-import type { PositionEnum, RoleEnum, UserCreate, UserUpdate } from "@/types";
+import type { PositionEnum, UserCreate, UserUpdate } from "@/types";
 import { Project, SubmitNode, UserSubmitGet } from "@/types";
 import {
   Box,
@@ -45,7 +45,6 @@ export interface UserFormValues {
   unix_uid: string; // string in form, converted to number | null
   position: PositionEnum | "";
   primary_project_id: string; // string in form, converted to number
-  primary_project_role: RoleEnum | "";
   submit_nodes: number[]; // store selected submit_node IDs for easier diffing
 }
 
@@ -80,7 +79,6 @@ function normalizeInitialValues(initial?: Partial<UserCreate & UserUpdate>): Use
       initial?.primary_project_id !== undefined && initial?.primary_project_id !== null
         ? String(initial.primary_project_id)
         : "",
-    primary_project_role: initial?.primary_project_role ?? "",
     submit_nodes: (initial?.submit_nodes as UserSubmitGet[] | undefined)?.map((x) => x.id) ?? [],
   };
 }
@@ -111,7 +109,6 @@ const FIELD_NAME_MAP: Record<string, string> = {
   unix_uid: "Unix UID",
   position: "Position",
   primary_project_id: "Primary Project",
-  primary_project_role: "Primary Project Role",
   submit_nodes: "Submit Nodes",
 };
 
@@ -177,8 +174,8 @@ export const UserForm: React.FC<UserFormProps> = ({ mode, initialValues, onSubmi
         active: values.active,
         unix_uid: values.unix_uid ? Number(values.unix_uid) : null,
         position: values.position || null,
-        primary_project_id: Number(values.primary_project_id),
-        primary_project_role: values.primary_project_role as RoleEnum,
+        // Optional; when given the API also adds the user to the project
+        ...(values.primary_project_id ? { primary_project_id: Number(values.primary_project_id) } : {}),
         ...(values.submit_nodes?.length
           ? { submit_nodes: values.submit_nodes.map((id) => ({ submit_node_id: id })) }
           : {}),
@@ -215,6 +212,15 @@ export const UserForm: React.FC<UserFormProps> = ({ mode, initialValues, onSubmi
       initial.unix_uid,
     );
     maybeSet("position", (values.position || null) as UserUpdate["position"], initial.position);
+
+    // Staff only (the API ignores it otherwise); an emptied field sends null, which clears it
+    if (adminView) {
+      maybeSet(
+        "primary_project_id",
+        (values.primary_project_id ? Number(values.primary_project_id) : null) as UserUpdate["primary_project_id"],
+        initial.primary_project_id,
+      );
+    }
 
     // Handle submit_nodes diff for edit: compare ID arrays, and only set if changed
     if (!arraysEqual(values.submit_nodes, savedSubmitNodeIds)) {
@@ -318,32 +324,16 @@ export const UserForm: React.FC<UserFormProps> = ({ mode, initialValues, onSubmi
               </Select>
             </FormControl>
 
-            {mode === "create" && adminView && (
+            {adminView && (
               <ProjectAutocomplete
                 onSelect={(project: Project | null) => {
                   handleChange("primary_project_id", String(project?.id ?? ""));
                 }}
                 value={values.primary_project_id ? { id: parseInt(values.primary_project_id, 10) } : undefined}
-                required
+                label="Primary Project"
+                helperText={mode === "create" ? "Also adds the user to the project" : undefined}
+                disabled={isSubmitting}
               />
-            )}
-
-            {mode === "create" && adminView && (
-              <FormControl fullWidth>
-                <InputLabel id="primary-project-role-label">Primary Project Role</InputLabel>
-                <Select
-                  labelId="primary-project-role-label"
-                  label="Primary Project Role"
-                  value={values.primary_project_role}
-                  onChange={(e) => handleChange("primary_project_role", e.target.value as RoleEnum | "")}
-                  required
-                  disabled={isSubmitting}
-                >
-                  <MenuItem value="">Select Role</MenuItem>
-                  <MenuItem value="MEMBER">Member</MenuItem>
-                  <MenuItem value="PI">PI</MenuItem>
-                </Select>
-              </FormControl>
             )}
 
             <Box sx={{ display: "flex", gap: 2, alignItems: "center", flexWrap: "wrap" }}>

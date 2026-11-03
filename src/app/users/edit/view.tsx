@@ -13,7 +13,7 @@ import useSWR from "swr";
 import UserGroupTable from "@/src/components/UserGroupTable/UserGroupTable";
 import UserProjectTable from "@/src/components/UserProjectTable/UserProjectTable";
 import { useRevalidateUserAndGroups, userKey } from "@/src/utils/userCache";
-import {GroupCreateUpdate, User, UserCreate, UserUpdate} from "@/types";
+import {User, UserCreate, UserUpdate} from "@/types";
 import usePageTitle from "@/src/utils/usePageTitle";
 import {useAlert} from "@/src/components/AlertProvider";
 
