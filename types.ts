@@ -337,21 +337,6 @@ export interface UserFormPatch {
   submit_nodes?: UserSubmitNodeCreate[];
 }
 
-export type SortDirection = "asc" | "desc";
-
-export interface PaginationParams {
-  page?: number;
-  page_size?: number;
-  query?: Record<string, string | string[]>;
-  sortColumn?: string;
-  sortDirection?: SortDirection;
-}
-
-export interface PaginatedResponse<T> {
-  data: T;
-  totalCount: number;
-}
-
 export interface ValidationError {
   loc: Array<string | number>;
   msg: string;

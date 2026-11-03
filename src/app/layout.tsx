@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 
 import AppShell from "@/src/components/AppShell";
-import Banner from "@chtc/web-components/UW/Banner";
+import { Banner } from "@chtc/web-components";
 import { Box } from "@mui/material";
 import { AppRouterCacheProvider } from "@mui/material-nextjs/v15-appRouter";
 import { ThemeProvider } from "@mui/material/styles";
