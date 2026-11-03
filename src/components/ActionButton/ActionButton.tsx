@@ -1,5 +1,6 @@
 import { useAlert } from "@/src/components/AlertProvider";
 import { apiFetch } from "@/src/components/AuthProvider";
+import { apiErrorMessage } from "@/src/utils/formErrors";
 import { ConfirmButton } from "@chtc/web-components";
 import type { ReactNode } from "react";
 
@@ -29,10 +30,7 @@ export const ActionButton = ({ url, method, icon, color, ariaLabel, body, onSucc
       ...(body !== undefined && { body: JSON.stringify(body) }),
     });
     if (!response.ok) {
-      const detail = await response
-        .json()
-        .then((data) => (typeof data?.detail === "string" ? data.detail : response.statusText))
-        .catch(() => response.statusText);
+      const detail = await apiErrorMessage(response, "Request failed");
       (onError ?? ((message: string) => showAlert("ACTION_ERROR", message)))(detail);
       return;
     }
