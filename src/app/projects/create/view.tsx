@@ -36,7 +36,7 @@ function View() {
       }
 
       const project = await projectResponse.json();
-      router.push(`/projects/edit?id=${project.id}`);
+      router.push(`/projects/details/?id=${project.id}`);
     } catch (e: unknown) {
       const message = e instanceof Error ? e.message : "Failed to create project";
       setError(message);

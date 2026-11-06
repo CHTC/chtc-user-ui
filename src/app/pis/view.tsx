@@ -9,20 +9,20 @@ import type { PiProjectView } from "@/types";
 import { Edit } from "@mui/icons-material";
 
 const columns: ServerTableColumns<PiProjectView> = {
-  edit: {
-    id: "edit",
-    name: "",
-    CellComponent: makeIconLinkCell<PiProjectView>({
-      href: (pi) => `/users/edit?id=${pi.user_id}`,
-      icon: <Edit />,
-      ariaLabel: "Edit user",
-    }),
-  },
   name: { id: "name", name: "Name", sortable: true },
   project_name: { id: "project_name", name: "Project Name", sortable: true },
   email1: { id: "email1", name: "Email", sortable: true, CellComponent: EmailCell },
   phone1: { id: "phone1", name: "Phone", value: (pi) => (pi.phone1 ? formatPhoneNumber(pi.phone1) : "") },
   netid: { id: "netid", name: "NetID", sortable: true },
+  edit: {
+    id: "edit",
+    name: "",
+    CellComponent: makeIconLinkCell<PiProjectView>({
+      href: (pi) => `/users/details/?id=${pi.user_id}`,
+      icon: <Edit />,
+      ariaLabel: "Edit user",
+    }),
+  },
 };
 
 // Newest first; the view has no id of its own, so this goes by the project's

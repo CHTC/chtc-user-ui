@@ -10,7 +10,7 @@ import FieldOfScienceAutocomplete from "@/src/components/FieldOfScienceAutocompl
 import { ApiError } from "@/src/utils/formErrors";
 import { useFormState } from "@/src/utils/useFormState";
 import { CollegeAndDepartment, FieldsOfScience, FormMode, Group, Project, ProjectCreateUpdate, User } from "@/types";
-import { Box, Button, FormControl, InputLabel, MenuItem, Select, Stack, TextField } from "@mui/material";
+import { Box, Button, FormControl, Grid, InputLabel, MenuItem, Select, TextField } from "@mui/material";
 import React from "react";
 
 export interface ProjectFormValues {
@@ -18,7 +18,6 @@ export interface ProjectFormValues {
   display_name: string;
   description: string;
   accounting_group: string;
-  expires_at: string; // datetime-local value, "" when unset
   pi_group: Partial<Group> | null;
   project_group: Partial<Group> | null;
   pi_ids: User[]; // create only
@@ -47,18 +46,30 @@ export interface ProjectFormProps {
   onSubmit: (payload: ProjectCreateUpdate) => Promise<void> | void;
   isSubmitting?: boolean;
   error?: string | ApiError | null;
+  /**
+   * The project's groups, loaded by the page. The group pickers only load the first page of
+   * groups, so a group id alone would show as an empty field; these supply the names.
+   */
+  piGroup?: Partial<Group> | null;
+  projectGroup?: Partial<Group> | null;
 }
 
-function normalizeInitialValues(initial?: Partial<Project>): ProjectFormValues {
+/** The group to show in a picker: the loaded group, or its id under a placeholder name until then */
+const groupValue = (id: number | null | undefined, loaded?: Partial<Group> | null): Partial<Group> | null =>
+  id ? (loaded?.id === id ? loaded : { id, name: `Group ${id}` }) : null;
+
+function normalizeInitialValues(
+  initial?: Partial<Project>,
+  piGroup?: Partial<Group> | null,
+  projectGroup?: Partial<Group> | null,
+): ProjectFormValues {
   return {
     name: initial?.name ?? "",
     display_name: initial?.display_name ?? "",
     description: initial?.description ?? "",
     accounting_group: initial?.accounting_group ?? "",
-    // The API returns an ISO string, possibly with seconds; datetime-local wants minutes only
-    expires_at: initial?.expires_at ? initial.expires_at.slice(0, 16) : "",
-    pi_group: initial?.pi_group_id ? { id: initial.pi_group_id } : null,
-    project_group: initial?.project_group_id ? { id: initial.project_group_id } : null,
+    pi_group: groupValue(initial?.pi_group_id, piGroup),
+    project_group: groupValue(initial?.project_group_id, projectGroup),
     pi_ids: [],
     staff1: initial?.staff1 ?? null,
     staff2: initial?.staff2 ?? null,
@@ -78,7 +89,6 @@ const FIELD_NAME_MAP: Record<string, string> = {
   display_name: "Display Name",
   description: "Description",
   accounting_group: "Accounting Group",
-  expires_at: "Expires",
   pi_group_id: "PI Group",
   project_group_id: "Project Group",
   pi_ids: "PIs",
@@ -99,8 +109,12 @@ export const ProjectForm: React.FC<ProjectFormProps> = ({
   onSubmit,
   isSubmitting = false,
   error,
+  piGroup,
+  projectGroup,
 }) => {
-  const { values, handleChange } = useFormState<ProjectFormValues>(() => normalizeInitialValues(initialValues));
+  const { values, handleChange } = useFormState<ProjectFormValues>(() =>
+    normalizeInitialValues(initialValues, piGroup, projectGroup),
+  );
   const { currentUser } = useAuthClient();
   // Staff-only fields are disabled for a PI and left out of the PUT body: the API 403s if they are present at all
   const isStaff = !!currentUser?.is_admin;
@@ -112,17 +126,16 @@ export const ProjectForm: React.FC<ProjectFormProps> = ({
       name: values.name.trim(),
       display_name: values.display_name.trim() || null,
       description: values.description || null,
-      expires_at: values.expires_at || null,
       college_and_department_id: values.college_and_department?.id ?? null,
       fos_id: values.field_of_science?.fos_id ?? null,
       status: values.status || null,
       url: values.url || null,
       date: values.date || null,
-      ticket: values.ticket ? Number(values.ticket) : null,
       last_contact: values.last_contact || null,
     };
 
     if (isStaff) {
+      payload.ticket = values.ticket ? Number(values.ticket) : null;
       payload.accounting_group = values.accounting_group.trim();
       payload.staff1 = values.staff1?.id ?? null;
       payload.staff2 = values.staff2?.id ?? null;
@@ -135,180 +148,197 @@ export const ProjectForm: React.FC<ProjectFormProps> = ({
     await onSubmit(payload);
   };
 
+  // Related fields share a row on wide screens and stack on narrow ones
+  const half = { xs: 12, md: 6 };
+
   return (
-    <Box component="form" onSubmit={handleSubmit} sx={{ mt: 2, maxWidth: 600 }}>
-      <Stack spacing={2}>
-        <FormErrorAlert error={error ?? null} fieldNameMap={FIELD_NAME_MAP} />
+    <Box component="form" onSubmit={handleSubmit} sx={{ mt: 2 }}>
+      <FormErrorAlert error={error ?? null} fieldNameMap={FIELD_NAME_MAP} />
+      <Grid container spacing={2}>
+        <Grid size={half}>
+          <TextField
+            label="Name"
+            value={values.name}
+            onChange={(e) => handleChange("name", e.target.value)}
+            required
+            fullWidth
+            disabled={isSubmitting}
+          />
+        </Grid>
+        <Grid size={half}>
+          <TextField
+            label="Display Name"
+            value={values.display_name}
+            onChange={(e) => handleChange("display_name", e.target.value)}
+            fullWidth
+            disabled={isSubmitting}
+          />
+        </Grid>
 
-        <TextField
-          label="Name"
-          value={values.name}
-          onChange={(e) => handleChange("name", e.target.value)}
-          required
-          fullWidth
-          disabled={isSubmitting}
-        />
+        <Grid size={12}>
+          <TextField
+            label="Description"
+            value={values.description}
+            onChange={(e) => handleChange("description", e.target.value)}
+            fullWidth
+            multiline
+            minRows={4}
+            maxRows={10}
+            disabled={isSubmitting}
+            helperText="Accepts plain text or Markdown"
+          />
+        </Grid>
 
-        <TextField
-          label="Display Name"
-          value={values.display_name}
-          onChange={(e) => handleChange("display_name", e.target.value)}
-          fullWidth
-          disabled={isSubmitting}
-        />
-
-        <TextField
-          label="Description"
-          value={values.description}
-          onChange={(e) => handleChange("description", e.target.value)}
-          fullWidth
-          multiline
-          minRows={4}
-          maxRows={10}
-          disabled={isSubmitting}
-          helperText="Accepts plain text or Markdown"
-        />
-
-        <TextField
-          label="Accounting Group"
-          value={values.accounting_group}
-          onChange={(e) => handleChange("accounting_group", e.target.value)}
-          required={isStaff}
-          fullWidth
-          disabled={isSubmitting || !isStaff}
-        />
-
-        <UserAutocomplete
-          label="Staff 1"
-          value={values.staff1 ?? undefined}
-          onSelect={(user) => handleChange("staff1", user)}
-          defaultFilter={{
-            is_admin: "is.true",
-          }}
-          disabled={isSubmitting || !isStaff}
-        />
-
-        <UserAutocomplete
-          label="Staff 2"
-          value={values.staff2 ?? undefined}
-          onSelect={(user) => handleChange("staff2", user)}
-          defaultFilter={{
-            is_admin: "is.true",
-          }}
-          disabled={isSubmitting || !isStaff}
-        />
-
-        {mode === "create" && (
-          <UserAutocompleteMultiple
-            value={values.pi_ids}
-            dataUrl="/users"
-            onSelect={(users) => handleChange("pi_ids", users)}
+        <Grid size={half}>
+          <TextField
+            label="Accounting Group"
+            value={values.accounting_group}
+            onChange={(e) => handleChange("accounting_group", e.target.value)}
+            required={isStaff}
+            fullWidth
             disabled={isSubmitting || !isStaff}
           />
+        </Grid>
+        <Grid size={half}>
+          <FormControl fullWidth>
+            <InputLabel id="status-select">Status</InputLabel>
+            <Select
+              labelId="status-select"
+              id="status-select"
+              value={values.status}
+              label="Status"
+              onChange={(e) => handleChange("status", e.target.value)}
+              disabled={isSubmitting}
+            >
+              <MenuItem value={"Active"}>Active</MenuItem>
+              <MenuItem value={"Inactive"}>Inactive</MenuItem>
+            </Select>
+          </FormControl>
+        </Grid>
+
+        <Grid size={half}>
+          <UserAutocomplete
+            label="Staff 1"
+            value={values.staff1 ?? undefined}
+            onSelect={(user) => handleChange("staff1", user)}
+            defaultFilter={{
+              is_admin: "is.true",
+            }}
+            disabled={isSubmitting || !isStaff}
+          />
+        </Grid>
+        <Grid size={half}>
+          <UserAutocomplete
+            label="Staff 2"
+            value={values.staff2 ?? undefined}
+            onSelect={(user) => handleChange("staff2", user)}
+            defaultFilter={{
+              is_admin: "is.true",
+            }}
+            disabled={isSubmitting || !isStaff}
+          />
+        </Grid>
+
+        {mode === "create" && (
+          <Grid size={12}>
+            <UserAutocompleteMultiple
+              value={values.pi_ids}
+              dataUrl="/users"
+              onSelect={(users) => handleChange("pi_ids", users)}
+              disabled={isSubmitting || !isStaff}
+            />
+          </Grid>
         )}
 
-        <GenericAutocomplete<Group>
-          endpoint="/groups"
-          label="PI Group"
-          value={values.pi_group}
-          onSelect={(group) => handleChange("pi_group", group)}
-          getOptionLabel={(option) => option?.name ?? ""}
-          searchFields={["name"]}
-          helperText={mode === "create" ? "Leave blank to generate the PI, managers and project groups" : undefined}
-          disabled={isSubmitting || !isStaff}
-        />
+        <Grid size={half}>
+          <GenericAutocomplete<Group>
+            endpoint="/groups"
+            label="PI Group"
+            value={values.pi_group}
+            onSelect={(group) => handleChange("pi_group", group)}
+            getOptionLabel={(option) => option?.name ?? ""}
+            searchFields={["name"]}
+            helperText={mode === "create" ? "Leave blank to generate the PI, managers and project groups" : undefined}
+            disabled={isSubmitting || !isStaff}
+          />
+        </Grid>
+        <Grid size={half}>
+          <GenericAutocomplete<Group>
+            endpoint="/groups"
+            label="Project Group"
+            value={values.project_group}
+            onSelect={(group) => handleChange("project_group", group)}
+            getOptionLabel={(option) => option?.name ?? ""}
+            searchFields={["name"]}
+            helperText={mode === "create" ? "Leave blank to generate the PI, managers and project groups" : undefined}
+            disabled={isSubmitting || !isStaff}
+          />
+        </Grid>
 
-        <GenericAutocomplete<Group>
-          endpoint="/groups"
-          label="Project Group"
-          value={values.project_group}
-          onSelect={(group) => handleChange("project_group", group)}
-          getOptionLabel={(option) => option?.name ?? ""}
-          searchFields={["name"]}
-          helperText={mode === "create" ? "Leave blank to generate the PI, managers and project groups" : undefined}
-          disabled={isSubmitting || !isStaff}
-        />
-
-        <TextField
-          label="Expires"
-          value={values.expires_at}
-          onChange={(e) => handleChange("expires_at", e.target.value)}
-          fullWidth
-          disabled={isSubmitting}
-          type={"datetime-local"}
-          slotProps={{ inputLabel: { shrink: true } }}
-        />
-
-        <CollegeDepartmentAutocomplete
-          value={values.college_and_department ?? undefined}
-          onSelect={(collegeAndDepartment) => handleChange("college_and_department", collegeAndDepartment)}
-          disabled={isSubmitting}
-        />
-
-        <FieldOfScienceAutocomplete
-          value={values.field_of_science ?? undefined}
-          onSelect={(fieldOfScience) => handleChange("field_of_science", fieldOfScience)}
-          disabled={isSubmitting}
-        />
-
-        <FormControl fullWidth>
-          <InputLabel id="status-select">Status</InputLabel>
-          <Select
-            labelId="status-select"
-            id="status-select"
-            value={values.status}
-            label="Status"
-            onChange={(e) => handleChange("status", e.target.value)}
+        <Grid size={half}>
+          <CollegeDepartmentAutocomplete
+            value={values.college_and_department ?? undefined}
+            onSelect={(collegeAndDepartment) => handleChange("college_and_department", collegeAndDepartment)}
             disabled={isSubmitting}
-          >
-            <MenuItem value={"Active"}>Active</MenuItem>
-            <MenuItem value={"Inactive"}>Inactive</MenuItem>
-          </Select>
-        </FormControl>
+          />
+        </Grid>
+        <Grid size={half}>
+          <FieldOfScienceAutocomplete
+            value={values.field_of_science ?? undefined}
+            onSelect={(fieldOfScience) => handleChange("field_of_science", fieldOfScience)}
+            disabled={isSubmitting}
+          />
+        </Grid>
 
-        <TextField
-          label="URL"
-          value={values.url}
-          onChange={(e) => handleChange("url", e.target.value)}
-          fullWidth
-          disabled={isSubmitting}
-        />
+        <Grid size={half}>
+          <TextField
+            label="URL"
+            value={values.url}
+            onChange={(e) => handleChange("url", e.target.value)}
+            fullWidth
+            disabled={isSubmitting}
+          />
+        </Grid>
+        <Grid size={half}>
+          <TextField
+            label="Ticket"
+            value={values.ticket}
+            onChange={(e) => handleChange("ticket", e.target.value)}
+            fullWidth
+            disabled={isSubmitting || !isStaff}
+            helperText={isStaff ? "Leave blank if not applicable" : "Only staff can change this"}
+          />
+        </Grid>
 
-        <TextField
-          label="Ticket"
-          value={values.ticket}
-          onChange={(e) => handleChange("ticket", e.target.value)}
-          fullWidth
-          disabled={isSubmitting}
-          helperText="Leave blank if not applicable"
-        />
+        <Grid size={half}>
+          <TextField
+            label="Date"
+            value={values.date}
+            onChange={(e) => handleChange("date", e.target.value)}
+            fullWidth
+            disabled={true}
+            type={"datetime-local"}
+            slotProps={{ inputLabel: { shrink: true } }}
+          />
+        </Grid>
+        <Grid size={half}>
+          <TextField
+            label="Last Contact"
+            value={values.last_contact}
+            onChange={(e) => handleChange("last_contact", e.target.value)}
+            fullWidth
+            disabled={isSubmitting}
+            type={"datetime-local"}
+            slotProps={{ inputLabel: { shrink: true } }}
+          />
+        </Grid>
 
-        <TextField
-          label="Date"
-          value={values.date}
-          onChange={(e) => handleChange("date", e.target.value)}
-          fullWidth
-          disabled={true}
-          type={"datetime-local"}
-          slotProps={{ inputLabel: { shrink: true } }}
-        />
-
-        <TextField
-          label="Last Contact"
-          value={values.last_contact}
-          onChange={(e) => handleChange("last_contact", e.target.value)}
-          fullWidth
-          disabled={isSubmitting}
-          type={"datetime-local"}
-          slotProps={{ inputLabel: { shrink: true } }}
-        />
-
-        <Box sx={{ display: "flex", gap: 2, mt: 2 }}>
+        <Grid size={12}>
           <Button type="submit" variant="contained" color="primary" disabled={isSubmitting}>
             {mode === "create" ? "Create" : "Save"}
           </Button>
-        </Box>
-      </Stack>
+        </Grid>
+      </Grid>
     </Box>
   );
 };

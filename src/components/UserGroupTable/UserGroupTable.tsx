@@ -1,26 +1,35 @@
 import MembershipPaths from "@/src/components/MembershipPaths/MembershipPaths";
 import makeDeleteCell from "@/src/components/Table/DeleteCell/makeDeleteCell";
-import ServerTable, { ServerTableColumns, useServerTableRefresh } from "@/src/components/Table/ServerTable";
+import ServerTable, { ServerTableColumns } from "@/src/components/Table/ServerTable";
 import type { CellComponentProps, SortState } from "@chtc/web-components";
-import { makeLinkedTextCell, makeManagedByCell } from "@/src/components/TableCells/TableCells";
+import { makeLinkedTextCell } from "@/src/components/TableCells/TableCells";
 import { useRevalidateUserAndGroups, userGroupsKey } from "@/src/utils/userCache";
 import { UserGroupsView } from "@/types";
+import { Check } from "@mui/icons-material";
 import { TableCell } from "@mui/material";
 import { useMemo } from "react";
 
 interface UserGroupTableProps {
   userId: number;
-  /** Staff view: links to groups and shows the managed-by and remove controls */
+  /** Staff view: links to every group and shows the remove control */
   adminView?: boolean;
 }
 
-const defaultSort: SortState<keyof UserGroupsView & string> = { columnId: "name", direction: "asc" };
+// The groups the user administers first, then by name
+const defaultSort: SortState<keyof UserGroupsView & string> = { columnId: "is_owner", direction: "desc" };
 
 const searchFields = ["name"];
 
-const tiebreakers: SortState[] = [{ columnId: "group_id", direction: "asc" }];
+const tiebreakers: SortState[] = [
+  { columnId: "name", direction: "asc" },
+  { columnId: "group_id", direction: "asc" },
+];
 
-// Only a direct membership has a managed-by and can be removed; access through another group can't
+const OwnerCell = ({ row }: CellComponentProps<UserGroupsView, keyof UserGroupsView>) => (
+  <TableCell>{row.is_owner && <Check aria-label="Owner" color="success" />}</TableCell>
+);
+
+// Only a direct membership can be removed; access through another group can't
 const isDirect = (group: UserGroupsView) => group.direct;
 
 function makeAccessCell(linkGroups: boolean) {
@@ -35,7 +44,6 @@ function makeAccessCell(linkGroups: boolean) {
 
 const UserGroupTable = ({ userId, adminView = false }: UserGroupTableProps) => {
   const endpoint = userGroupsKey(userId);
-  const refresh = useServerTableRefresh(endpoint);
   // Removing a group also removes the submit nodes it grants, so refresh the user too.
   const revalidate = useRevalidateUserAndGroups(userId);
 
@@ -45,25 +53,17 @@ const UserGroupTable = ({ userId, adminView = false }: UserGroupTableProps) => {
         id: "name",
         name: "Name",
         sortable: true,
-        ...(adminView && {
-          CellComponent: makeLinkedTextCell<UserGroupsView>({
-            href: (group) => `/groups/edit/?id=${group.group_id}`,
-            ariaLabel: "Go to group",
-          }),
+        // Linked to the group's page for the groups the reader may open: staff any, others the ones they administer
+        CellComponent: makeLinkedTextCell<UserGroupsView>({
+          href: (group) => `/groups/details/?id=${group.group_id}`,
+          ariaLabel: "Go to group",
+          canOpen: (group) => adminView || group.is_owner,
         }),
       },
+      is_owner: { id: "is_owner", name: "Owner", sortable: true, firstSortDirection: "desc", CellComponent: OwnerCell },
       unix_gid: { id: "unix_gid", name: "Unix GID", sortable: true },
       access: { id: "access", name: "Access", CellComponent: makeAccessCell(adminView) },
       ...(adminView && {
-        managed_by: {
-          id: "managed_by",
-          name: "Managed By",
-          CellComponent: makeManagedByCell<UserGroupsView>({
-            patchUrl: (group) => `/groups/${group.group_id}/members/users/${userId}`,
-            onSuccess: refresh,
-            show: (group) => isDirect(group) && !!group.managed_by,
-          }),
-        },
         remove: {
           id: "remove",
           name: "Action",
@@ -76,7 +76,7 @@ const UserGroupTable = ({ userId, adminView = false }: UserGroupTableProps) => {
         },
       }),
     }),
-    [adminView, userId, refresh, revalidate],
+    [adminView, userId, revalidate],
   );
 
   return (

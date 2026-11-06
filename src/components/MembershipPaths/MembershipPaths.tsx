@@ -29,7 +29,7 @@ export const MembershipPaths = ({ direct, paths, path_names, linkGroups = true }
         return (
           <Tooltip key={ids.join("-")} title={`Member through ${label}`}>
             {linkGroups ? (
-              <Chip size="small" variant="outlined" label={label} component={Link} href={`/groups/edit/?id=${last}`} clickable />
+              <Chip size="small" variant="outlined" label={label} component={Link} href={`/groups/details/?id=${last}`} clickable />
             ) : (
               <Chip size="small" variant="outlined" label={label} />
             )}

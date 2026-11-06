@@ -13,7 +13,6 @@ import type {
   TokenPost,
   User,
   UserCreate,
-  UserProjectCreate,
 } from "@/types";
 import React, { createContext, useCallback, useContext, useEffect, useState } from "react";
 
@@ -31,6 +30,9 @@ export type ApiClient = {
   // Authentication
   logout: () => Promise<{ message: string }>;
   getCurrentUser: () => Promise<User>;
+  /** View the site as another user (staff, API started with ALLOW_IMPERSONATE=true) */
+  impersonate: (userId: number) => Promise<User>;
+  stopImpersonating: () => Promise<User>;
 
   // Users
   getUser: (userId: number) => Promise<User>;
@@ -50,7 +52,6 @@ export type ApiClient = {
   createProject: (project: ProjectCreateUpdate) => Promise<Project>;
   updateProject: (projectId: number, project: ProjectCreateUpdate) => Promise<Project>;
   deleteProject: (projectId: number) => Promise<void>;
-  addUserToProject: (projectId: number, userProject: UserProjectCreate) => Promise<Record<string, unknown>>;
   removeUserFromProject: (projectId: number, userId: number) => Promise<void>;
   addNoteToProject: (projectId: number, note: NoteCreate) => Promise<Note>;
   deleteNoteFromProject: (projectId: number, noteId: number) => Promise<void>;
@@ -150,6 +151,18 @@ export function AuthClientProvider({ children }: { children: React.ReactNode }) 
       return response.json();
     }, []),
 
+    impersonate: useCallback(async (userId: number): Promise<User> => {
+      const response = await apiFetch(`/impersonate/${userId}`, { method: "POST" });
+      if (!response.ok) throw new Error(`Failed to view as user: ${response.statusText}`);
+      return response.json();
+    }, []),
+
+    stopImpersonating: useCallback(async (): Promise<User> => {
+      const response = await apiFetch("/impersonate/stop", { method: "POST" });
+      if (!response.ok) throw new Error(`Failed to stop viewing as user: ${response.statusText}`);
+      return response.json();
+    }, []),
+
     // Users
     getUser: useCallback(async (userId: number): Promise<User> => {
       const response = await apiFetch(`/users/${userId}`);
@@ -244,18 +257,6 @@ export function AuthClientProvider({ children }: { children: React.ReactNode }) 
       const response = await apiFetch(`/projects/${projectId}`, { method: "DELETE" });
       if (!response.ok) throw new Error(`Failed to delete project: ${response.statusText}`);
     }, []),
-
-    addUserToProject: useCallback(
-      async (projectId: number, userProject: UserProjectCreate): Promise<Record<string, unknown>> => {
-        const response = await apiFetch(`/projects/${projectId}/users`, {
-          method: "POST",
-          body: JSON.stringify(userProject),
-        });
-        if (!response.ok) throw new Error(`Failed to add user to project: ${response.statusText}`);
-        return response.json();
-      },
-      [],
-    ),
 
     removeUserFromProject: useCallback(async (projectId: number, userId: number): Promise<void> => {
       const response = await apiFetch(`/projects/${projectId}/users/${userId}`, { method: "DELETE" });

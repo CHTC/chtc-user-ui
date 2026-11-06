@@ -8,11 +8,6 @@ import type { TokenGet } from "@/types";
 import { Edit } from "@mui/icons-material";
 
 const columns: ServerTableColumns<TokenGet> = {
-  edit: {
-    id: "edit",
-    name: "",
-    CellComponent: makeIconLinkCell<TokenGet>({ href: (token) => `/tokens/edit?id=${token.id}`, icon: <Edit />, ariaLabel: "Edit token" }),
-  },
   created_by: { id: "created_by", name: "Created By", sortable: true },
   description: { id: "description", name: "Description", sortable: true },
   created_at: {
@@ -23,6 +18,15 @@ const columns: ServerTableColumns<TokenGet> = {
     CellComponent: DateCell,
   },
   expires_at: { id: "expires_at", name: "Expires At", sortable: true, CellComponent: DateCell },
+  edit: {
+    id: "edit",
+    name: "",
+    CellComponent: makeIconLinkCell<TokenGet>({
+      href: (token) => `/tokens/edit?id=${token.id}`,
+      icon: <Edit />,
+      ariaLabel: "Edit token",
+    }),
+  },
 };
 
 // Newest first

@@ -17,15 +17,6 @@ function formatPosition(position: string) {
 }
 
 const columns: ServerTableColumns<UserForm> = {
-  edit: {
-    id: "edit",
-    name: "",
-    CellComponent: makeIconLinkCell<UserForm>({
-      href: (application) => `/forms/user-applications/edit?id=${application.id}`,
-      icon: <Edit />,
-      ariaLabel: "Edit application",
-    }),
-  },
   // The API sorts created_by by user id, not name, so this column isn't sortable
   created_by: {
     id: "created_by",
@@ -51,6 +42,15 @@ const columns: ServerTableColumns<UserForm> = {
     sortable: true,
     firstSortDirection: "desc",
     CellComponent: DateCell,
+  },
+  edit: {
+    id: "edit",
+    name: "",
+    CellComponent: makeIconLinkCell<UserForm>({
+      href: (application) => `/forms/user-applications/edit?id=${application.id}`,
+      icon: <Edit />,
+      ariaLabel: "Edit application",
+    }),
   },
 };
 

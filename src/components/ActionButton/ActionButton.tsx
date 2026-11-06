@@ -14,6 +14,8 @@ interface ActionButtonProps {
   onSuccess?: () => void;
   /** Called with the API's error detail when the request fails, instead of the default red alert */
   onError?: (detail: string) => void;
+  /** Which way the Confirm button opens; deletes open to the left by default */
+  growDirection?: "left" | "right";
 }
 
 /**
@@ -21,7 +23,17 @@ interface ActionButtonProps {
  * sends a DELETE or a star that sends a PATCH.
  * Handles API call and refresh on success
  */
-export const ActionButton = ({ url, method, icon, color, ariaLabel, body, onSuccess, onError }: ActionButtonProps) => {
+export const ActionButton = ({
+  url,
+  method,
+  icon,
+  color,
+  ariaLabel,
+  body,
+  onSuccess,
+  onError,
+  growDirection = method === "DELETE" ? "left" : "right",
+}: ActionButtonProps) => {
   const { showAlert } = useAlert();
 
   const handleConfirm = async () => {
@@ -38,7 +50,7 @@ export const ActionButton = ({ url, method, icon, color, ariaLabel, body, onSucc
   };
 
   return (
-    <ConfirmButton aria-label={ariaLabel} color={color} onConfirm={handleConfirm}>
+    <ConfirmButton aria-label={ariaLabel} color={color} growDirection={growDirection} onConfirm={handleConfirm}>
       {icon}
     </ConfirmButton>
   );

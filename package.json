@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev --turbopack",
+    "dev": "NEXT_PUBLIC_ALLOW_IMPERSONATE=true next dev --turbopack",
     "build": "next build",
     "postbuild": "next-image-export-optimizer",
     "start": "next start",
@@ -23,11 +23,11 @@
     "@stefanprobst/rehype-extract-toc": "^3.0.0",
     "estree-util-value-to-estree": "^3.5.0",
     "glob": "^11.1.0",
-    "next": "^15.5.12",
+    "next": "^16.4.5",
     "next-image-export-optimizer": "^1.20.1",
     "raw-loader": "^4.0.2",
-    "react": "19.1.0",
-    "react-dom": "19.1.0",
+    "react": "19.3.1",
+    "react-dom": "19.3.1",
     "swr": "^2.4.0"
   },
   "devDependencies": {

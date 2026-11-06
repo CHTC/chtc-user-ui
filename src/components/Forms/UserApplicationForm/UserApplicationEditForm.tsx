@@ -218,7 +218,7 @@ export function UserApplicationEditForm({
                   <AlertTitle>Application Approved</AlertTitle>
                   <Stack direction="row" spacing={2} mt={2}>
                     {approvedProjectId !== null && (
-                      <Button variant="contained" href={`/projects/edit/?id=${approvedProjectId}`}>
+                      <Button variant="contained" href={`/projects/details/?id=${approvedProjectId}`}>
                         Go to Project
                       </Button>
                     )}

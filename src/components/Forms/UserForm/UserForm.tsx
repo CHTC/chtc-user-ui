@@ -6,6 +6,8 @@ import ProjectAutocomplete from "@/src/components/ProjectAutocomplete/ProjectAut
 import { ApiError } from "@/src/utils/formErrors";
 import type { PositionEnum, UserCreate, UserUpdate } from "@/types";
 import { Project, SubmitNode, UserSubmitGet } from "@/types";
+import StaticTable from "@/src/components/Table/StaticTable";
+import type { ColumnConfig } from "@chtc/web-components";
 import {
   Box,
   Button,
@@ -17,11 +19,6 @@ import {
   MenuItem,
   Select,
   Stack,
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableRow,
   TextField,
   Typography,
 } from "@mui/material";
@@ -61,7 +58,11 @@ export interface UserFormProps {
   isSubmitting?: boolean;
   error?: string | ApiError | null;
   adminView?: boolean; // whether to show admin-only fields in submit node table
+  /** Off on the user's details page, where submit nodes have their own page */
+  showSubmitNodes?: boolean;
 }
+
+const SUBMIT_NODE_COLUMNS: ColumnConfig<SubmitNode>[] = [{ id: "name", name: "Name" }];
 
 function normalizeInitialValues(initial?: Partial<UserCreate & UserUpdate>): UserFormValues {
   return {
@@ -112,7 +113,15 @@ const FIELD_NAME_MAP: Record<string, string> = {
   submit_nodes: "Submit Nodes",
 };
 
-export const UserForm: React.FC<UserFormProps> = ({ mode, initialValues, onSubmit, isSubmitting = false, error, adminView }) => {
+export const UserForm: React.FC<UserFormProps> = ({
+  mode,
+  initialValues,
+  onSubmit,
+  isSubmitting = false,
+  error,
+  adminView,
+  showSubmitNodes = true,
+}) => {
   const [values, setValues] = useState<UserFormValues>(() => normalizeInitialValues(initialValues));
   const [selectedSubmitNodeId, setSelectedSubmitNodeId] = useState<number | "">("");
 
@@ -237,237 +246,203 @@ export const UserForm: React.FC<UserFormProps> = ({ mode, initialValues, onSubmi
 
   const validSubmitNodes = submitNodes?.filter((node) => node.group_id !== null);
 
+  // The user's submit nodes as rows for the table; ids the node list doesn't know are left out
+  const selectedSubmitNodes = values.submit_nodes
+    .map((nodeId) => submitNodes?.find((n) => n.id === nodeId))
+    .filter((node): node is SubmitNode => !!node);
+
+  // One field per row, except the two emails and the two phones, which pair up; all stack on narrow screens
+  const half = { xs: 12, md: 6 };
+
   return (
-    <Box component="form" onSubmit={handleSubmit}>
+    <Box component="form" onSubmit={handleSubmit} sx={{ mt: 2 }}>
       <FormErrorAlert error={error ?? null} fieldNameMap={FIELD_NAME_MAP} />
 
-      <Grid container spacing={3} sx={{ mt: 2 }}>
-        <Grid size={{ xs: 12, md: 6 }}>
-          <Typography variant="h4">Basic Info</Typography>
-          <Stack spacing={2} mt={2}>
-            <TextField
-              label="Name"
-              value={values.name}
-              onChange={(e) => handleChange("name", e.target.value)}
-              required
-              fullWidth
+      <Grid container spacing={2}>
+        <Grid size={12}>
+          <TextField
+            label="Name"
+            value={values.name}
+            onChange={(e) => handleChange("name", e.target.value)}
+            required
+            fullWidth
+            disabled={isSubmitting}
+          />
+        </Grid>
+        <Grid size={12}>
+          <TextField
+            label="NetID"
+            required={values.active === true}
+            value={values.netid}
+            onChange={(e) => handleChange("netid", e.target.value)}
+            fullWidth
+            disabled={isSubmitting || !adminView}
+          />
+        </Grid>
+        {adminView && (
+          <Grid size={12}>
+            <ProjectAutocomplete
+              onSelect={(project: Project | null) => {
+                handleChange("primary_project_id", String(project?.id ?? ""));
+              }}
+              value={values.primary_project_id ? { id: parseInt(values.primary_project_id, 10) } : undefined}
+              label="Primary Project"
+              helperText={mode === "create" ? "Also adds the user to the project" : undefined}
               disabled={isSubmitting}
             />
-
-            <TextField
-              label="Email (primary)"
-              value={values.email1}
-              onChange={(e) => handleChange("email1", e.target.value)}
-              required
-              fullWidth
+          </Grid>
+        )}
+        <Grid size={half}>
+          <TextField
+            label="Email (primary)"
+            value={values.email1}
+            onChange={(e) => handleChange("email1", e.target.value)}
+            required
+            fullWidth
+            disabled={isSubmitting || !adminView}
+          />
+        </Grid>
+        <Grid size={half}>
+          <TextField
+            label="Email (secondary)"
+            value={values.email2}
+            onChange={(e) => handleChange("email2", e.target.value)}
+            fullWidth
+            disabled={isSubmitting}
+          />
+        </Grid>
+        <Grid size={half}>
+          <TextField
+            label="Phone 1"
+            value={values.phone1}
+            onChange={(e) => handleChange("phone1", e.target.value)}
+            fullWidth
+            disabled={isSubmitting}
+          />
+        </Grid>
+        <Grid size={half}>
+          <TextField
+            label="Phone 2"
+            value={values.phone2}
+            onChange={(e) => handleChange("phone2", e.target.value)}
+            fullWidth
+            disabled={isSubmitting}
+          />
+        </Grid>
+        <Grid size={12}>
+          <FormControl fullWidth>
+            <InputLabel id="position-label">Position</InputLabel>
+            <Select
+              labelId="position-label"
+              label="Position"
+              value={values.position}
+              onChange={(e) => handleChange("position", e.target.value as PositionEnum | "")}
               disabled={isSubmitting || !adminView}
-            />
-
-            <TextField
-              label="Email (secondary)"
-              value={values.email2}
-              onChange={(e) => handleChange("email2", e.target.value)}
-              fullWidth
-              disabled={isSubmitting}
-            />
-
-            <TextField
-              label="NetID"
-              required={values.active === true}
-              value={values.netid}
-              onChange={(e) => handleChange("netid", e.target.value)}
-              fullWidth
-              disabled={isSubmitting || !adminView}
-            />
-
-            <TextField
-              label="Phone 1"
-              value={values.phone1}
-              onChange={(e) => handleChange("phone1", e.target.value)}
-              fullWidth
-              disabled={isSubmitting}
-            />
-
-            <TextField
-              label="Phone 2"
-              value={values.phone2}
-              onChange={(e) => handleChange("phone2", e.target.value)}
-              fullWidth
-              disabled={isSubmitting}
-            />
-
-            <TextField
-              label="Unix UID"
-              value={values.unix_uid}
-              onChange={(e) => handleChange("unix_uid", e.target.value)}
-              fullWidth
-              disabled={isSubmitting || !adminView}
-              helperText="Optional numeric UNIX user ID"
-            />
-
-            <FormControl fullWidth>
-              <InputLabel id="position-label">Position</InputLabel>
-              <Select
-                labelId="position-label"
-                label="Position"
-                value={values.position}
-                onChange={(e) => handleChange("position", e.target.value as PositionEnum | "")}
-                disabled={isSubmitting || !adminView}
-              >
-                <MenuItem value="">Select Position</MenuItem>
-                <MenuItem value="FACULTY">Faculty</MenuItem>
-                <MenuItem value="STAFF">Staff</MenuItem>
-                <MenuItem value="POSTDOC">Postdoc</MenuItem>
-                <MenuItem value="GRAD_STUDENT">Grad Student</MenuItem>
-                <MenuItem value="UNDERGRADUATE">Undergraduate</MenuItem>
-                <MenuItem value="OTHER">Other</MenuItem>
-              </Select>
-            </FormControl>
-
-            {adminView && (
-              <ProjectAutocomplete
-                onSelect={(project: Project | null) => {
-                  handleChange("primary_project_id", String(project?.id ?? ""));
-                }}
-                value={values.primary_project_id ? { id: parseInt(values.primary_project_id, 10) } : undefined}
-                label="Primary Project"
-                helperText={mode === "create" ? "Also adds the user to the project" : undefined}
-                disabled={isSubmitting}
-              />
-            )}
-
-            <Box sx={{ display: "flex", gap: 2, alignItems: "center", flexWrap: "wrap" }}>
-              <FormControlLabel
-                control={
-                  <Checkbox
-                    checked={values.active}
-                    onChange={(e) => handleChange("active", e.target.checked)}
-                    disabled={isSubmitting || !adminView}
-                  />
-                }
-                label="Active (must have NetID)"
-              />
-
-              <FormControlLabel
-                control={
-                  <Checkbox
-                    checked={values.is_admin}
-                    onChange={(e) => handleChange("is_admin", e.target.checked)}
-                    disabled={isSubmitting || !adminView}
-                  />
-                }
-                label="Is Admin"
-              />
-            </Box>
-
-            <Box sx={{ display: "flex", justifyContent: "flex-end", gap: 2, mt: 2 }}>
-              <Button type="submit" variant="contained" color="primary" disabled={isSubmitting}>
-                {mode === "create" ? "Create" : "Save"}
-              </Button>
-            </Box>
-          </Stack>
+            >
+              <MenuItem value="">Select Position</MenuItem>
+              <MenuItem value="FACULTY">Faculty</MenuItem>
+              <MenuItem value="STAFF">Staff</MenuItem>
+              <MenuItem value="POSTDOC">Postdoc</MenuItem>
+              <MenuItem value="GRAD_STUDENT">Grad Student</MenuItem>
+              <MenuItem value="UNDERGRADUATE">Undergraduate</MenuItem>
+              <MenuItem value="OTHER">Other</MenuItem>
+            </Select>
+          </FormControl>
+        </Grid>
+        <Grid size={12}>
+          <TextField
+            label="Unix UID"
+            value={values.unix_uid}
+            onChange={(e) => handleChange("unix_uid", e.target.value)}
+            fullWidth
+            disabled={isSubmitting || !adminView}
+            helperText="Optional numeric UNIX user ID"
+          />
         </Grid>
 
-        <Grid size={{ xs: 12, md: 6 }}>
-          <Stack spacing={2}>
-            <Typography variant="h4">Submit Nodes</Typography>
+        <Grid size={12}>
+          <Box sx={{ display: "flex", gap: 2, alignItems: "center", flexWrap: "wrap" }}>
+            <FormControlLabel
+              control={
+                <Checkbox
+                  checked={values.active}
+                  onChange={(e) => handleChange("active", e.target.checked)}
+                  disabled={isSubmitting || !adminView}
+                />
+              }
+              label="Active (must have NetID)"
+            />
+            <FormControlLabel
+              control={
+                <Checkbox
+                  checked={values.is_admin}
+                  onChange={(e) => handleChange("is_admin", e.target.checked)}
+                  disabled={isSubmitting || !adminView}
+                />
+              }
+              label="Is Admin"
+            />
+          </Box>
+        </Grid>
 
-            {adminView && (
-              <Stack direction="row" spacing={2} alignItems="center">
-                <FormControl sx={{ flexGrow: 1 }}>
-                  <InputLabel id="submit-node-label">Select Submit Node</InputLabel>
-                  <Select
-                    labelId="submit-node-label"
-                    label="Select Submit Node"
-                    value={selectedSubmitNodeId}
-                    onChange={(e) => setSelectedSubmitNodeId(e.target.value as number)}
-                    disabled={isSubmitting}
-                  >
-                    <MenuItem value="">
-                      <em>None</em>
-                    </MenuItem>
-                    {validSubmitNodes?.map((node) => (
-                      <MenuItem key={node.id} value={node.id}>
-                        {node.name}
+        {showSubmitNodes && (
+          <Grid size={12}>
+            <Stack spacing={2}>
+              <Typography variant="h6" component="h3">
+                Submit Nodes
+              </Typography>
+              {adminView && (
+                <Stack direction={{ xs: "column", sm: "row" }} spacing={2} alignItems={{ sm: "center" }}>
+                  <FormControl sx={{ flexGrow: 1 }}>
+                    <InputLabel id="submit-node-label">Select Submit Node</InputLabel>
+                    <Select
+                      labelId="submit-node-label"
+                      label="Select Submit Node"
+                      value={selectedSubmitNodeId}
+                      onChange={(e) => setSelectedSubmitNodeId(e.target.value as number)}
+                      disabled={isSubmitting}
+                    >
+                      <MenuItem value="">
+                        <em>None</em>
                       </MenuItem>
-                    ))}
-                  </Select>
-                </FormControl>
-                <Button
-                  variant="contained"
-                  color="primary"
-                  onClick={handleAddSubmitNode}
-                  disabled={!selectedSubmitNodeId || isNodeAssigned || isSubmitting}
-                >
-                  Add
-                </Button>
-                <Button
-                  variant="contained"
-                  color="error"
-                  onClick={handleRemoveSubmitNode}
-                  disabled={!selectedSubmitNodeId || !isNodeAssigned || isSubmitting}
-                >
-                  Remove
-                </Button>
-              </Stack>
-            )}
-            <Table>
-              <TableHead>
-                <TableRow>
-                  <TableCell>Name</TableCell>
-                  {/* {mode === "edit" && (
-                    <>
-                      <TableCell>Disk Quota</TableCell>
-                      <TableCell>HPC Disk</TableCell>
-                      <TableCell>HPC Inode</TableCell>
-                      <TableCell>Job Limit</TableCell>
-                      <TableCell>Core Limit</TableCell>
-                      <TableCell>Fairshare</TableCell>
-                    </>
-                  )} */}
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {values.submit_nodes.length > 0 ? (
-                  values.submit_nodes.map((nodeId) => {
-                    const node = submitNodes?.find((n) => n.id === nodeId);
-                    if (!node) return null;
+                      {validSubmitNodes?.map((node) => (
+                        <MenuItem key={node.id} value={node.id}>
+                          {node.name}
+                        </MenuItem>
+                      ))}
+                    </Select>
+                  </FormControl>
+                  <Button
+                    variant="contained"
+                    color="primary"
+                    onClick={handleAddSubmitNode}
+                    disabled={!selectedSubmitNodeId || isNodeAssigned || isSubmitting}
+                  >
+                    Add
+                  </Button>
+                  <Button
+                    variant="contained"
+                    color="error"
+                    onClick={handleRemoveSubmitNode}
+                    disabled={!selectedSubmitNodeId || !isNodeAssigned || isSubmitting}
+                  >
+                    Remove
+                  </Button>
+                </Stack>
+              )}
+              <StaticTable
+                data={selectedSubmitNodes}
+                columns={SUBMIT_NODE_COLUMNS}
+                emptyMessage="No submit nodes selected"
+              />
+            </Stack>
+          </Grid>
+        )}
 
-                    // if (mode === "edit") {
-                    //   // For edit mode, try to get quota info from initialValues
-                    //   const initialNode = (initialValues?.submit_nodes as UserSubmitGet[] | undefined)?.find(
-                    //     (n) => n.submit_node_id === nodeId,
-                    //   );
-                    //   return (
-                    //     <TableRow key={nodeId}>
-                    //       <TableCell>{node.name}</TableCell>
-                    //       <TableCell>{initialNode?.disk_quota ?? ""}</TableCell>
-                    //       <TableCell>{initialNode?.hpc_diskquota ?? ""}</TableCell>
-                    //       <TableCell>{initialNode?.hpc_inodequota ?? ""}</TableCell>
-                    //       <TableCell>{initialNode?.hpc_joblimit ?? ""}</TableCell>
-                    //       <TableCell>{initialNode?.hpc_corelimit ?? ""}</TableCell>
-                    //       <TableCell>{initialNode?.hpc_fairshare ?? ""}</TableCell>
-                    //     </TableRow>
-                    //   );
-                    // } else {
-                      // For create mode, just show the name
-                      return (
-                        <TableRow key={nodeId}>
-                          <TableCell>{node.name}</TableCell>
-                        </TableRow>
-                      );
-                    // }
-                  })
-                ) : (
-                  <TableRow>
-                    <TableCell colSpan={1} align="center">
-                      No submit nodes selected
-                    </TableCell>
-                  </TableRow>
-                )}
-              </TableBody>
-            </Table>
-          </Stack>
+        <Grid size={12}>
+          <Button type="submit" variant="contained" color="primary" disabled={isSubmitting}>
+            {mode === "create" ? "Create" : "Save"}
+          </Button>
         </Grid>
       </Grid>
     </Box>

@@ -75,7 +75,7 @@ export interface Group {
   /** null means only staff administer the group */
   owner_group_id: number | null;
   description: string | null;
-  expires_at: string | null;
+  managed_by: EntityManagerEnum;
   /** Groups are soft-deleted; staff can still read a deleted group */
   deleted_at: string | null;
   created_at: string;
@@ -86,7 +86,7 @@ export interface GroupCreateUpdate {
   name: string;
   unix_gid?: number | null;
   description?: string | null;
-  expires_at?: string | null;
+  managed_by?: EntityManagerEnum;
   owner_group_id?: number | null;
   /** Create only; cannot be combined with owner_group_id */
   administration?: GroupAdministration;
@@ -98,14 +98,12 @@ export interface GroupMember {
   group_id: number;
   member_user: User | null;
   member_group: Group | null;
-  managed_by: EntityManagerEnum;
   created_at: string;
 }
 
 export interface GroupMemberCreate {
   user_id?: number;
   group_id?: number;
-  managed_by?: EntityManagerEnum;
 }
 
 /**
@@ -122,8 +120,6 @@ export interface GroupMembersView {
   direct: boolean;
   paths: MembershipPath[];
   path_names: MembershipPathNames[];
-  /** From the direct membership row, null when access comes only through another group */
-  managed_by: EntityManagerEnum | null;
   name: string | null;
   netid: string | null;
   username: string | null;
@@ -141,12 +137,12 @@ export interface UserGroupsView {
   direct: boolean;
   paths: MembershipPath[];
   path_names: MembershipPathNames[];
-  managed_by: EntityManagerEnum | null;
+  /** The user administers the group: an effective member of its owner group */
+  is_owner: boolean;
   name: string;
   unix_gid: number | null;
   owner_group_id: number | null;
   description: string | null;
-  expires_at: string | null;
   deleted_at: string | null;
 }
 
@@ -166,15 +162,6 @@ export interface GroupAccessProject {
   via: MembershipPath[];
 }
 
-export interface GroupAccessDataAccess {
-  id: number;
-  backing_store_id: number;
-  backing_store_name: string;
-  path: string;
-  group_id: number;
-  via: MembershipPath[];
-}
-
 export interface GroupAccessSubmitNode {
   id: number;
   name: string;
@@ -184,7 +171,6 @@ export interface GroupAccessSubmitNode {
 
 export interface GroupAccess {
   projects: GroupAccessProject[];
-  data_access: GroupAccessDataAccess[];
   submit_nodes: GroupAccessSubmitNode[];
 }
 
@@ -193,48 +179,6 @@ export interface UnixGroup {
   name: string;
   unix_gid: number;
   members: string[];
-}
-
-// Data access
-
-export interface BackingStore {
-  id: number;
-  name: string;
-  description: string | null;
-  created_at: string;
-  updated_at: string;
-}
-
-export interface BackingStoreCreateUpdate {
-  name: string;
-  description?: string | null;
-}
-
-export interface DataAccess {
-  id: number;
-  backing_store_id: number;
-  /** null grants access to no one */
-  group_id: number | null;
-  path: string;
-  inode_count: number | null;
-  byte_size: number | null;
-  created_at: string;
-  updated_at: string;
-}
-
-export interface DataAccessCreate {
-  backing_store_id: number;
-  group_id?: number | null;
-  path: string;
-  inode_count?: number | null;
-  byte_size?: number | null;
-}
-
-/** backing_store_id and path are immutable after create */
-export interface DataAccessUpdate {
-  group_id?: number | null;
-  inode_count?: number | null;
-  byte_size?: number | null;
 }
 
 // Audit log
@@ -280,7 +224,6 @@ export interface Project {
   /** Effective members of this group are the project's members */
   project_group_id: number | null;
   /** Set by "deleting" a project; acting on expiry happens outside the application */
-  expires_at: string | null;
   staff1: User | null;
   staff2: User | null;
   status: string | null;
@@ -314,7 +257,6 @@ export interface ProjectCreateUpdate {
   /** Staff only. On create, leave both group ids out to have the pi/managers/project groups generated */
   pi_group_id?: number | null;
   project_group_id?: number | null;
-  expires_at?: string | null;
   /** Create only: users seeded into the pi group */
   pi_ids?: number[];
   staff1?: number | null;
@@ -359,6 +301,10 @@ export interface User {
   projects?: JoinedProjectView[];
   groups?: UserGroupsView[];
   user_forms?: UserForm[];
+  /** GET /me only: the staff member really logged in while viewing the site as this user */
+  impersonator?: User | null;
+  /** GET /me only: staff with ALLOW_IMPERSONATE=true on the API, and not already viewing as someone */
+  can_impersonate?: boolean;
 }
 
 export interface UserCreate {
@@ -427,7 +373,6 @@ export interface JoinedProjectView {
   project_last_contact: string | null;
   project_pi_group_id: number | null;
   project_project_group_id: number | null;
-  project_expires_at: string | null;
   /** users.primary_project_id points at this project */
   is_primary: boolean;
   /** Effective member of the project's pi group */
@@ -446,8 +391,8 @@ export interface JoinedProjectView {
   unix_uid: number | null;
   position: string;
   last_note_ticket: string | null;
-  /** From the direct membership row on the project group; null when access comes only through another group */
-  managed_by: EntityManagerEnum | null;
+  /** True when the user is a direct member of the project group; false when access is only through another group */
+  direct: boolean;
   created_at: string | null;
   updated_at: string | null;
 }
@@ -455,7 +400,6 @@ export interface JoinedProjectView {
 /** Body of POST /projects/{id}/users */
 export interface UserProjectCreate {
   user_id: number;
-  managed_by?: EntityManagerEnum;
 }
 
 export interface BaseForm {

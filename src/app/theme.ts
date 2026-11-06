@@ -58,6 +58,12 @@ const theme = responsiveFontSizes(
           component: Link,
         },
       },
+      // Compact tables everywhere: cells get 6px top and bottom padding instead of 16px
+      MuiTable: {
+        defaultProps: {
+          size: "small",
+        },
+      },
     },
   }),
   { factor: 2 },

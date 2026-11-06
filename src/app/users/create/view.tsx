@@ -36,7 +36,7 @@ function View() {
       }
 
       const user = await userResponse.json();
-      router.push(`/users/edit?id=${user.id}`);
+      router.push(`/users/details/?id=${user.id}`);
     } catch (e: unknown) {
       const message = e instanceof Error ? e.message : "Failed to create user";
       setError(message);

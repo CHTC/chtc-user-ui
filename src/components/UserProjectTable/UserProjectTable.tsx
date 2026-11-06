@@ -3,15 +3,16 @@ import { useAlert } from "@/src/components/AlertProvider";
 import makeDeleteCell from "@/src/components/Table/DeleteCell/makeDeleteCell";
 import ServerTable, { ServerTableColumns, useServerTableRefresh } from "@/src/components/Table/ServerTable";
 import type { CellComponentProps, SortState } from "@chtc/web-components";
-import { DateCell, makeLinkedTextCell, makeManagedByCell } from "@/src/components/TableCells/TableCells";
+import { DateCell, makeLinkedTextCell } from "@/src/components/TableCells/TableCells";
 import { JoinedProjectView } from "@/types";
 import { Check, Star, StarBorder } from "@mui/icons-material";
 import { Box, IconButton, TableCell, Tooltip } from "@mui/material";
-import { useMemo } from "react";
+import { useCallback, useMemo } from "react";
+import { useRevalidateUserAndGroups } from "@/src/utils/userCache";
 
 interface UserProjectTableProps {
   userId: number;
-  /** Staff view: shows the primary, managed-by and remove controls */
+  /** Staff view: shows the primary and remove controls */
   adminView?: boolean;
 }
 
@@ -92,7 +93,7 @@ function makeRemoveCell({ userId, onRemove }: { userId: number; onRemove: () => 
     ariaLabel: "Remove from Project",
   });
   const RemoveCell = (props: ProjectCellProps) =>
-    props.row.managed_by ? (
+    props.row.direct ? (
       <DeleteCell {...props} />
     ) : (
       <TableCell>
@@ -108,7 +109,13 @@ function makeRemoveCell({ userId, onRemove }: { userId: number; onRemove: () => 
 
 const UserProjectTable = ({ userId, adminView = false }: UserProjectTableProps) => {
   const endpoint = `/users/${userId}/projects`;
-  const refresh = useServerTableRefresh(endpoint);
+  const refreshTable = useServerTableRefresh(endpoint);
+  // The primary project and the memberships are also on the cached user record, which the
+  // Details and Groups tabs render; a stale copy there would let the form write the old value back
+  const revalidateUser = useRevalidateUserAndGroups(userId);
+  const refresh = useCallback(async () => {
+    await Promise.all([refreshTable(), revalidateUser()]);
+  }, [refreshTable, revalidateUser]);
 
   const columns = useMemo(
     (): ServerTableColumns<JoinedProjectView> => ({
@@ -116,9 +123,11 @@ const UserProjectTable = ({ userId, adminView = false }: UserProjectTableProps) 
         id: "project_name",
         name: "Name",
         sortable: true,
+        // A user may open a project's page only as its PI (the API's project view rule); staff open any
         CellComponent: makeLinkedTextCell<JoinedProjectView>({
-          href: (project) => `/projects/edit/?id=${project.project_id}`,
+          href: (project) => `/projects/details/?id=${project.project_id}`,
           ariaLabel: "Go to project",
+          canOpen: (project) => adminView || !!project.is_pi,
         }),
       },
       is_pi: { id: "is_pi", name: "PI", sortable: true, firstSortDirection: "desc", CellComponent: PiCell },
@@ -139,16 +148,6 @@ const UserProjectTable = ({ userId, adminView = false }: UserProjectTableProps) 
       },
       project_accounting_group: { id: "project_accounting_group", name: "Accounting Group", sortable: true },
       ...(adminView && {
-        managed_by: {
-          id: "managed_by",
-          name: "Managed By",
-          // managed_by is null when access comes only through another group
-          CellComponent: makeManagedByCell<JoinedProjectView>({
-            patchUrl: (project) => `/groups/${project.project_project_group_id}/members/users/${userId}`,
-            onSuccess: refresh,
-            show: (project) => !!project.managed_by && !!project.project_project_group_id,
-          }),
-        },
         remove: {
           id: "remove",
           name: "Action",

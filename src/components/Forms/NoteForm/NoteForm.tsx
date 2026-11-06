@@ -33,6 +33,8 @@ export interface NoteFormProps {
   onSubmit: (payload: NoteCreate) => Promise<void> | void;
   isSubmitting?: boolean;
   error?: string | ApiError | null;
+  /** Off when the form sits on the notes page itself, where going back has nowhere to go */
+  showBack?: boolean;
 }
 
 function normalizeInitialValues(initial?: Partial<NoteFormValues>): NoteFormValues {
@@ -61,6 +63,7 @@ export const NoteForm: React.FC<NoteFormProps> = ({
   onSubmit,
   isSubmitting = false,
   error,
+  showBack = true,
 }) => {
   const { values, handleChange } = useFormState<NoteFormValues>(() => normalizeInitialValues(initialValues));
   const { data: project } = useProject(projectId ?? null);
@@ -142,8 +145,8 @@ export const NoteForm: React.FC<NoteFormProps> = ({
           <Button type="submit" variant="contained" color="primary" disabled={isSubmitting}>
             {mode === "create" ? "Create" : "Save"}
           </Button>
-          {projectId && (
-            <Button variant="outlined" href={`/projects/edit/?id=${projectId}`}>
+          {projectId && showBack && (
+            <Button variant="outlined" href={`/projects/notes/?id=${projectId}`}>
               Go Back
             </Button>
           )}

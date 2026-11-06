@@ -5,24 +5,19 @@ import { apiFetch } from "@/src/components/AuthProvider";
 import ActionButton from "@/src/components/ActionButton/ActionButton";
 import { Delete } from "@mui/icons-material";
 import type { TokenGet, TokenPermissionGet } from "@/types";
-import {
-  Box,
-  Breadcrumbs,
-  Grid,
-  Skeleton,
-  Stack,
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableRow,
-  Typography,
-} from "@mui/material";
+import type { ColumnConfig } from "@chtc/web-components";
+import StaticTable from "@/src/components/Table/StaticTable";
+import { Box, Breadcrumbs, Grid, Skeleton, Stack, Typography } from "@mui/material";
 import { useSearchParams } from "next/navigation";
 import { Suspense } from "react";
 import useSWR from "swr";
 import { RouteAutocomplete } from "@/src/components/RouteAutocomplete";
 import usePageTitle from "@/src/utils/usePageTitle";
+
+const PERMISSION_COLUMNS: ColumnConfig<TokenPermissionGet>[] = [
+  { id: "method", name: "Method" },
+  { id: "route", name: "Route" },
+];
 
 function View() {
   return (
@@ -62,7 +57,6 @@ const tokenPermissionsFetcher = async (id: number | null): Promise<TokenPermissi
 };
 
 const TokenPage = () => {
-
   const searchParams = useSearchParams();
   const id = Number.parseInt(searchParams.get("id") || "") || null;
 
@@ -123,7 +117,14 @@ const TokenPage = () => {
             </Typography>
           </Box>
           <Box sx={{ mt: 3 }}>
-            <ActionButton method="DELETE" icon={<Delete />} color="error" ariaLabel="Delete" url={`/tokens/${id}`} onSuccess={mutateToken} />
+            <ActionButton
+              method="DELETE"
+              icon={<Delete />}
+              color="error"
+              ariaLabel="Delete"
+              url={`/tokens/${id}`}
+              onSuccess={mutateToken}
+            />
           </Box>
         </Stack>
       </Grid>
@@ -144,22 +145,7 @@ const TokenPage = () => {
             mutatePermissions();
           }}
         />
-        <Table>
-          <TableHead>
-            <TableRow>
-              <TableCell>Method</TableCell>
-              <TableCell>Route</TableCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {permissions.map((perm, index) => (
-              <TableRow key={index}>
-                <TableCell>{perm.method}</TableCell>
-                <TableCell>{perm.route}</TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+        <StaticTable data={permissions} columns={PERMISSION_COLUMNS} emptyMessage="No permissions" />
       </Grid>
     </Grid>
   );

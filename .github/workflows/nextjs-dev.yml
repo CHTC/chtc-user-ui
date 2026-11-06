@@ -40,10 +40,10 @@ jobs:
       - name: Install dependencies
         run: pnpm install
       - name: Build with Next.js
+        env:
+          NEXT_PUBLIC_ALLOW_IMPERSONATE: "true"
         run: |
           pnpm run build
-          find ./out | sed -e "s/[^-][^\/]*\//  |/g" -e "s/|\([^ ]\)/|-\1/"
-          printenv
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:

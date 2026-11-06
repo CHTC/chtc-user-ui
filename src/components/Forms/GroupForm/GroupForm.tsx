@@ -2,9 +2,11 @@
 
 import FormErrorAlert from "@/src/components/FormErrorAlert/FormErrorAlert";
 import GroupAutocomplete from "@/src/components/GroupAutocomplete/GroupAutocomplete";
+import ManagedBySelect from "@/src/components/ManagedBySelect/ManagedBySelect";
 import { ApiError } from "@/src/utils/formErrors";
 import { useFormState } from "@/src/utils/useFormState";
-import type { Group, GroupAdministration, GroupCreateUpdate } from "@/types";
+import { useAuthClient } from "@/src/components/AuthProvider";
+import type { EntityManagerEnum, Group, GroupAdministration, GroupCreateUpdate } from "@/types";
 import {
   Box,
   Button,
@@ -27,7 +29,7 @@ export interface GroupFormValues {
   name: string;
   description: string;
   unix_gid: string;
-  expires_at: string;
+  managed_by: EntityManagerEnum;
   owner_group: Partial<Group> | null;
   administration: AdministrationChoice;
 }
@@ -48,17 +50,12 @@ export interface GroupFormProps {
   extraActions?: React.ReactNode;
 }
 
-// datetime-local wants "YYYY-MM-DDTHH:mm"; the API sends ISO strings without a timezone
-function toInputDateTime(value: string | null | undefined): string {
-  return value ? value.slice(0, 16) : "";
-}
-
 function normalizeInitialValues(initial?: Partial<Group>, ownerGroup?: Partial<Group> | null): GroupFormValues {
   return {
     name: initial?.name ?? "",
     description: initial?.description ?? "",
     unix_gid: initial?.unix_gid !== undefined && initial?.unix_gid !== null ? String(initial.unix_gid) : "",
-    expires_at: toInputDateTime(initial?.expires_at),
+    managed_by: initial?.managed_by ?? "APPLICATION",
     owner_group: ownerGroup ?? (initial?.owner_group_id ? { id: initial.owner_group_id, name: `Group ${initial.owner_group_id}` } : null),
     administration: "none",
   };
@@ -68,7 +65,7 @@ const FIELD_NAME_MAP: Record<string, string> = {
   name: "Name",
   description: "Description",
   unix_gid: "Unix GID",
-  expires_at: "Expires",
+  managed_by: "Managed by",
   owner_group_id: "Owner group",
   administration: "Administration",
 };
@@ -85,6 +82,7 @@ export const GroupForm: React.FC<GroupFormProps> = ({
   extraActions,
 }) => {
   const { values, handleChange } = useFormState<GroupFormValues>(() => normalizeInitialValues(initialValues, ownerGroup));
+  const { currentUser } = useAuthClient();
   const disabled = isSubmitting || !canEdit;
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -94,8 +92,12 @@ export const GroupForm: React.FC<GroupFormProps> = ({
       name: values.name.trim(),
       description: values.description.trim() || null,
       unix_gid: values.unix_gid ? Number(values.unix_gid) : null,
-      expires_at: values.expires_at || null,
     };
+
+    // Only staff may set managed_by, so other users never send it
+    if (currentUser?.is_admin) {
+      payload.managed_by = values.managed_by;
+    }
 
     if (mode === "create") {
       // The API rejects a body carrying both, so exactly one of the two is sent
@@ -152,14 +154,11 @@ export const GroupForm: React.FC<GroupFormProps> = ({
           {mode === "edit" && !values.unix_gid && gidAction}
         </Box>
 
-        <TextField
-          label="Expires"
-          type="datetime-local"
-          value={values.expires_at}
-          onChange={(e) => handleChange("expires_at", e.target.value)}
-          fullWidth
-          disabled={disabled}
-          slotProps={{ inputLabel: { shrink: true } }}
+        <ManagedBySelect
+          value={values.managed_by}
+          onChange={(value) => handleChange("managed_by", value)}
+          disabled={disabled || !currentUser?.is_admin}
+          helperText={currentUser?.is_admin ? undefined : "Only staff can change this"}
         />
 
         {mode === "create" ? (

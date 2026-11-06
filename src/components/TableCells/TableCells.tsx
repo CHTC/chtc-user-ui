@@ -1,11 +1,9 @@
 "use client";
 
 import EditLink from "@/src/components/EditLink/EditLink";
-import ManagedBySelect from "@/src/components/ManagedBySelect/ManagedBySelect";
 import type { CellComponentProps, TableData } from "@chtc/web-components";
 import TruncatedCell from "@/src/components/TruncatedCell/TruncatedCell";
-import type { EntityManagerEnum } from "@/types";
-import { IconButton, TableCell } from "@mui/material";
+import { Box, IconButton, TableCell } from "@mui/material";
 import Link from "next/link";
 import type { ReactNode } from "react";
 
@@ -45,6 +43,9 @@ interface LinkCellOptions<R> {
   ariaLabel: string;
 }
 
+// Width of EditLink's small IconButton; a row without a link keeps the space so the names line up
+const LINK_WIDTH = 34;
+
 export function makeIconLinkCell<R extends TableData>({ href, ariaLabel, icon }: LinkCellOptions<R> & { icon: ReactNode }) {
   const IconLinkCell = ({ row }: CellComponentProps<R, keyof R>) => (
     <TableCell>
@@ -57,38 +58,23 @@ export function makeIconLinkCell<R extends TableData>({ href, ariaLabel, icon }:
   return IconLinkCell;
 }
 
-export function makeLinkedTextCell<R extends TableData>({ href, ariaLabel }: LinkCellOptions<R>) {
+/**
+ * The value with a link icon in front of it, so the icons form a column whatever the text's
+ * length. `canOpen` leaves the icon out (keeping its space) for rows the reader may not open.
+ */
+export function makeLinkedTextCell<R extends TableData>({
+  href,
+  ariaLabel,
+  canOpen,
+}: LinkCellOptions<R> & { canOpen?: (row: R) => boolean }) {
   const LinkedTextCell = ({ row, value }: CellComponentProps<R, keyof R>) => (
     <TableCell>
-      {toText(value)} <EditLink href={href(row)} ariaLabel={ariaLabel} />
+      <Box component="span" sx={{ display: "inline-block", width: LINK_WIDTH, verticalAlign: "middle" }}>
+        {(canOpen?.(row) ?? true) && <EditLink href={href(row)} ariaLabel={ariaLabel} />}
+      </Box>
+      {toText(value)}
     </TableCell>
   );
   LinkedTextCell.displayName = "LinkedTextCell";
   return LinkedTextCell;
-}
-
-export function makeManagedByCell<R extends TableData>({
-  patchUrl,
-  onSuccess,
-  show,
-}: {
-  patchUrl: (row: R) => string;
-  onSuccess?: () => void;
-  /** Leaves the cell empty for rows without a direct membership to manage */
-  show?: (row: R) => boolean;
-}) {
-  const ManagedByCell = ({ row, value }: CellComponentProps<R, keyof R>) => (
-    <TableCell>
-      {(!show || show(row)) && (
-        <ManagedBySelect
-          key={patchUrl(row)}
-          value={(value as EntityManagerEnum | null) ?? "APPLICATION"}
-          patchUrl={patchUrl(row)}
-          onSuccess={onSuccess}
-        />
-      )}
-    </TableCell>
-  );
-  ManagedByCell.displayName = "ManagedByCell";
-  return ManagedByCell;
 }

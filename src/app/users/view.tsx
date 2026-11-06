@@ -8,11 +8,6 @@ import type { User } from "@/types";
 import { Edit } from "@mui/icons-material";
 
 const columns: ServerTableColumns<User> = {
-  edit: {
-    id: "edit",
-    name: "",
-    CellComponent: makeIconLinkCell<User>({ href: (user) => `/users/edit?id=${user.id}`, icon: <Edit />, ariaLabel: "Edit user" }),
-  },
   name: { id: "name", name: "Name", sortable: true },
   email1: { id: "email1", name: "Email", sortable: true, CellComponent: EmailCell },
   netid: { id: "netid", name: "NetID", sortable: true },
@@ -28,6 +23,15 @@ const columns: ServerTableColumns<User> = {
     sortable: true,
     firstSortDirection: "desc",
     CellComponent: DateCell,
+  },
+  edit: {
+    id: "edit",
+    name: "",
+    CellComponent: makeIconLinkCell<User>({
+      href: (user) => `/users/details/?id=${user.id}`,
+      icon: <Edit />,
+      ariaLabel: "Edit user",
+    }),
   },
 };
 

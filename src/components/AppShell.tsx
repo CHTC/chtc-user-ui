@@ -2,14 +2,14 @@
 
 import Header from "@/src/components/Header";
 import { useAuthClient } from "@/src/components/AuthProvider";
-import { Folder, Group, People, School, Add, Storage, History } from "@mui/icons-material";
+import ImpersonationFab from "@/src/components/ImpersonationFab/ImpersonationFab";
+import { Folder, Group, People, School, Add, History } from "@mui/icons-material";
 import { Box, Container } from "@mui/material";
 
 const adminPages = [
   { label: "Users", path: "/users/", icon: <People /> },
   { label: "Projects", path: "/projects/", icon: <Folder /> },
   { label: "Groups", path: "/groups/", icon: <Group /> },
-  { label: "Data Access", path: "/data-access/", icon: <Storage /> },
   { label: "PI List", path: "/pis/", icon: <School /> },
   { label: "Audit Log", path: "/audit-log/", icon: <History /> },
   { label: "Email", path: "/email/", icon: <People /> },
@@ -36,6 +36,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
       <Container maxWidth="lg">
         <Box my={2}>{children}</Box>
       </Container>
+      <ImpersonationFab />
     </>
   );
 }

@@ -1,4 +1,5 @@
-import { Box, Link, Typography } from "@mui/material";
+import SectionHeader from "@/src/components/SectionHeader/SectionHeader";
+import { Box } from "@mui/material";
 
 export default function RootLayout({
   children,
@@ -7,11 +8,7 @@ export default function RootLayout({
 }>) {
   return (
     <>
-      <Typography variant={"h3"} component="h1" sx={{ mb: 2 }}>
-        <Link href="/groups/" style={{ textDecoration: "none", color: "inherit" }}>
-          Groups
-        </Link>
-      </Typography>
+      <SectionHeader title="Groups" href="/groups/" />
       <Box>{children}</Box>
     </>
   );

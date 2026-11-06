@@ -1,226 +1,146 @@
-import { useAlert } from "@/src/components/AlertProvider";
+"use client";
+
 import ActionButton from "@/src/components/ActionButton/ActionButton";
-import { apiFetch, useAuthClient } from "@/src/components/AuthProvider";
-import EditLink from "@/src/components/EditLink/EditLink";
-import ManagedBySelect from "@/src/components/ManagedBySelect/ManagedBySelect";
-import MembershipPaths from "@/src/components/MembershipPaths/MembershipPaths";
-import UserAutocomplete from "@/src/components/UserAutocomplete/UserAutocomplete";
-import { fetchJson } from "@/src/utils/fetchList";
-import type { GroupMembersView, JoinedProjectView, Project, User } from "@/types";
-import { ArrowDropDown, ArrowDropUp, Check, Delete, Star, StarBorder } from "@mui/icons-material";
-import {
-  Box,
-  Button,
-  Collapse,
-  IconButton,
-  Stack,
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableRow,
-  Typography,
-} from "@mui/material";
-import { useState } from "react";
-import useSWR from "swr";
+import { useAlert } from "@/src/components/AlertProvider";
+import { useAuthClient } from "@/src/components/AuthProvider";
+import MembersTable, {
+  groupMemberRow,
+  sortMemberRows,
+  userMemberRow,
+} from "@/src/components/MembersTable/MembersTable";
+import { fetchJson, ForbiddenError } from "@/src/utils/fetchList";
+import { useReadableGroup } from "@/src/utils/groupCache";
+import type { GroupMember, GroupMembersView, JoinedProjectView, Project } from "@/types";
+import { Star, StarBorder } from "@mui/icons-material";
+import { Alert, Box, IconButton, Typography } from "@mui/material";
+import { userKey } from "@/src/utils/userCache";
+import { useCallback } from "react";
+import useSWR, { useSWRConfig } from "swr";
 
 interface ProjectMembersTableProps {
   projectId: number;
   project: Project;
+  /** The direct members (the default), or every user with access and how */
+  view?: "direct" | "users";
 }
 
 // Large enough that one request covers any project; the table has no paging controls
 const ALL_ROWS = "page_size=10000";
 
+const PRIMARY_COLUMN = { id: "primary", name: "Primary" };
+
 /**
- * Everyone with access through the project group, and how. The members route carries the
- * access paths; /projects/{id}/users adds the PI and primary flags, so the two are merged by user id.
- * Controls are shown to everyone who can load the page; the API rejects what the viewer may not do.
+ * The project group's members: on the direct view the groups and users added to it, on the users
+ * view every user with access, direct or through a group, and how. Membership lives on the project group, so members are read,
+ * added and (for groups) removed through /groups/{project_group_id}; /projects/{id}/users adds
+ * the primary flag. Controls are shown to everyone who can load the page; the API rejects what
+ * the viewer may not do.
  */
-const ProjectMembersTable = ({ projectId, project }: ProjectMembersTableProps) => {
+const ProjectMembersTable = ({ projectId, project, view = "direct" }: ProjectMembersTableProps) => {
   const { currentUser } = useAuthClient();
   const isStaff = !!currentUser?.is_admin;
   const { showAlert } = useAlert();
+  const { mutate } = useSWRConfig();
   const groupId = project.project_group_id;
 
-  const {
-    data: members,
-    mutate: mutateMembers,
-    isLoading,
-  } = useSWR(groupId ? `/groups/${groupId}/members?${ALL_ROWS}` : null, (url: string) =>
+  const members = useSWR(groupId ? `/groups/${groupId}/members?${ALL_ROWS}` : null, (url: string) =>
     fetchJson<GroupMembersView[]>(url),
   );
-  const { data: projectUsers, mutate: mutateUsers } = useSWR(
-    `/projects/${projectId}/users?${ALL_ROWS}`,
-    (url: string) => fetchJson<JoinedProjectView[]>(url),
+  const groups = useSWR(groupId ? `/groups/${groupId}/direct_members?${ALL_ROWS}` : null, (url: string) =>
+    fetchJson<GroupMember[]>(url),
   );
+  // Shared with the group's own pages through the SWR cache; a viewer who may not read the group simply gets no warning
+  const projectGroup = useReadableGroup(groupId);
+  const users = useSWR(`/projects/${projectId}/users?${ALL_ROWS}`, (url: string) =>
+    fetchJson<JoinedProjectView[]>(url),
+  );
+  const { mutate: mutateMembers } = members;
+  const { mutate: mutateGroups } = groups;
+  const { mutate: mutateUsers } = users;
 
-  const [selectedUser, setSelectedUser] = useState<User | null>(null);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [showAddForm, setShowAddForm] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  const refresh = () => {
-    void mutateMembers();
-    void mutateUsers();
-  };
+  const refresh = useCallback(async () => {
+    await Promise.all([mutateMembers(), mutateGroups(), mutateUsers()]);
+  }, [mutateMembers, mutateGroups, mutateUsers]);
 
   if (!groupId) {
     return <Typography color="text.secondary">This project has no project group, so it has no members.</Typography>;
   }
 
-  const flags = new Map((projectUsers ?? []).map((u) => [u.id, u]));
-  const rows = Array.isArray(members)
-    ? members.map((m) => ({
-        ...m,
-        is_pi: flags.get(m.user_id)?.is_pi ?? false,
-        is_primary: flags.get(m.user_id)?.is_primary ?? false,
-      }))
-    : [];
-  rows.sort((a, b) => (a.name ?? "").localeCompare(b.name ?? ""));
+  const primary = new Set((users.data ?? []).filter((u) => u.is_primary).map((u) => u.id));
 
-  const addUser = async () => {
-    if (!selectedUser) return;
-    setIsSubmitting(true);
-    setError(null);
-    try {
-      const response = await apiFetch(`/projects/${projectId}/users`, {
-        method: "POST",
-        body: JSON.stringify({ user_id: selectedUser.id }),
-      });
-      if (!response.ok) {
-        const body = await response.json().catch(() => null);
-        setError(typeof body?.detail === "string" ? body.detail : "Failed to add user to project");
-        return;
-      }
-      showAlert("ADD_MEMBER_SUCCESS", selectedUser.name ?? selectedUser.email1);
-      setSelectedUser(null);
-      setShowAddForm(false);
-      refresh();
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
+  const primaryCell = (member: GroupMembersView) =>
+    primary.has(member.user_id) ? (
+      // Same 48px box and padding as ConfirmButton so the stars line up
+      <Box sx={{ width: 48, height: 48, p: 0.5 }}>
+        <IconButton aria-label="Primary project" color="error" disableRipple sx={{ cursor: "default" }}>
+          <Star />
+        </IconButton>
+      </Box>
+    ) : (
+      isStaff && (
+        // Table keys rows by index, so key the button by user to keep an open Confirm on its own row
+        <ActionButton
+          key={member.user_id}
+          url={`/users/${member.user_id}`}
+          method="PATCH"
+          body={{ primary_project_id: projectId }}
+          icon={<StarBorder />}
+          color="error"
+          ariaLabel={`Make ${project.name} the primary project of ${member.name ?? "this user"}`}
+          onSuccess={() => {
+            showAlert("UPDATE_PRIMARY_PROJECT_SUCCESS", project.name);
+            void mutateUsers();
+            // The user's own page may hold a cached copy with the old primary project
+            void mutate(userKey(member.user_id));
+          }}
+          onError={(detail) => showAlert("UPDATE_PRIMARY_PROJECT_ERROR", detail)}
+        />
+      )
+    );
+
+  const memberGroups = view === "direct" ? (groups.data ?? []) : [];
+  const memberUsers = (members.data ?? []).filter((member) => view === "users" || member.direct);
+
+  const rows = sortMemberRows([
+    ...memberGroups
+      .filter((row) => row.member_group)
+      .map((row) =>
+        groupMemberRow(row.member_group!, {
+          removeUrl: `/groups/${groupId}/members/groups/${row.member_group!.id}`,
+          linkGroups: isStaff,
+        }),
+      ),
+    ...memberUsers.map((member) => ({
+      ...userMemberRow(member, {
+        removeUrl: member.direct ? `/projects/${projectId}/users/${member.user_id}` : null,
+        linkUsers: isStaff,
+        linkGroups: isStaff,
+      }),
+      extra: primaryCell(member),
+    })),
+  ]);
 
   return (
-    <Box>
-      <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 2 }}>
-        <Typography variant="h6">Project Members</Typography>
-        <Button
-          variant="contained"
-          startIcon={showAddForm ? <ArrowDropUp /> : <ArrowDropDown />}
-          onClick={() => setShowAddForm(!showAddForm)}
-        >
-          {showAddForm ? "Hide Form" : "Add Member"}
-        </Button>
-      </Box>
-
-      <Collapse in={showAddForm}>
-        <Box sx={{ mb: 3, p: 2, bgcolor: "grey.50", borderRadius: 1 }}>
-          <Stack spacing={2}>
-            <UserAutocomplete value={selectedUser ?? undefined} onSelect={(user) => setSelectedUser(user)} />
-            <Box>
-              <Button variant="contained" disabled={!selectedUser || isSubmitting} onClick={addUser}>
-                Add User
-              </Button>
-            </Box>
-            {error && <Typography color="error">{error}</Typography>}
-          </Stack>
-        </Box>
-      </Collapse>
-
-      <Table>
-        <TableHead>
-          <TableRow>
-            <TableCell>User</TableCell>
-            <TableCell>Name</TableCell>
-            <TableCell>NetID</TableCell>
-            <TableCell>Access</TableCell>
-            <TableCell>PI</TableCell>
-            <TableCell>Primary</TableCell>
-            {isStaff && <TableCell>Managed By</TableCell>}
-            <TableCell>Remove</TableCell>
-          </TableRow>
-        </TableHead>
-        <TableBody>
-          {rows.map((row) => (
-            <TableRow key={row.user_id}>
-              <TableCell>
-                <EditLink href={`/users/edit/?id=${row.user_id}`} ariaLabel="Go to user" />
-              </TableCell>
-              <TableCell>{row.name}</TableCell>
-              <TableCell>{row.netid}</TableCell>
-              <TableCell>
-                <MembershipPaths
-                  direct={row.direct}
-                  paths={row.paths}
-                  path_names={row.path_names}
-                  linkGroups={isStaff}
-                />
-              </TableCell>
-              <TableCell>{row.is_pi && <Check aria-label="PI" color="success" />}</TableCell>
-              <TableCell>
-                {row.is_primary ? (
-                  // Same 48px box and padding as ConfirmButton so the stars line up
-                  <Box sx={{ width: 48, height: 48, p: 0.5 }}>
-                    <IconButton aria-label="Primary project" color="error" disableRipple sx={{ cursor: "default" }}>
-                      <Star />
-                    </IconButton>
-                  </Box>
-                ) : (
-                  isStaff && (
-                    <ActionButton
-                      url={`/users/${row.user_id}`}
-                      method="PATCH"
-                      body={{ primary_project_id: projectId }}
-                      icon={<StarBorder />}
-                      color="error"
-                      ariaLabel={`Make ${project.name} the primary project of ${row.name ?? "this user"}`}
-                      onSuccess={() => {
-                        showAlert("UPDATE_PRIMARY_PROJECT_SUCCESS", project.name);
-                        refresh();
-                      }}
-                      onError={(detail) => showAlert("UPDATE_PRIMARY_PROJECT_ERROR", detail)}
-                    />
-                  )
-                )}
-              </TableCell>
-              {isStaff && (
-                <TableCell>
-                  {row.direct && row.managed_by && (
-                    <ManagedBySelect
-                      value={row.managed_by}
-                      patchUrl={`/groups/${groupId}/members/users/${row.user_id}`}
-                      onSuccess={refresh}
-                    />
-                  )}
-                </TableCell>
-              )}
-              <TableCell>
-                {row.direct && (
-                  <ActionButton
-                    method="DELETE"
-                    icon={<Delete />}
-                    color="error"
-                    url={`/projects/${projectId}/users/${row.user_id}`}
-                    onSuccess={() => {
-                      showAlert("REMOVE_MEMBER_SUCCESS", row.name ?? row.netid ?? String(row.user_id));
-                      refresh();
-                    }}
-                    ariaLabel="Remove User"
-                  />
-                )}
-              </TableCell>
-            </TableRow>
-          ))}
-        </TableBody>
-      </Table>
-      {!isLoading && rows.length === 0 && (
-        <Typography color="text.secondary" sx={{ p: 2, textAlign: "center" }}>
-          No members
-        </Typography>
+    <>
+      {projectGroup && projectGroup.managed_by !== "APPLICATION" && (
+        <Alert severity="warning" sx={{ mb: 2 }}>
+          Membership of this group is synced from {projectGroup.managed_by}. Members added or removed here are replaced
+          by the next sync.
+        </Alert>
       )}
-    </Box>
+      <MembersTable
+        rows={rows}
+        isLoading={members.isLoading || groups.isLoading || users.isLoading}
+        forbidden={members.error instanceof ForbiddenError || groups.error instanceof ForbiddenError}
+        canAdminister={true}
+        view={view}
+        addUser={(user) => ({ url: `/groups/${groupId}/members`, body: { user_id: user.id } })}
+        addGroup={(group) => ({ url: `/groups/${groupId}/members`, body: { group_id: group.id } })}
+        onChanged={refresh}
+        extraColumn={PRIMARY_COLUMN}
+        emptyMessage={view === "direct" ? "No direct members" : "No users"}
+      />
+    </>
   );
 };
 

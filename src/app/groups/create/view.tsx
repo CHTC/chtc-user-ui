@@ -37,7 +37,7 @@ function View() {
       }
 
       const group = await groupResponse.json();
-      router.push(`/groups/edit?id=${group.id}`);
+      router.push(`/groups/details/?id=${group.id}`);
     } catch (e: unknown) {
       const message = e instanceof Error ? e.message : "Failed to create group";
       setError(message);
