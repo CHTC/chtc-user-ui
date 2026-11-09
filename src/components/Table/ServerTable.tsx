@@ -14,10 +14,12 @@ import {
   type FilterDef,
   type FilterKind,
   type FilterValues,
+  type SearchFiltersProps,
   type SortState,
   type TableData,
 } from "@chtc/web-components";
-import { Alert, Box, LinearProgress, TextField, Typography } from "@mui/material";
+import { FilterList } from "@mui/icons-material";
+import { Alert, Box, Button, LinearProgress, Popover, TextField, Typography } from "@mui/material";
 import { useSearchParams } from "next/navigation";
 import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import useSWR, { useSWRConfig } from "swr";
@@ -224,7 +226,7 @@ const ServerTableContent = <R extends TableData>({
             <SearchField label={searchLabel} value={query.search} onChange={(search) => setQuery({ search })} />
           )}
           {filterColumns.length > 0 && (
-            <SearchFilters
+            <FilterButton
               columnFilters={filterColumns}
               value={query.filters}
               onChange={(filters) => setQuery({ filters })}
@@ -400,6 +402,28 @@ const SearchField = ({
       helperText={UNSEARCHABLE.test(input) ? "Commas and parentheses are ignored" : undefined}
       sx={{ width: 300 }}
     />
+  );
+};
+
+const FilterButton = <R extends TableData>(props: SearchFiltersProps<R>) => {
+  const [anchor, setAnchor] = useState<HTMLElement | null>(null);
+
+  return (
+    <>
+      <Button variant="field" startIcon={<FilterList />} onClick={(e) => setAnchor(e.currentTarget)}>
+        Filter
+      </Button>
+      {/* Popover closes on a click outside it */}
+      <Popover
+        open={anchor !== null}
+        anchorEl={anchor}
+        onClose={() => setAnchor(null)}
+        anchorOrigin={{ vertical: "bottom", horizontal: "left" }}
+        slotProps={{ paper: { sx: { mt: 1 } } }}
+      >
+        <SearchFilters {...props} sx={{ border: 0, typography: "body1" }} />
+      </Popover>
+    </>
   );
 };
 
