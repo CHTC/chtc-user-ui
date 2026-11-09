@@ -1,8 +1,8 @@
 "use client";
 
 import { AuthGuard } from "@/src/components/AuthGuard";
-import ServerTable, { ServerTableColumns, ServerTableFilter } from "@/src/components/Table/ServerTable";
-import type { SortState } from "@chtc/web-components";
+import ServerTable, { ServerTableColumns } from "@/src/components/Table/ServerTable";
+import { optionsFilter, type SortState } from "@chtc/web-components";
 import { DateCell, makeIconLinkCell } from "@/src/components/TableCells/TableCells";
 import type { UserForm } from "@/types";
 import { Edit } from "@mui/icons-material";
@@ -32,7 +32,16 @@ const columns: ServerTableColumns<UserForm> = {
     name: "Created By",
     value: (application) => application.created_by?.name ?? application.created_by?.email1 ?? "",
   },
-  status: { id: "status", name: "Status", sortable: true },
+  status: {
+    id: "status",
+    name: "Status",
+    sortable: true,
+    filter: optionsFilter([
+      { value: "PENDING", label: "Pending" },
+      { value: "APPROVED", label: "Approved" },
+      { value: "DENIED", label: "Denied" },
+    ]),
+  },
   pi_name: {
     id: "pi_name",
     name: "PI",
@@ -53,18 +62,6 @@ const columns: ServerTableColumns<UserForm> = {
     CellComponent: DateCell,
   },
 };
-
-const filters: ServerTableFilter[] = [
-  {
-    id: "status",
-    label: "Status",
-    options: [
-      { value: "PENDING", label: "Pending" },
-      { value: "APPROVED", label: "Approved" },
-      { value: "DENIED", label: "Denied" },
-    ],
-  },
-];
 
 // Newest first
 const defaultSort: SortState<keyof UserForm & string> = { columnId: "id", direction: "desc" };
@@ -90,7 +87,6 @@ function View() {
           defaultPageSize={50}
           searchLabel="Search by Requester Name, NetID, or Email"
           searchFields={searchFields}
-          filters={filters}
           emptyMessage="No applications found."
         />
       </AuthGuard>

@@ -1,11 +1,7 @@
 import { apiFetch } from "@/src/components/AuthProvider";
 import makeDeleteCell from "@/src/components/Table/DeleteCell/makeDeleteCell";
-import ServerTable, {
-  ServerTableColumns,
-  ServerTableFilter,
-  useServerTableRefresh,
-} from "@/src/components/Table/ServerTable";
-import type { SortState } from "@chtc/web-components";
+import ServerTable, { ServerTableColumns, useServerTableRefresh } from "@/src/components/Table/ServerTable";
+import { booleanFilter, type SortState } from "@chtc/web-components";
 import { makeLinkedTextCell, makeManagedByCell } from "@/src/components/TableCells/TableCells";
 import UserAutocomplete from "@/src/components/UserAutocomplete/UserAutocomplete";
 import { JoinedProjectView, RoleEnum, User } from "@/types";
@@ -26,18 +22,6 @@ import {
   Typography,
 } from "@mui/material";
 import { useMemo, useState } from "react";
-
-const activeFilter: ServerTableFilter[] = [
-  {
-    id: "active",
-    label: "Active",
-    operator: "is",
-    options: [
-      { value: "true", label: "Active" },
-      { value: "false", label: "Inactive" },
-    ],
-  },
-];
 
 const defaultSort: SortState<keyof JoinedProjectView & string> = { columnId: "name", direction: "asc" };
 
@@ -73,6 +57,7 @@ const ProjectUserTable = ({ projectId }: ProjectUserTableProps) => {
         name: "Active",
         sortable: true,
         value: (user) => (user.active == null ? "" : user.active ? "Yes" : "No"),
+        filter: booleanFilter("Active", "Inactive"),
       },
       managed_by: {
         id: "managed_by",
@@ -257,7 +242,6 @@ const ProjectUserTable = ({ projectId }: ProjectUserTableProps) => {
         urlPrefix="users."
         searchLabel="Search by Name, NetID, or Email"
         searchFields={searchFields}
-        filters={activeFilter}
         emptyMessage="No users"
       />
     </Box>
