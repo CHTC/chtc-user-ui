@@ -2,7 +2,16 @@ import ActionButton from "@/src/components/ActionButton/ActionButton";
 import { useAlert } from "@/src/components/AlertProvider";
 import makeDeleteCell from "@/src/components/Table/DeleteCell/makeDeleteCell";
 import ServerTable, { ServerTableColumns, useServerTableRefresh } from "@/src/components/Table/ServerTable";
-import type { CellComponentProps, SortState } from "@chtc/web-components";
+import {
+  booleanFilter,
+  dateRangeFilter,
+  optionsFilter,
+  textFilter,
+  type CellComponentProps,
+  type SortState,
+} from "@chtc/web-components";
+import { MANAGED_BY_OPTIONS } from "@/src/components/ManagedBySelect/ManagedBySelect";
+import { PROJECT_STATUS_OPTIONS, ROLE_OPTIONS } from "@/src/components/Table/filterOptions";
 import { DateCell, makeLinkedTextCell, makeManagedByCell } from "@/src/components/TableCells/TableCells";
 import { JoinedProjectView } from "@/types";
 import { Star, StarBorder } from "@mui/icons-material";
@@ -78,23 +87,36 @@ const UserProjectTable = ({ userId, adminView = false }: UserProjectTableProps) 
           href: (project) => `/projects/edit/?id=${project.project_id}`,
           ariaLabel: "Go to project",
         }),
+        filter: textFilter(),
       },
-      role: { id: "role", name: "Role", sortable: true },
+      role: { id: "role", name: "Role", sortable: true, filter: optionsFilter(ROLE_OPTIONS) },
       is_primary: {
         id: "is_primary",
         name: "Is Primary",
         sortable: true,
         CellComponent: makePrimaryProjectCell({ userId, adminView, onChange: refresh }),
+        filter: booleanFilter(),
       },
-      project_status: { id: "project_status", name: "Status", sortable: true },
+      project_status: {
+        id: "project_status",
+        name: "Status",
+        sortable: true,
+        filter: optionsFilter(PROJECT_STATUS_OPTIONS),
+      },
       project_last_contact: {
         id: "project_last_contact",
         name: "Last Contact",
         sortable: true,
         firstSortDirection: "desc",
         CellComponent: DateCell,
+        filter: dateRangeFilter(),
       },
-      project_accounting_group: { id: "project_accounting_group", name: "Accounting Group", sortable: true },
+      project_accounting_group: {
+        id: "project_accounting_group",
+        name: "Accounting Group",
+        sortable: true,
+        filter: textFilter(),
+      },
       ...(adminView && {
         managed_by: {
           id: "managed_by",
@@ -103,6 +125,7 @@ const UserProjectTable = ({ userId, adminView = false }: UserProjectTableProps) 
             patchUrl: (project) => `/projects/${project.project_id}/users/${userId}`,
             onSuccess: refresh,
           }),
+          filter: optionsFilter(MANAGED_BY_OPTIONS),
         },
         remove: {
           id: "remove",

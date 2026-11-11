@@ -2,7 +2,8 @@
 
 import { AuthGuard } from "@/src/components/AuthGuard";
 import ServerTable, { ServerTableColumns } from "@/src/components/Table/ServerTable";
-import { dateRangeFilter, type SortState } from "@chtc/web-components";
+import { dateRangeFilter, optionsFilter, textFilter, type SortState } from "@chtc/web-components";
+import { PROJECT_STATUS_OPTIONS } from "@/src/components/Table/filterOptions";
 import { DateCell, makeIconLinkCell, UrlCell } from "@/src/components/TableCells/TableCells";
 import type { Project } from "@/types";
 import { Edit } from "@mui/icons-material";
@@ -17,11 +18,11 @@ const columns: ServerTableColumns<Project> = {
       ariaLabel: "Edit project",
     }),
   },
-  name: { id: "name", name: "Name", sortable: true },
+  name: { id: "name", name: "Name", sortable: true, filter: textFilter() },
   // The API sorts staff1 by user id, not name, so this column isn't sortable
   staff1: { id: "staff1", name: "Staff", value: (project) => project.staff1?.name ?? project.staff1?.email1 ?? "" },
-  status: { id: "status", name: "Status", sortable: true },
-  url: { id: "url", name: "Project URL", CellComponent: UrlCell },
+  status: { id: "status", name: "Status", sortable: true, filter: optionsFilter(PROJECT_STATUS_OPTIONS) },
+  url: { id: "url", name: "Project URL", CellComponent: UrlCell, filter: textFilter() },
   last_contact: {
     id: "last_contact",
     name: "Last Contact",

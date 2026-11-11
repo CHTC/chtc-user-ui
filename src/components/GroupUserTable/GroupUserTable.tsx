@@ -1,7 +1,8 @@
 import { apiFetch } from "@/src/components/AuthProvider";
 import makeDeleteCell from "@/src/components/Table/DeleteCell/makeDeleteCell";
 import ServerTable, { ServerTableColumns, useServerTableRefresh } from "@/src/components/Table/ServerTable";
-import type { SortState } from "@chtc/web-components";
+import { optionsFilter, textFilter, type SortState } from "@chtc/web-components";
+import { MANAGED_BY_OPTIONS } from "@/src/components/ManagedBySelect/ManagedBySelect";
 import { makeLinkedTextCell, makeManagedByCell } from "@/src/components/TableCells/TableCells";
 import UserAutocomplete from "@/src/components/UserAutocomplete/UserAutocomplete";
 import { GroupUserView, User } from "@/types";
@@ -32,8 +33,9 @@ const GroupUserTable = ({ groupId }: GroupUserTableProps) => {
           href: (user) => `/users/edit/?id=${user.user_id}`,
           ariaLabel: "Go to user",
         }),
+        filter: textFilter(),
       },
-      netid: { id: "netid", name: "NetID", sortable: true },
+      netid: { id: "netid", name: "NetID", sortable: true, filter: textFilter() },
       managed_by: {
         id: "managed_by",
         name: "Managed By",
@@ -41,6 +43,7 @@ const GroupUserTable = ({ groupId }: GroupUserTableProps) => {
           patchUrl: (user) => `/groups/${groupId}/users/${user.user_id}`,
           onSuccess: refresh,
         }),
+        filter: optionsFilter(MANAGED_BY_OPTIONS),
       },
       remove: {
         id: "remove",

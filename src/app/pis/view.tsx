@@ -2,7 +2,7 @@
 
 import { AuthGuard } from "@/src/components/AuthGuard";
 import ServerTable, { ServerTableColumns } from "@/src/components/Table/ServerTable";
-import type { SortState } from "@chtc/web-components";
+import { textFilter, type SortState } from "@chtc/web-components";
 import { EmailCell, makeIconLinkCell } from "@/src/components/TableCells/TableCells";
 import { formatPhoneNumber } from "@/src/utils/format";
 import type { PiProjectView } from "@/types";
@@ -18,11 +18,16 @@ const columns: ServerTableColumns<PiProjectView> = {
       ariaLabel: "Edit user",
     }),
   },
-  name: { id: "name", name: "Name", sortable: true },
-  project_name: { id: "project_name", name: "Project Name", sortable: true },
-  email1: { id: "email1", name: "Email", sortable: true, CellComponent: EmailCell },
-  phone1: { id: "phone1", name: "Phone", value: (pi) => (pi.phone1 ? formatPhoneNumber(pi.phone1) : "") },
-  netid: { id: "netid", name: "NetID", sortable: true },
+  name: { id: "name", name: "Name", sortable: true, filter: textFilter() },
+  project_name: { id: "project_name", name: "Project Name", sortable: true, filter: textFilter() },
+  email1: { id: "email1", name: "Email", sortable: true, CellComponent: EmailCell, filter: textFilter() },
+  phone1: {
+    id: "phone1",
+    name: "Phone",
+    value: (pi) => (pi.phone1 ? formatPhoneNumber(pi.phone1) : ""),
+    filter: textFilter(),
+  },
+  netid: { id: "netid", name: "NetID", sortable: true, filter: textFilter() },
 };
 
 // Newest first; the view has no id of its own, so this goes by the project's

@@ -1,6 +1,7 @@
 import makeDeleteCell from "@/src/components/Table/DeleteCell/makeDeleteCell";
 import ServerTable, { ServerTableColumns, useServerTableRefresh } from "@/src/components/Table/ServerTable";
-import type { SortState } from "@chtc/web-components";
+import { numberFilter, optionsFilter, textFilter, type SortState } from "@chtc/web-components";
+import { MANAGED_BY_OPTIONS } from "@/src/components/ManagedBySelect/ManagedBySelect";
 import { makeLinkedTextCell, makeManagedByCell } from "@/src/components/TableCells/TableCells";
 import { useRevalidateUserAndGroups, userGroupsKey } from "@/src/utils/userCache";
 import { UserGroupView } from "@/types";
@@ -35,6 +36,7 @@ const UserGroupTable = ({ userId, adminView = false }: UserGroupTableProps) => {
             ariaLabel: "Go to group",
           }),
         }),
+        filter: textFilter(),
       },
       // The API sorts point_of_contact by user id, not name, so this column isn't sortable
       point_of_contact: {
@@ -42,7 +44,7 @@ const UserGroupTable = ({ userId, adminView = false }: UserGroupTableProps) => {
         name: "Point Of Contact",
         value: (group) => group.point_of_contact?.name ?? group.point_of_contact?.email1 ?? "",
       },
-      unix_gid: { id: "unix_gid", name: "Unix GID", sortable: true },
+      unix_gid: { id: "unix_gid", name: "Unix GID", sortable: true, filter: numberFilter() },
       managed_by: {
         id: "managed_by",
         name: "Managed By",
@@ -50,6 +52,7 @@ const UserGroupTable = ({ userId, adminView = false }: UserGroupTableProps) => {
           patchUrl: (group) => `/groups/${group.group_id}/users/${userId}`,
           onSuccess: refresh,
         }),
+        filter: optionsFilter(MANAGED_BY_OPTIONS),
       },
       ...(adminView && {
         remove: {

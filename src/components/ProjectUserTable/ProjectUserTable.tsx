@@ -1,7 +1,9 @@
 import { apiFetch } from "@/src/components/AuthProvider";
 import makeDeleteCell from "@/src/components/Table/DeleteCell/makeDeleteCell";
 import ServerTable, { ServerTableColumns, useServerTableRefresh } from "@/src/components/Table/ServerTable";
-import { booleanFilter, type SortState } from "@chtc/web-components";
+import { booleanFilter, optionsFilter, textFilter, type SortState } from "@chtc/web-components";
+import { MANAGED_BY_OPTIONS } from "@/src/components/ManagedBySelect/ManagedBySelect";
+import { ROLE_OPTIONS } from "@/src/components/Table/filterOptions";
 import { makeLinkedTextCell, makeManagedByCell } from "@/src/components/TableCells/TableCells";
 import UserAutocomplete from "@/src/components/UserAutocomplete/UserAutocomplete";
 import { JoinedProjectView, RoleEnum, User } from "@/types";
@@ -47,11 +49,12 @@ const ProjectUserTable = ({ projectId }: ProjectUserTableProps) => {
         name: "Name",
         sortable: true,
         CellComponent: makeLinkedTextCell<JoinedProjectView>({ href: (user) => `/users/edit/?id=${user.id}`, ariaLabel: "Go to user" }),
+        filter: textFilter(),
       },
-      role: { id: "role", name: "Role", sortable: true },
-      last_note_ticket: { id: "last_note_ticket", name: "Tickets Assigned", sortable: true },
-      email1: { id: "email1", name: "Email", sortable: true },
-      netid: { id: "netid", name: "NetID", sortable: true },
+      role: { id: "role", name: "Role", sortable: true, filter: optionsFilter(ROLE_OPTIONS) },
+      last_note_ticket: { id: "last_note_ticket", name: "Tickets Assigned", sortable: true, filter: textFilter() },
+      email1: { id: "email1", name: "Email", sortable: true, filter: textFilter() },
+      netid: { id: "netid", name: "NetID", sortable: true, filter: textFilter() },
       active: {
         id: "active",
         name: "Active",
@@ -66,6 +69,7 @@ const ProjectUserTable = ({ projectId }: ProjectUserTableProps) => {
           patchUrl: (user) => `/projects/${projectId}/users/${user.id}`,
           onSuccess: refresh,
         }),
+        filter: optionsFilter(MANAGED_BY_OPTIONS),
       },
       remove: {
         id: "remove",

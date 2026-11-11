@@ -354,6 +354,8 @@ function filterParams(field: string, kind: FilterKind, value: unknown): [string,
     case "text":
       // ilike matches the text anywhere in the field, ignoring case
       return [[field, `ilike.${value}`]];
+    case "number":
+      return [[field, `eq.${value}`]];
     default:
       throw new Error(`"${kind}" does not have a API filter params handler`);
   }

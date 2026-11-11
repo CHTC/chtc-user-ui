@@ -1,6 +1,6 @@
 import makeDeleteCell from "@/src/components/Table/DeleteCell/makeDeleteCell";
 import ServerTable, { ServerTableColumns, useServerTableRefresh } from "@/src/components/Table/ServerTable";
-import type { SortState } from "@chtc/web-components";
+import { dateRangeFilter, textFilter, type SortState } from "@chtc/web-components";
 import { DateCell, makeIconLinkCell, TruncatedTextCell } from "@/src/components/TableCells/TableCells";
 import { Note } from "@/types";
 import { Edit } from "@mui/icons-material";
@@ -24,9 +24,16 @@ const ProjectNoteTable = ({ projectId }: ProjectNoteTableProps) => {
     (): ServerTableColumns<Note> => ({
       // The API sorts author by user id, not name, so this column isn't sortable
       author: { id: "author", name: "Author", value: (note) => note.author?.name ?? "" },
-      ticket: { id: "ticket", name: "Ticket", sortable: true },
-      note: { id: "note", name: "Note", CellComponent: TruncatedTextCell },
-      date: { id: "date", name: "Date", sortable: true, firstSortDirection: "desc", CellComponent: DateCell },
+      ticket: { id: "ticket", name: "Ticket", sortable: true, filter: textFilter() },
+      note: { id: "note", name: "Note", CellComponent: TruncatedTextCell, filter: textFilter() },
+      date: {
+        id: "date",
+        name: "Date",
+        sortable: true,
+        firstSortDirection: "desc",
+        CellComponent: DateCell,
+        filter: dateRangeFilter(),
+      },
       // Users without a NetID show their name instead of an empty entry
       users: { id: "users", name: "Users", value: (note) => note.users.map((user) => user.netid || user.name).join(", ") },
       edit: {

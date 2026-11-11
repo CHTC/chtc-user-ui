@@ -3,6 +3,7 @@
 import { AuthGuard } from "@/src/components/AuthGuard";
 import ServerTable, { ServerTableColumns } from "@/src/components/Table/ServerTable";
 import { dateRangeFilter, optionsFilter, textFilter, type SortState } from "@chtc/web-components";
+import { positionOptions } from "@/src/components/Forms/UserApplicationForm/UserApplicationCreateForm";
 import { DateCell, makeIconLinkCell } from "@/src/components/TableCells/TableCells";
 import type { UserForm } from "@/types";
 import { Edit } from "@mui/icons-material";
@@ -57,6 +58,7 @@ const columns: ServerTableColumns<UserForm> = {
     name: "Position",
     sortable: true,
     value: (application) => formatPosition(application.position),
+    filter: optionsFilter(positionOptions),
   },
   created_at: {
     id: "created_at",

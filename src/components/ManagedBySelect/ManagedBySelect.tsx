@@ -6,7 +6,7 @@ import { CircularProgress, FormControl, FormHelperText, InputAdornment, MenuItem
 import { green, red } from "@mui/material/colors";
 import { useEffect, useRef, useState } from "react";
 
-const MANAGED_BY_OPTIONS: { value: EntityManagerEnum; label: string }[] = [
+export const MANAGED_BY_OPTIONS: { value: EntityManagerEnum; label: string }[] = [
   { value: "APPLICATION", label: "Application" },
   { value: "MANIFEST", label: "Manifest" },
   { value: "MORGRIDGE_ACTIVE_DIRECTORY", label: "Morgridge Active Directory" },
