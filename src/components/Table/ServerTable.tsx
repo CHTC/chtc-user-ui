@@ -7,6 +7,7 @@ import FilterButton from "@/src/components/Table/FilterButton/FilterButton";
 import {
   DEFAULT_PAGE_SIZE,
   DEFAULT_PAGE_SIZE_OPTIONS,
+  isDateRange,
   Table,
   type ActionConfig,
   type DisplayColumn,
@@ -333,9 +334,24 @@ function filterParams(field: string, kind: FilterKind, value: unknown): [string,
         [field, `ge.${value[0]}`],
         [field, `le.${value[1]}`],
       ];
+    case "dateRange": {
+      if (!isDateRange(value)) return [];
+      const params: [string, string][] = [];
+      if (value.from) params.push([field, `ge.${value.from}`]);
+      // The To day is included, so the range ends where the next day starts
+      if (value.to) params.push([field, `lt.${nextDay(value.to)}`]);
+      return params;
+    }
     default:
       throw new Error(`"${kind}" does not have a API filter params handler`);
   }
+}
+
+// The "YYYY-MM-DD" date after the given one
+function nextDay(date: string): string {
+  const next = new Date(`${date}T00:00`);
+  next.setDate(next.getDate() + 1);
+  return [next.getFullYear(), next.getMonth() + 1, next.getDate()].map((n) => String(n).padStart(2, "0")).join("-");
 }
 
 // Sorts are written to the URL as the column id, prefixed with "-" when descending

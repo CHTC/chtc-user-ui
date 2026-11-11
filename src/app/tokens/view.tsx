@@ -2,7 +2,7 @@
 
 import { AuthGuard } from "@/src/components/AuthGuard";
 import ServerTable, { ServerTableColumns } from "@/src/components/Table/ServerTable";
-import type { SortState } from "@chtc/web-components";
+import { dateRangeFilter, type SortState } from "@chtc/web-components";
 import { DateCell, makeIconLinkCell } from "@/src/components/TableCells/TableCells";
 import type { TokenGet } from "@/types";
 import { Edit } from "@mui/icons-material";
@@ -21,8 +21,15 @@ const columns: ServerTableColumns<TokenGet> = {
     sortable: true,
     firstSortDirection: "desc",
     CellComponent: DateCell,
+    filter: dateRangeFilter(),
   },
-  expires_at: { id: "expires_at", name: "Expires At", sortable: true, CellComponent: DateCell },
+  expires_at: {
+    id: "expires_at",
+    name: "Expires At",
+    sortable: true,
+    CellComponent: DateCell,
+    filter: dateRangeFilter(),
+  },
 };
 
 // Newest first

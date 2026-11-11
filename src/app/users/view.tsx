@@ -2,7 +2,7 @@
 
 import { AuthGuard } from "@/src/components/AuthGuard";
 import ServerTable, { ServerTableColumns } from "@/src/components/Table/ServerTable";
-import type { SortState } from "@chtc/web-components";
+import { dateRangeFilter, type SortState } from "@chtc/web-components";
 import { DateCell, EmailCell, makeIconLinkCell, TruncatedTextCell } from "@/src/components/TableCells/TableCells";
 import type { User } from "@/types";
 import { Edit } from "@mui/icons-material";
@@ -28,6 +28,7 @@ const columns: ServerTableColumns<User> = {
     sortable: true,
     firstSortDirection: "desc",
     CellComponent: DateCell,
+    filter: dateRangeFilter(),
   },
 };
 
