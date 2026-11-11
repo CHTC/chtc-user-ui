@@ -29,6 +29,13 @@ export interface ServerColumnConfig<R extends TableData> extends DisplayColumn<R
   sortable?: boolean;
   firstSortDirection?: SortState["direction"];
   filter?: FilterDef;
+  /** The API field the filter applies to, when it isn't the column id */
+  filterField?: string;
+}
+
+// A filterable column with the API field its filter applies to
+interface ServerFilterColumn<R extends TableData> extends FilterColumn<R> {
+  field: string;
 }
 
 export type ServerTableColumns<R extends TableData> = Record<string, ServerColumnConfig<R> | ActionConfig<R>>;
@@ -115,7 +122,9 @@ const ServerTableContent = <R extends TableData>({
   const filterColumns = useMemo(
     () =>
       Object.values(columns).flatMap((column) =>
-        "filter" in column && column.filter ? [{ id: column.id, name: column.name, filter: column.filter }] : [],
+        "filter" in column && column.filter
+          ? [{ id: column.id, name: column.name, filter: column.filter, field: column.filterField ?? column.id }]
+          : [],
       ),
     [columns],
   );
@@ -195,7 +204,7 @@ const ServerTableContent = <R extends TableData>({
       Object.values(columns).map((column) => {
         // Columns with nothing for ServerTable to handle, actions included, go to Table as they are
         if (!("sortable" in column || "filter" in column)) return column;
-        const { sortable, firstSortDirection = "asc", filter: _filter, ...display } = column;
+        const { sortable, firstSortDirection = "asc", filter: _filter, filterField: _filterField, ...display } = column;
         if (!sortable) return display;
         return {
           ...display,
@@ -281,7 +290,7 @@ async function fetchPage<R extends TableData>(
     tiebreakers = [],
     searchFields = [],
     filterColumns = [],
-  }: { tiebreakers?: SortState[]; searchFields?: string[]; filterColumns?: FilterColumn<R>[] },
+  }: { tiebreakers?: SortState[]; searchFields?: string[]; filterColumns?: ServerFilterColumn<R>[] },
 ): Promise<TablePage<R>> {
   const params = new URLSearchParams({
     page: String(query.page),
@@ -301,10 +310,10 @@ async function fetchPage<R extends TableData>(
     params.append("or", `(${searchFields.map((field) => `${field}.ilike.${search}`).join(",")})`);
   }
 
-  filterColumns.forEach(({ id, filter }) => {
+  filterColumns.forEach(({ id, field, filter }) => {
     const value = query.filters[id];
     if (value === undefined) return;
-    filterParams(id, filter.kind, value).forEach(([key, param]) => params.append(key, param));
+    filterParams(field, filter.kind, value).forEach(([key, param]) => params.append(key, param));
   });
 
   const response = await apiFetch(`${endpoint}?${params}`);
@@ -342,6 +351,9 @@ function filterParams(field: string, kind: FilterKind, value: unknown): [string,
       if (value.to) params.push([field, `lt.${nextDay(value.to)}`]);
       return params;
     }
+    case "text":
+      // ilike matches the text anywhere in the field, ignoring case
+      return [[field, `ilike.${value}`]];
     default:
       throw new Error(`"${kind}" does not have a API filter params handler`);
   }

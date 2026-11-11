@@ -2,7 +2,7 @@
 
 import { AuthGuard } from "@/src/components/AuthGuard";
 import ServerTable, { ServerTableColumns } from "@/src/components/Table/ServerTable";
-import { dateRangeFilter, optionsFilter, type SortState } from "@chtc/web-components";
+import { dateRangeFilter, optionsFilter, textFilter, type SortState } from "@chtc/web-components";
 import { DateCell, makeIconLinkCell } from "@/src/components/TableCells/TableCells";
 import type { UserForm } from "@/types";
 import { Edit } from "@mui/icons-material";
@@ -31,6 +31,9 @@ const columns: ServerTableColumns<UserForm> = {
     id: "created_by",
     name: "Created By",
     value: (application) => application.created_by?.name ?? application.created_by?.email1 ?? "",
+    filter: textFilter(),
+    // created_by is the user's id; the API has the requester's name as its own field
+    filterField: "created_by_name",
   },
   status: {
     id: "status",
@@ -47,6 +50,7 @@ const columns: ServerTableColumns<UserForm> = {
     name: "PI",
     sortable: true,
     value: (application) => application.pi_name ?? application.pi_email ?? application.pi_id ?? "",
+    filter: textFilter(),
   },
   position: {
     id: "position",
