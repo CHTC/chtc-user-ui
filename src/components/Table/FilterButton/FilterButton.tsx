@@ -19,8 +19,10 @@ export const FilterButton = <R extends TableData>(props: SearchFiltersProps<R>) 
         open={anchor !== null}
         anchorEl={anchor}
         onClose={() => setAnchor(null)}
-        anchorOrigin={{ vertical: "bottom", horizontal: "left" }}
-        slotProps={{ paper: { sx: { mt: 1 } } }}
+        // Opens beside the button, top edges lined up
+        anchorOrigin={{ vertical: "top", horizontal: "right" }}
+        transformOrigin={{ vertical: "top", horizontal: "left" }}
+        slotProps={{ paper: { sx: { ml: 1 } } }}
       >
         <SearchFilters {...props} sx={{ border: 0, typography: "body1" }} />
       </Popover>
