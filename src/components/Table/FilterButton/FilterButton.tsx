@@ -2,12 +2,14 @@
 
 import { SearchFilters, type SearchFiltersProps, type TableData } from "@chtc/web-components";
 import { FilterList } from "@mui/icons-material";
-import { Button, Popover } from "@mui/material";
+import { FIELD_HEIGHT_SPACING } from "@/src/app/theme";
+import { Button, Popover, useTheme } from "@mui/material";
 import { useState } from "react";
 
 /** A Filter button that opens SearchFilters in a popover. */
 export const FilterButton = <R extends TableData>(props: SearchFiltersProps<R>) => {
   const [anchor, setAnchor] = useState<HTMLElement | null>(null);
+  const theme = useTheme();
 
   return (
     <>
@@ -24,7 +26,12 @@ export const FilterButton = <R extends TableData>(props: SearchFiltersProps<R>) 
         transformOrigin={{ vertical: "top", horizontal: "left" }}
         slotProps={{ paper: { sx: { ml: 1 } } }}
       >
-        <SearchFilters {...props} sx={{ border: 0, typography: "body1" }} />
+        <SearchFilters
+          {...props}
+          // Field-height inputs plus room above and below for their raised labels
+          rowHeight={parseInt(theme.spacing(FIELD_HEIGHT_SPACING + 2.5), 10)}
+          sx={{ border: 0, typography: "body1" }}
+        />
       </Popover>
     </>
   );

@@ -9,6 +9,9 @@ import Link from "next/link";
 const rhd = Red_Hat_Display({ subsets: ["latin"] });
 const rht = Red_Hat_Text({ subsets: ["latin"] });
 
+// Theme spacing units for the height of a small outlined TextField, shared with anything sized to match it
+export const FIELD_HEIGHT_SPACING = 5;
+
 declare module "@mui/material/Button" {
   interface ButtonPropsVariantOverrides {
     // A button that sits beside a small outlined text field and looks like one
@@ -72,7 +75,7 @@ const theme = responsiveFontSizes(
             // Same height, border and text as a small outlined TextField
             style: ({ theme }) => ({
               ...theme.typography.body1,
-              height: theme.spacing(5),
+              height: theme.spacing(FIELD_HEIGHT_SPACING),
               padding: theme.spacing(0, 1.5),
               border: `1px solid ${alpha(theme.palette.common.black, 0.23)}`,
               color: theme.palette.text.primary,
