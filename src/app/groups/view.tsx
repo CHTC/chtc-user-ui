@@ -2,7 +2,7 @@
 
 import { AuthGuard } from "@/src/components/AuthGuard";
 import ServerTable, { ServerTableColumns } from "@/src/components/Table/ServerTable";
-import type { SortState } from "@chtc/web-components";
+import { booleanFilter, numberFilter, textFilter, type SortState } from "@chtc/web-components";
 import { makeIconLinkCell } from "@/src/components/TableCells/TableCells";
 import type { Group } from "@/types";
 import { Edit } from "@mui/icons-material";
@@ -13,19 +13,20 @@ const columns: ServerTableColumns<Group> = {
     name: "",
     CellComponent: makeIconLinkCell<Group>({ href: (group) => `/groups/edit?id=${group.id}`, icon: <Edit />, ariaLabel: "Edit group" }),
   },
-  name: { id: "name", name: "Group Name", sortable: true },
+  name: { id: "name", name: "Group Name", sortable: true, filter: textFilter() },
   // The API sorts point_of_contact by user id, not name, so this column isn't sortable
   point_of_contact: {
     id: "point_of_contact",
     name: "Point of Contact",
     value: (group) => group.point_of_contact?.name ?? group.point_of_contact?.email1 ?? "",
   },
-  unix_gid: { id: "unix_gid", name: "GID", sortable: true },
+  unix_gid: { id: "unix_gid", name: "GID", sortable: true, filter: numberFilter() },
   has_groupdir: {
     id: "has_groupdir",
     name: "Has Group Directory?",
     sortable: true,
     value: (group) => (group.has_groupdir ? "Yes" : "No"),
+    filter: booleanFilter(),
   },
 };
 

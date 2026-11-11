@@ -87,7 +87,7 @@ interface UserApplicationCreateFormProps {
 const TOTAL_STEPS = 4;
 const LAST_STEP_INDEX = TOTAL_STEPS - 1;
 
-const positionOptions: Array<{ value: PositionEnum; label: string }> = [
+export const positionOptions: Array<{ value: PositionEnum; label: string }> = [
   { value: "FACULTY", label: "Faculty" },
   { value: "STAFF", label: "Staff" },
   { value: "POSTDOC", label: "Post-Doctorate" },

@@ -2,7 +2,7 @@
 
 import { AuthGuard } from "@/src/components/AuthGuard";
 import ServerTable, { ServerTableColumns } from "@/src/components/Table/ServerTable";
-import type { SortState } from "@chtc/web-components";
+import { dateRangeFilter, textFilter, type SortState } from "@chtc/web-components";
 import { DateCell, EmailCell, makeIconLinkCell, TruncatedTextCell } from "@/src/components/TableCells/TableCells";
 import type { User } from "@/types";
 import { Edit } from "@mui/icons-material";
@@ -13,9 +13,9 @@ const columns: ServerTableColumns<User> = {
     name: "",
     CellComponent: makeIconLinkCell<User>({ href: (user) => `/users/edit?id=${user.id}`, icon: <Edit />, ariaLabel: "Edit user" }),
   },
-  name: { id: "name", name: "Name", sortable: true },
-  email1: { id: "email1", name: "Email", sortable: true, CellComponent: EmailCell },
-  netid: { id: "netid", name: "NetID", sortable: true },
+  name: { id: "name", name: "Name", sortable: true, filter: textFilter() },
+  email1: { id: "email1", name: "Email", sortable: true, CellComponent: EmailCell, filter: textFilter() },
+  netid: { id: "netid", name: "NetID", sortable: true, filter: textFilter() },
   submit_nodes: {
     id: "submit_nodes",
     name: "Submit Nodes",
@@ -28,6 +28,7 @@ const columns: ServerTableColumns<User> = {
     sortable: true,
     firstSortDirection: "desc",
     CellComponent: DateCell,
+    filter: dateRangeFilter(),
   },
 };
 

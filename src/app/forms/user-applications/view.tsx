@@ -1,8 +1,9 @@
 "use client";
 
 import { AuthGuard } from "@/src/components/AuthGuard";
-import ServerTable, { ServerTableColumns, ServerTableFilter } from "@/src/components/Table/ServerTable";
-import type { SortState } from "@chtc/web-components";
+import ServerTable, { ServerTableColumns } from "@/src/components/Table/ServerTable";
+import { dateRangeFilter, optionsFilter, textFilter, type SortState } from "@chtc/web-components";
+import { positionOptions } from "@/src/components/Forms/UserApplicationForm/UserApplicationCreateForm";
 import { DateCell, makeIconLinkCell } from "@/src/components/TableCells/TableCells";
 import type { UserForm } from "@/types";
 import { Edit } from "@mui/icons-material";
@@ -31,19 +32,33 @@ const columns: ServerTableColumns<UserForm> = {
     id: "created_by",
     name: "Created By",
     value: (application) => application.created_by?.name ?? application.created_by?.email1 ?? "",
+    filter: textFilter(),
+    // created_by is the user's id; the API has the requester's name as its own field
+    filterField: "created_by_name",
   },
-  status: { id: "status", name: "Status", sortable: true },
+  status: {
+    id: "status",
+    name: "Status",
+    sortable: true,
+    filter: optionsFilter([
+      { value: "PENDING", label: "Pending" },
+      { value: "APPROVED", label: "Approved" },
+      { value: "DENIED", label: "Denied" },
+    ]),
+  },
   pi_name: {
     id: "pi_name",
     name: "PI",
     sortable: true,
     value: (application) => application.pi_name ?? application.pi_email ?? application.pi_id ?? "",
+    filter: textFilter(),
   },
   position: {
     id: "position",
     name: "Position",
     sortable: true,
     value: (application) => formatPosition(application.position),
+    filter: optionsFilter(positionOptions),
   },
   created_at: {
     id: "created_at",
@@ -51,20 +66,9 @@ const columns: ServerTableColumns<UserForm> = {
     sortable: true,
     firstSortDirection: "desc",
     CellComponent: DateCell,
+    filter: dateRangeFilter(),
   },
 };
-
-const filters: ServerTableFilter[] = [
-  {
-    id: "status",
-    label: "Status",
-    options: [
-      { value: "PENDING", label: "Pending" },
-      { value: "APPROVED", label: "Approved" },
-      { value: "DENIED", label: "Denied" },
-    ],
-  },
-];
 
 // Newest first
 const defaultSort: SortState<keyof UserForm & string> = { columnId: "id", direction: "desc" };
@@ -90,7 +94,6 @@ function View() {
           defaultPageSize={50}
           searchLabel="Search by Requester Name, NetID, or Email"
           searchFields={searchFields}
-          filters={filters}
           emptyMessage="No applications found."
         />
       </AuthGuard>

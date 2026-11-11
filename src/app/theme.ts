@@ -1,13 +1,23 @@
 "use client";
 
 import { chtcTheme } from "@chtc/web-components";
-import { createTheme, responsiveFontSizes } from "@mui/material";
+import { alpha, createTheme, responsiveFontSizes } from "@mui/material";
 import { Red_Hat_Display, Red_Hat_Text } from "next/font/google";
 import Link from "next/link";
 
 // We are here for the font families only, the fonts are loaded in the layout
 const rhd = Red_Hat_Display({ subsets: ["latin"] });
 const rht = Red_Hat_Text({ subsets: ["latin"] });
+
+// Theme spacing units for the height of a small outlined TextField, shared with anything sized to match it
+export const FIELD_HEIGHT_SPACING = 5;
+
+declare module "@mui/material/Button" {
+  interface ButtonPropsVariantOverrides {
+    // A button that sits beside a small outlined text field and looks like one
+    field: true;
+  }
+}
 
 const theme = responsiveFontSizes(
   createTheme({
@@ -57,6 +67,26 @@ const theme = responsiveFontSizes(
         defaultProps: {
           component: Link,
         },
+      },
+      MuiButton: {
+        variants: [
+          {
+            props: { variant: "field" },
+            // Same height, border and text as a small outlined TextField
+            style: ({ theme }) => ({
+              ...theme.typography.body1,
+              height: theme.spacing(FIELD_HEIGHT_SPACING),
+              padding: theme.spacing(0, 1.5),
+              border: `1px solid ${alpha(theme.palette.common.black, 0.23)}`,
+              color: theme.palette.text.primary,
+              textTransform: "none",
+              "&:hover": {
+                borderColor: theme.palette.text.primary,
+                backgroundColor: "transparent",
+              },
+            }),
+          },
+        ],
       },
     },
   }),
