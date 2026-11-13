@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Generate LOGIN_TOKEN and CSRF_TOKEN for development environment.
-Tokens are JWT-encoded and written to .env file.
+Tokens are JWT-encoded and written to $TOKENS_FILE, which nginx loads at startup.
 """
 import os
 import sys
@@ -25,8 +25,7 @@ def create_login_token(expires_delta: timedelta | None = None, **data):
         expire = datetime.now(timezone.utc) + timedelta(minutes=60 * 8)
     to_encode.update({"exp": expire})
 
-    # Use a dev secret key if not set
-    secret_key = os.environ.get("SECRET_KEY", "dev-secret-key-change-in-production")
+    secret_key = os.environ["SECRET_KEY"]
 
     encoded_jwt = jwt.encode(
         to_encode, secret_key, algorithm="HS256"
@@ -34,29 +33,11 @@ def create_login_token(expires_delta: timedelta | None = None, **data):
     return encoded_jwt
 
 
-def update_env_file(env_path: Path, login_token: str, csrf_token: str):
-    """Update .env file with generated tokens"""
+def write_tokens_file(tokens_path: Path, login_token: str, csrf_token: str):
+    """Write the tokens where nginx's entrypoint sources them, replacing any earlier ones"""
 
-    # Read existing .env file
-    if env_path.exists():
-        with open(env_path, 'r') as f:
-            lines = f.readlines()
-    else:
-        lines = []
-
-    # Remove existing token lines
-    lines = [line for line in lines if not line.startswith('LOGIN_TOKEN=') and not line.startswith('CSRF_TOKEN=')]
-
-    # Add new tokens
-    lines.append(f'\n# Auto-generated tokens (regenerate with: docker compose run --rm setup)\n')
-    lines.append(f'LOGIN_TOKEN={login_token}\n')
-    lines.append(f'CSRF_TOKEN={csrf_token}\n')
-
-    # Write back to .env
-    with open(env_path, 'w') as f:
-        f.writelines(lines)
-
-    print(f"✓ Generated tokens written to {env_path}")
+    tokens_path.write_text(f'LOGIN_TOKEN={login_token}\nCSRF_TOKEN={csrf_token}\n')
+    print(f"✓ Generated tokens written to {tokens_path}")
 
 
 def main():
@@ -83,9 +64,7 @@ def main():
     print(f"LOGIN_TOKEN: {login_token[:50]}...")
     print(f"CSRF_TOKEN: {csrf_token[:50]}...")
 
-    # Update .env file in working directory
-    env_path = Path.cwd() / '.env'
-    update_env_file(env_path, login_token, csrf_token)
+    write_tokens_file(Path(os.environ["TOKENS_FILE"]), login_token, csrf_token)
 
 
 if __name__ == "__main__":

@@ -1,0 +1,6 @@
+#!/bin/sh
+# Sourced by the nginx image's entrypoint before it fills in nginx.conf: loads the dev login
+# tokens the `setup` service wrote, so nginx.conf's ${LOGIN_TOKEN} and ${CSRF_TOKEN} resolve.
+set -a
+. /tokens/tokens.env
+set +a
