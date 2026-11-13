@@ -1,12 +1,16 @@
 services:
+  # Mints the dev login and CSRF tokens nginx sends to the API, fresh on every `docker compose up`
   setup:
     image: "python:3.12-slim"
     volumes:
-      - .:/app
-    working_dir: /app
-    command: python scripts/dev/generate_tokens.py
-    env_file:
-      - .env
+      - ./scripts/dev:/scripts:ro
+      - dev-tokens:/tokens
+    command: python /scripts/generate_tokens.py
+    environment:
+      # Must match the API's SECRET_KEY. The default matches chtc-user-app-api's example.env; set
+      # SECRET_KEY in .env or the shell only to point at an API with a different key.
+      SECRET_KEY: ${SECRET_KEY:-local-dev-only}
+      TOKENS_FILE: /tokens/tokens.env
 
   nginx:
     build:
@@ -14,10 +18,13 @@ services:
       dockerfile: nginx.Dockerfile
     ports:
       - "127.0.0.1:3600:80"
+    volumes:
+      - dev-tokens:/tokens:ro
     environment:
       NGINX_ENVSUBST_OUTPUT_DIR: /etc/nginx
-    env_file:
-      - .env
     depends_on:
       setup:
         condition: service_completed_successfully
+
+volumes:
+  dev-tokens:
