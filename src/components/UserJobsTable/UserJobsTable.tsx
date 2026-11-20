@@ -38,6 +38,7 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import useSWR from "swr";
 
+import type { User } from "@/types";
 import type { UserRangeRow, UserRangeSummary } from "./types";
 
 const START_PARAM = "start";
@@ -446,6 +447,90 @@ function compare(a: UserRangeRow, b: UserRangeRow, key: SortKey, descending: boo
   return descending ? -result : result;
 }
 
+// --- Calendar access ----------------------------------------------------------
+//
+// The calendar reads job history from ap2001's htcondordb only, and the API
+// refuses (409) anyone without ap2001 among their submit nodes. So a row only
+// gets a calendar link when its owner is on ap2001 -- a link that leads to a
+// refusal is worse than no link.
+
+/** The access point the calendar's job history comes from. */
+const CALENDAR_AP = "ap2001";
+
+/** "ap2001.chtc.wisc.edu" and "ap2001" are the same node; submit_nodes holds both forms. Mirrors the API. */
+function shortHost(name: string | null | undefined): string {
+  return (name ?? "").trim().toLowerCase().split(".")[0];
+}
+
+/**
+ * Which of `owners` have the calendar's AP among their submit nodes.
+ *
+ * One /users request for the visible page rather than one per row. Undefined
+ * while loading; on a failed lookup every owner is let through, since the
+ * calendar page explains a refusal itself and hiding every link would leave the
+ * table with no way in at all.
+ */
+function useCalendarOwners(owners: string[]): Set<string> | undefined {
+  // The API's in.(...) list is split on commas and bracketed by parentheses
+  const queryable = owners.filter((owner) => !/[,()]/.test(owner)).sort();
+
+  const { data, error } = useSWR<Set<string>>(
+    queryable.length > 0 ? ["/users", "calendar-access", ...queryable] : null,
+    async () => {
+      const params = new URLSearchParams({
+        netid: `in.(${queryable.join(",")})`,
+        page_size: String(queryable.length),
+      });
+      const response = await apiFetch(`/users?${params}`);
+      if (!response.ok) throw new Error(response.statusText);
+      const users = (await response.json()) as User[];
+      return new Set(
+        users
+          .filter((user) => user.netid && (user.submit_nodes ?? []).some((node) => shortHost(node.name) === CALENDAR_AP))
+          .map((user) => user.netid as string),
+      );
+    },
+    { revalidateOnFocus: false },
+  );
+
+  if (error) return new Set(owners);
+  return data;
+}
+
+function CalendarLinkCell({ owner, access }: { owner: string; access: Set<string> | undefined }) {
+  if (access?.has(owner)) {
+    return (
+      <IconButton
+        component={Link}
+        // The netid only. The table's range used to go with it, on the reasoning
+        // that the reader had just asked about those days -- but the calendar
+        // loads exactly the window it is given and only widens when the reader
+        // pages to another month, so a week-long range opened a month whose
+        // other three weeks were blank. Its own default (the last five weeks)
+        // fills the month it opens on, which is the question the calendar is
+        // actually for.
+        href={`/users/jobs/calendar/?user=${encodeURIComponent(owner)}`}
+        size="small"
+        aria-label={`Open ${owner}'s job calendar`}
+      >
+        <CalendarMonthIcon fontSize="small" />
+      </IconButton>
+    );
+  }
+
+  // Disabled rather than absent, so the column reads the same on every row and
+  // the tooltip can say why. A disabled button fires no events, hence the span.
+  return (
+    <Tooltip title={access ? `Not on ${CALENDAR_AP}, so there is no job history to show` : ""}>
+      <span>
+        <IconButton size="small" disabled aria-label={`No job calendar for ${owner}`}>
+          <CalendarMonthIcon fontSize="small" />
+        </IconButton>
+      </span>
+    </Tooltip>
+  );
+}
+
 // --- Page ---------------------------------------------------------------------
 
 function TableSkeleton() {
@@ -557,6 +642,7 @@ export default function UserJobsTable() {
   }, [data, search, sortKey, descending]);
 
   const visible = rows.slice(page * ROWS_PER_PAGE, (page + 1) * ROWS_PER_PAGE);
+  const calendarOwners = useCalendarOwners(visible.map((row) => row.owner));
 
   return (
     <Stack spacing={2}>
@@ -695,23 +781,7 @@ export default function UserJobsTable() {
                   visible.map((row) => (
                     <TableRow key={row.owner} hover>
                       <TableCell padding="checkbox">
-                        <IconButton
-                          component={Link}
-                          // The netid only. The table's range used to go with
-                          // it, on the reasoning that the reader had just asked
-                          // about those days -- but the calendar loads exactly
-                          // the window it is given and only widens when the
-                          // reader pages to another month, so a week-long range
-                          // opened a month whose other three weeks were blank.
-                          // Its own default (the last five weeks) fills the
-                          // month it opens on, which is the question the
-                          // calendar is actually for.
-                          href={`/users/jobs/calendar/?user=${encodeURIComponent(row.owner)}`}
-                          size="small"
-                          aria-label={`Open ${row.owner}'s job calendar`}
-                        >
-                          <CalendarMonthIcon fontSize="small" />
-                        </IconButton>
+                        <CalendarLinkCell owner={row.owner} access={calendarOwners} />
                       </TableCell>
                       {COLUMNS.map((column) => (
                         <TableCell
