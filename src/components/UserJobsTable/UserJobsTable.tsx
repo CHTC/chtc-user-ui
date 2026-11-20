@@ -38,7 +38,6 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import useSWR from "swr";
 
-import EmptyTableMessage from "../EmptyTableMessage/EmptyTableMessage";
 import type { UserRangeRow, UserRangeSummary } from "./types";
 
 const START_PARAM = "start";
@@ -685,9 +684,13 @@ export default function UserJobsTable() {
               </TableHead>
               <TableBody>
                 {visible.length === 0 ? (
-                  <EmptyTableMessage
-                    message={search ? `No user matching "${search}"` : "No jobs finished in this range"}
-                  />
+                  <TableRow>
+                    <TableCell colSpan={COLUMNS.length + 1} align="center">
+                      <Typography color="text.secondary" sx={{ p: 2 }}>
+                        {search ? `No user matching "${search}"` : "No jobs finished in this range"}
+                      </Typography>
+                    </TableCell>
+                  </TableRow>
                 ) : (
                   visible.map((row) => (
                     <TableRow key={row.owner} hover>
